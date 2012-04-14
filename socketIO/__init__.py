@@ -8,7 +8,7 @@ class SocketIO(object):
 
     def __init__(self, host, port):
         self.host = host
-        self.port = port
+        self.port = int(port)
         self.__do_handshake()
         self.__connect()
         self.heartbeatThread = RhythmicThread(self.heartbeatTimeout - 2, self.__send_heartbeat)
