@@ -1,0 +1,3 @@
+recursive-include socketIO *
+include *.rst
+global-exclude *.pyc
