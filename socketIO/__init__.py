@@ -31,8 +31,11 @@ class SocketIO(object):
         self.connection = create_connection('ws://%s:%d/socket.io/1/websocket/%s' % (self.host, self.port, self.sessionID))
 
     def __del__(self):
-        self.heartbeatThread.cancel()
-        self.connection.close()
+        try:
+            self.heartbeatThread.cancel()
+            self.connection.close()
+        except AttributeError:
+            pass
 
     def __send_heartbeat(self):
         self.connection.send('2::')

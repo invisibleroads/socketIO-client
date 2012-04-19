@@ -10,7 +10,7 @@ CHANGES = open(os.path.join(here, 'CHANGES.rst')).read()
 
 setup(
     name='socketIO-client',
-    version='0.1',
+    version='0.1.1',
     description='Barebones socket.io client library',
     long_description=README + '\n\n' +  CHANGES,
     license='MIT',
