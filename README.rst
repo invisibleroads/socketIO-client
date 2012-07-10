@@ -34,3 +34,8 @@ Usage
         from socketIO import SocketIO
         s = SocketIO('localhost', 8000)
         s.emit('news', {'hello': 'world'})
+
+
+License
+-------
+This software is available under the MIT License.  Please see LICENSE.txt for the full license text.
