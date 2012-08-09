@@ -4,7 +4,7 @@ from threading import Thread, Event
 from urllib import urlopen
 
 
-__version__ = '0.1.2'
+__version__ = '0.2'
 
 
 PROTOCOL = 1  # SocketIO protocol version
