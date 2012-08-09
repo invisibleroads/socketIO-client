@@ -1,6 +1,6 @@
 socketIO-client
 ===============
-Here is a socket.io_ client library for Python.
+Here is a socket.io_ client library for Python.  You can use it to write test code for your socket.io_ server.
 
 .. _socket.io: http://socket.io
 
