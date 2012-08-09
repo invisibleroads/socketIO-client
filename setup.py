@@ -1,6 +1,7 @@
 import os
-
 from setuptools import setup, find_packages
+
+from socketIO import __version__
 
 
 here = os.path.abspath(os.path.dirname(__file__))
@@ -9,10 +10,10 @@ CHANGES = open(os.path.join(here, 'CHANGES.rst')).read()
 
 
 setup(
-    name='socketIO-client',
-    version='0.1.1',
-    description='Barebones socket.io client library',
-    long_description=README + '\n\n' +  CHANGES,
+    name='socketIOClient',
+    version=__version__,
+    description='A socket.io client library',
+    long_description=README + '\n\n' + CHANGES,
     license='MIT',
     classifiers=[
         'Intended Audience :: Developers',
@@ -21,9 +22,10 @@ setup(
     ],
     keywords='socket.io node.js',
     author='Roy Hyunjin Han',
-    author_email='starsareblueandfaraway@gmail.com',
-    url='https://github.com/invisibleroads/socketIO-client',
+    author_email='rhh@crosscompute.com',
+    url='https://github.com/invisibleroads/socketIOClient',
     install_requires=[
+        'anyjson',
         'websocket-client',
     ],
     packages=find_packages(),
