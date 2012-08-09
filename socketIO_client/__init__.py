@@ -127,7 +127,10 @@ class SocketIO(object):
         return channel
 
     def _send_heartbeat(self):
-        self._send_packet(2)
+        try:
+            self._send_packet(2)
+        except TypeError:
+            pass
 
     def message(self, messageData, callback=None, channelName=''):
         if isinstance(messageData, basestring):
