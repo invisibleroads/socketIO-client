@@ -10,7 +10,7 @@ CHANGES = open(os.path.join(here, 'CHANGES.rst')).read()
 
 
 setup(
-    name='socketIOClient',
+    name='socketIO-client',
     version=__version__,
     description='A socket.io client library',
     long_description=README + '\n\n' + CHANGES,
