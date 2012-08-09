@@ -1,4 +1,4 @@
-from socketIOClient import SocketIO, BaseNamespace
+from socketIO_client import SocketIO, BaseNamespace
 from time import sleep
 from unittest import TestCase
 

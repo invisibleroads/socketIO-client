@@ -22,7 +22,7 @@ Installation
     source $VIRTUAL_ENV/bin/activate
 
     # Install package
-    easy_install -U socketIOClient
+    easy_install -U socketIO-client
 
 
 Usage
@@ -34,14 +34,14 @@ Activate isolated environment. ::
 
 Emit. ::
 
-    from socketIOClient import SocketIO
+    from socketIO_client import SocketIO
 
     socketIO = SocketIO('localhost', 8000)
     socketIO.emit('aaa', {'bbb': 'ccc'})
 
 Emit with callback. ::
 
-    from socketIOClient import SocketIO
+    from socketIO_client import SocketIO
 
     def on_response(arg1, arg2, arg3, arg4):
         print arg1, arg2, arg3, arg4
@@ -52,7 +52,7 @@ Emit with callback. ::
 
 Define events. ::
 
-    from socketIOClient import SocketIO
+    from socketIO_client import SocketIO
 
     def on_ddd(arg1, arg2, arg3, arg4):
         print arg1, arg2, arg3, arg4
@@ -62,7 +62,7 @@ Define events. ::
 
 Define events in a namespace. ::
 
-    from socketIOClient import SocketIO, BaseNamespace
+    from socketIO_client import SocketIO, BaseNamespace
 
     class Namespace(BaseNamespace):
 
@@ -73,7 +73,7 @@ Define events in a namespace. ::
 
 Define standard events. ::
 
-    from socketIOClient import SocketIO, BaseNamespace
+    from socketIO_client import SocketIO, BaseNamespace
 
     class Namespace(BaseNamespace):
 

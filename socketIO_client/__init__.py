@@ -105,14 +105,11 @@ class SocketIO(object):
         return int(code), packetID, channelName, data
 
     def _send_packet(self, code, channelName='', data='', callback=None):
-        try:
-            self.connection.send(':'.join([
-                str(code),
-                self.set_callback(callback) if callback else '',
-                channelName,
-                data]))
-        except Exception, e:
-            pass
+        self.connection.send(':'.join([
+            str(code),
+            self.set_callback(callback) if callback else '',
+            channelName,
+            data]))
 
     def disconnect(self, channelName=''):
         self._send_packet(0, channelName)
