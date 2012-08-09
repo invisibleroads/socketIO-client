@@ -42,14 +42,15 @@ Installation
 
 Usage
 -----
----
 Activate isolated environment.
+
 .. code-block:: bash
 
     VIRTUAL_ENV=$HOME/.virtualenv
     source $VIRTUAL_ENV/bin/activate
 
 Emit.
+
 .. code-block:: python
 
     from socketIOClient import SocketIO
@@ -58,6 +59,7 @@ Emit.
     socketIO.emit('aaa', {'bbb': 'ccc'})
 
 Emit with callback.
+
 .. code-block:: python
 
     from socketIOClient import SocketIO
@@ -70,6 +72,7 @@ Emit with callback.
     socketIO.wait()
 
 Define events.
+
 .. code-block:: python
 
     from socketIOClient import SocketIO
@@ -81,6 +84,7 @@ Define events.
     socketIO.on('ddd', on_ddd)
 
 Define events in a namespace.
+
 .. code-block:: python
 
     from socketIOClient import SocketIO, BaseNamespace
@@ -93,6 +97,7 @@ Define events in a namespace.
     socketIO = SocketIO('localhost', 8000, Namespace)
 
 Define standard events.
+
 .. code-block:: python
 
     from socketIOClient import SocketIO, BaseNamespace
@@ -114,6 +119,7 @@ Define standard events.
     socketIO = SocketIO('localhost', 8000, Namespace)
 
 Define different behavior for different channels on a single socket.
+
 .. code-block:: python
 
     mainSocket = SocketIO('localhost', 8000, MainNamespace())
