@@ -23,7 +23,7 @@ setup(
     keywords='socket.io node.js',
     author='Roy Hyunjin Han',
     author_email='rhh@crosscompute.com',
-    url='https://github.com/invisibleroads/socketIOClient',
+    url='https://github.com/invisibleroads/socketIO-client',
     install_requires=[
         'anyjson',
         'websocket-client',
