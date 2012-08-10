@@ -1,3 +1,9 @@
+0.3
+---
+- Added support for secure connections
+- Added socketIO.wait()
+- Improved exception handling in heartbeatThread and namespaceThread
+
 0.2
 ---
 - Added support for callbacks and channels thanks to Paul Kienzle

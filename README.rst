@@ -38,27 +38,29 @@ Emit. ::
 
     socketIO = SocketIO('localhost', 8000)
     socketIO.emit('aaa', {'bbb': 'ccc'})
+    socketIO.wait(seconds=1)
 
 Emit with callback. ::
 
     from socketIO_client import SocketIO
 
-    def on_response(arg1, arg2, arg3, arg4):
-        print arg1, arg2, arg3, arg4
+    def on_response(*args):
+        print args
 
     socketIO = SocketIO('localhost', 8000)
     socketIO.emit('aaa', {'bbb': 'ccc'}, on_response)
-    socketIO.wait()
+    socketIO.wait(forCallbacks=True)
 
 Define events. ::
 
     from socketIO_client import SocketIO
 
-    def on_ddd(arg1, arg2, arg3, arg4):
-        print arg1, arg2, arg3, arg4
+    def on_ddd(*args):
+        print args
 
     socketIO = SocketIO('localhost', 8000)
     socketIO.on('ddd', on_ddd)
+    socketIO.wait()
 
 Define events in a namespace. ::
 
@@ -66,10 +68,11 @@ Define events in a namespace. ::
 
     class Namespace(BaseNamespace):
 
-        def on_ddd(self, arg1, arg2):
-            self.socketIO.emit('eee', {'fff': arg1 + arg2})
+        def on_ddd(self, *args):
+            self.socketIO.emit('eee', {'fff': 'ggg'})
 
     socketIO = SocketIO('localhost', 8000, Namespace)
+    socketIO.wait()
 
 Define standard events. ::
 
@@ -90,12 +93,31 @@ Define standard events. ::
             print '[Message] %s: %s' % (id, message)
 
     socketIO = SocketIO('localhost', 8000, Namespace)
+    socketIO.wait()
 
 Define different behavior for different channels on a single socket. ::
 
-    mainSocket = SocketIO('localhost', 8000, MainNamespace())
-    chatSocket = mainSocket.connect('/chat', ChatNamespace())
-    newsSocket = mainSocket.connect('/news', NewsNamespace())
+    from socketIO_client import SocketIO, BaseNamespace
+
+    class MainNamespace(BaseNamespace):
+
+        def on_aaa(self, *args):
+            print 'aaa', args
+
+    class ChatNamespace(BaseNamespace):
+
+        def on_bbb(self, *args):
+            print 'bbb', args
+
+    class NewsNamespace(BaseNamespace):
+
+        def on_ccc(self, *args):
+            print 'ccc', args
+
+    mainSocket = SocketIO('localhost', 8000, MainNamespace)
+    chatSocket = mainSocket.connect('/chat', ChatNamespace)
+    newsSocket = mainSocket.connect('/news', NewsNamespace)
+    mainSocket.wait()
 
 
 License

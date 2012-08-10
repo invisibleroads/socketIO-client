@@ -9,6 +9,11 @@ ON_RESPONSE_CALLED = False
 
 class TestSocketIO(TestCase):
 
+    def test_disconnect(self):
+        socketIO = SocketIO('localhost', 8000)
+        socketIO.disconnect()
+        self.assertEqual(socketIO.connected, False)
+
     def test_emit(self):
         socketIO = SocketIO('localhost', 8000, Namespace)
         socketIO.emit('aaa', PAYLOAD)
@@ -20,7 +25,7 @@ class TestSocketIO(TestCase):
         ON_RESPONSE_CALLED = False
         socketIO = SocketIO('localhost', 8000)
         socketIO.emit('aaa', PAYLOAD, on_response)
-        socketIO.wait()
+        socketIO.wait(forCallbacks=True)
         self.assertEqual(ON_RESPONSE_CALLED, True)
 
     def test_events(self):
