@@ -1,8 +1,6 @@
 import os
 from setuptools import setup, find_packages
 
-from socketIO_client import __version__
-
 
 here = os.path.abspath(os.path.dirname(__file__))
 README = open(os.path.join(here, 'README.rst')).read()
@@ -11,7 +9,7 @@ CHANGES = open(os.path.join(here, 'CHANGES.rst')).read()
 
 setup(
     name='socketIO-client',
-    version=__version__,
+    version='0.3',
     description='A socket.io client library',
     long_description=README + '\n\n' + CHANGES,
     license='MIT',
