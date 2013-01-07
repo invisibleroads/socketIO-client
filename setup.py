@@ -9,7 +9,7 @@ CHANGES = open(os.path.join(here, 'CHANGES.rst')).read()
 
 setup(
     name='socketIO-client',
-    version='0.3',
+    version='0.4',
     description='A socket.io client library',
     long_description=README + '\n\n' + CHANGES,
     license='MIT',
@@ -24,6 +24,7 @@ setup(
     url='https://github.com/invisibleroads/socketIO-client',
     install_requires=[
         'anyjson',
+        'gevent-socketio',
         'websocket-client',
     ],
     packages=find_packages(),
