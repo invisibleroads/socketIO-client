@@ -38,7 +38,7 @@ Emit. ::
 
     socketIO = SocketIO('localhost', 8000)
     socketIO.emit('aaa', {'bbb': 'ccc'})
-    socketIO.wait(seconds=1)
+    socketIO.wait(seconds=1)  # Exit after one second
 
 Emit with callback. ::
 
@@ -49,7 +49,7 @@ Emit with callback. ::
 
     socketIO = SocketIO('localhost', 8000)
     socketIO.emit('aaa', {'bbb': 'ccc'}, on_response)
-    socketIO.wait(forCallbacks=True)
+    socketIO.wait(forCallbacks=True)  # Exit after callbacks run
 
 Define events. ::
 
@@ -60,7 +60,7 @@ Define events. ::
 
     socketIO = SocketIO('localhost', 8000)
     socketIO.on('ddd', on_ddd)
-    socketIO.wait()
+    socketIO.wait()  # Loop until CTRL-C
 
 Define events in a namespace. ::
 
@@ -72,7 +72,7 @@ Define events in a namespace. ::
             self.socketIO.emit('eee', {'fff': 'ggg'})
 
     socketIO = SocketIO('localhost', 8000, Namespace)
-    socketIO.wait()
+    socketIO.wait()  # Loop until CTRL-C
 
 Define standard events. ::
 
@@ -93,7 +93,7 @@ Define standard events. ::
             print '[Message] %s: %s' % (id, message)
 
     socketIO = SocketIO('localhost', 8000, Namespace)
-    socketIO.wait()
+    socketIO.wait()  # Loop until CTRL-C
 
 Define different behavior for different channels on a single socket. ::
 
@@ -117,8 +117,13 @@ Define different behavior for different channels on a single socket. ::
     mainSocket = SocketIO('localhost', 8000, MainNamespace)
     chatSocket = mainSocket.connect('/chat', ChatNamespace)
     newsSocket = mainSocket.connect('/news', NewsNamespace)
-    mainSocket.wait()
+    mainSocket.wait()  # Loop until CTRL-C
 
+Open secure websockets (HTTPS / WSS) behind a proxy. ::
+
+    SocketIO('localhost', 8000, 
+        secure=True,
+        proxies={'http': 'http://proxy.example.com:8080'})
 
 License
 -------
