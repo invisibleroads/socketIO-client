@@ -1,5 +1,8 @@
-Let user define a proxy #5
-Let user emit without arguments #5
++ Fix unittests
++ Fix exceptions when websocket server disappears
+
+Fix thread exceptions
+
 Integrate Zac's fork #6
 Integrate Sajal's fork #7
 Integrate Francis's fork #10

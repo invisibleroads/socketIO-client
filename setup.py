@@ -24,7 +24,6 @@ setup(
     url='https://github.com/invisibleroads/socketIO-client',
     install_requires=[
         'anyjson',
-        'gevent-socketio',
         'websocket-client',
     ],
     packages=find_packages(),

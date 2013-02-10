@@ -16,9 +16,15 @@ class TestSocketIO(TestCase):
 
     def test_emit(self):
         socketIO = SocketIO('localhost', 8000, Namespace)
+        socketIO.emit('aaa')
+        sleep(0.5)
+        self.assertEqual(socketIO._namespace.payload, '')
+
+    def test_emit_with_payload(self):
+        socketIO = SocketIO('localhost', 8000, Namespace)
         socketIO.emit('aaa', PAYLOAD)
         sleep(0.5)
-        self.assertEqual(socketIO.namespace.payload, PAYLOAD)
+        self.assertEqual(socketIO._namespace.payload, PAYLOAD)
 
     def test_emit_with_callback(self):
         global ON_RESPONSE_CALLED
@@ -43,16 +49,26 @@ class TestSocketIO(TestCase):
         newsSocket = mainSocket.connect('/news', Namespace)
         newsSocket.emit('aaa', PAYLOAD)
         sleep(0.5)
-        self.assertNotEqual(mainSocket.namespace.payload, PAYLOAD)
-        self.assertNotEqual(chatSocket.namespace.payload, PAYLOAD)
-        self.assertEqual(newsSocket.namespace.payload, PAYLOAD)
+        self.assertNotEqual(mainSocket._namespace.payload, PAYLOAD)
+        self.assertNotEqual(chatSocket._namespace.payload, PAYLOAD)
+        self.assertEqual(newsSocket._namespace.payload, PAYLOAD)
+
+    def test_delete(self):
+        socketIO = SocketIO('localhost', 8000)
+        childThreads = [
+            socketIO._heartbeatThread,
+            socketIO._namespaceThread,
+        ]
+        del socketIO
+        for childThread in childThreads:
+            self.assertEqual(True, childThread.done.is_set())
 
 
 class Namespace(BaseNamespace):
 
     payload = None
 
-    def on_ddd(self, data):
+    def on_ddd(self, data=''):
         self.payload = data
 
 

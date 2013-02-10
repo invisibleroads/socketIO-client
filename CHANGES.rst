@@ -1,3 +1,6 @@
+0.4
+---
+
 0.3
 ---
 - Added support for secure connections

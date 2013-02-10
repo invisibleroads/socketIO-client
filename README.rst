@@ -35,10 +35,9 @@ Activate isolated environment. ::
 Emit. ::
 
     from socketIO_client import SocketIO
-
-    socketIO = SocketIO('localhost', 8000)
-    socketIO.emit('aaa', {'bbb': 'ccc'})
-    socketIO.wait(seconds=1)  # Exit after one second
+    with SocketIO('localhost', 8000) as socketIO:
+        socketIO.emit('aaa')
+        socketIO.wait(1)  # Wait a second
 
 Emit with callback. ::
 
@@ -47,9 +46,9 @@ Emit with callback. ::
     def on_response(*args):
         print args
 
-    socketIO = SocketIO('localhost', 8000)
-    socketIO.emit('aaa', {'bbb': 'ccc'}, on_response)
-    socketIO.wait(forCallbacks=True)  # Exit after callbacks run
+    with SocketIO('localhost', 8000) as socketIO:
+        socketIO.emit('aaa', {'bbb': 'ccc'}, on_response)
+        socketIO.wait(seconds=1, forCallbacks=True)  # Wait for callback
 
 Define events. ::
 
