@@ -1,7 +1,8 @@
 + Fix unittests
 + Fix exceptions when websocket server disappears
-
 Fix thread exceptions
+    Finish creating low-level _SocketIO to eliminate cyclic references
+    Move namespace and callback handling to _ListenerThread
 
 Integrate Zac's fork #6
 Integrate Sajal's fork #7
