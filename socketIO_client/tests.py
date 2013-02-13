@@ -13,18 +13,26 @@ class TestSocketIO(TestCase):
         socketIO = SocketIO('localhost', 8000)
         socketIO.disconnect()
         self.assertEqual(socketIO.connected, False)
+        childThreads = [
+            socketIO._rhythmicThread,
+            socketIO._listenerThread,
+        ]
+        for childThread in childThreads:
+            self.assertEqual(True, childThread.done.is_set())
 
     def test_emit(self):
-        socketIO = SocketIO('localhost', 8000, Namespace)
+        socketIO = SocketIO('localhost', 8000)
+        socketIO.define(Namespace)
         socketIO.emit('aaa')
         sleep(0.5)
-        self.assertEqual(socketIO._namespace.payload, '')
+        self.assertEqual(socketIO.get_namespace().payload, '')
 
     def test_emit_with_payload(self):
-        socketIO = SocketIO('localhost', 8000, Namespace)
+        socketIO = SocketIO('localhost', 8000)
+        socketIO.define(Namespace)
         socketIO.emit('aaa', PAYLOAD)
         sleep(0.5)
-        self.assertEqual(socketIO._namespace.payload, PAYLOAD)
+        self.assertEqual(socketIO.get_namespace().payload, PAYLOAD)
 
     def test_emit_with_callback(self):
         global ON_RESPONSE_CALLED
@@ -44,20 +52,21 @@ class TestSocketIO(TestCase):
         self.assertEqual(ON_RESPONSE_CALLED, True)
 
     def test_channels(self):
-        mainSocket = SocketIO('localhost', 8000, Namespace)
-        chatSocket = mainSocket.connect('/chat', Namespace)
-        newsSocket = mainSocket.connect('/news', Namespace)
+        socketIO = SocketIO('localhost', 8000)
+        mainSocket = socketIO.define(Namespace)
+        chatSocket = socketIO.define(Namespace, '/chat')
+        newsSocket = socketIO.define(Namespace, '/news')
         newsSocket.emit('aaa', PAYLOAD)
         sleep(0.5)
-        self.assertNotEqual(mainSocket._namespace.payload, PAYLOAD)
-        self.assertNotEqual(chatSocket._namespace.payload, PAYLOAD)
-        self.assertEqual(newsSocket._namespace.payload, PAYLOAD)
+        self.assertNotEqual(mainSocket.get_namespace().payload, PAYLOAD)
+        self.assertNotEqual(chatSocket.get_namespace().payload, PAYLOAD)
+        self.assertEqual(newsSocket.get_namespace().payload, PAYLOAD)
 
     def test_delete(self):
         socketIO = SocketIO('localhost', 8000)
         childThreads = [
-            socketIO._heartbeatThread,
-            socketIO._namespaceThread,
+            socketIO._rhythmicThread,
+            socketIO._listenerThread,
         ]
         del socketIO
         for childThread in childThreads:

@@ -70,7 +70,8 @@ Define events in a namespace. ::
         def on_ddd(self, *args):
             self.socketIO.emit('eee', {'fff': 'ggg'})
 
-    socketIO = SocketIO('localhost', 8000, Namespace)
+    socketIO = SocketIO('localhost', 8000)
+    socketIO.define(Namespace)
     socketIO.wait()  # Loop until CTRL-C
 
 Define standard events. ::
@@ -79,7 +80,7 @@ Define standard events. ::
 
     class Namespace(BaseNamespace):
 
-        def on_connect(self, socketIO):
+        def on_connect(self):
             print '[Connected]'
 
         def on_disconnect(self):
@@ -91,32 +92,36 @@ Define standard events. ::
         def on_message(self, id, message):
             print '[Message] %s: %s' % (id, message)
 
-    socketIO = SocketIO('localhost', 8000, Namespace)
+    socketIO = SocketIO('localhost', 8000)
+    socketIO.define(Namespace)
     socketIO.wait()  # Loop until CTRL-C
 
-Define different behavior for different channels on a single socket. ::
+Define different namespaces on a single socket. ::
 
     from socketIO_client import SocketIO, BaseNamespace
 
-    class MainNamespace(BaseNamespace):
+    class MainNamespace(Channel):
 
         def on_aaa(self, *args):
             print 'aaa', args
 
-    class ChatNamespace(BaseNamespace):
+    class ChatNamespace(Channel):
 
         def on_bbb(self, *args):
             print 'bbb', args
 
-    class NewsNamespace(BaseNamespace):
+    class NewsNamespace(Channel):
 
         def on_ccc(self, *args):
             print 'ccc', args
 
-    mainSocket = SocketIO('localhost', 8000, MainNamespace)
-    chatSocket = mainSocket.connect('/chat', ChatNamespace)
-    newsSocket = mainSocket.connect('/news', NewsNamespace)
-    mainSocket.wait()  # Loop until CTRL-C
+    socketIO = SocketIO('localhost', 8000)
+    socketIO.define(MainNamespace)
+    chatSocket = socketIO.define(ChatNamespace, '/chat')
+    chatSocket.emit('bbb')
+    newsSocket = socketIO.define(NewsNamespace, '/news')
+    newsSocket.emit('ccc')
+    socketIO.wait()  # Loop until CTRL-C
 
 Open secure websockets (HTTPS / WSS) behind a proxy. ::
 
