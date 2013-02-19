@@ -12,7 +12,7 @@ class TestSocketIO(TestCase):
     def test_disconnect(self):
         socketIO = SocketIO('localhost', 8000)
         socketIO.disconnect()
-        self.assertEqual(socketIO.connected, False)
+        self.assertEqual(False, socketIO.connected)
         childThreads = [
             socketIO._rhythmicThread,
             socketIO._listenerThread,
@@ -78,6 +78,7 @@ class Namespace(BaseNamespace):
     payload = None
 
     def on_ddd(self, data=''):
+        print '[Event] ddd(%s)' % data
         self.payload = data
 
 
