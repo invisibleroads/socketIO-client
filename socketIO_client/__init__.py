@@ -87,11 +87,14 @@ class SocketIO(object):
         self._channelByPath[channelPath] = channel
         return channel
 
+    def get_channel(self, channelPath=''):
+        return self._channelByPath[channelPath]
+
     def get_namespace(self, channelPath=''):
-        return self._channelByPath[channelPath].get_namespace()
+        return self.get_channel(channelPath).get_namespace()
 
     def on(self, eventName, eventCallback, channelPath=''):
-        return self._channelByPath[channelPath].on(eventName, eventCallback)
+        return self.get_channel(channelPath).on(eventName, eventCallback)
 
     def message(self, messageData, messageCallback=None, channelPath=''):
         self._socketIO.message(messageData, messageCallback, channelPath)
@@ -166,17 +169,22 @@ class _ListenerThread(Thread):
                 continue
             try:
                 channel = self._channelByPath[channelPath]
+            except KeyError:
+                print 'Received unexpected channelPath (%s)' % channelPath
+                continue
+            try:
                 delegate = {
-                    0: self.on_disconnect,
-                    1: self.on_connect,
-                    2: self.on_heartbeat,
-                    3: self.on_message,
-                    4: self.on_json,
-                    5: self.on_event,
-                    6: self.on_acknowledgment,
-                    7: self.on_error,
+                    '0': self.on_disconnect,
+                    '1': self.on_connect,
+                    '2': self.on_heartbeat,
+                    '3': self.on_message,
+                    '4': self.on_json,
+                    '5': self.on_event,
+                    '6': self.on_acknowledgment,
+                    '7': self.on_error,
                 }[code]
             except KeyError:
+                print 'Received unexpected code (%s)' % code
                 continue
             delegate(packetID, channel._get_eventCallback, data)
 
@@ -250,6 +258,7 @@ class _SocketIO(object):
         self.disconnect(force=True)
 
     def disconnect(self, channelPath='', force=False):
+        'Set force=True to skip closing the websocket'
         if not self.connected:
             return
         if channelPath:
@@ -306,7 +315,6 @@ class _SocketIO(object):
         return True if self.callbackByMessageID else False
 
     def recv_packet(self):
-        code, packetID, channelPath, data = -1, None, None, None
         try:
             packet = self.connection.recv()
         except WebSocketConnectionClosedException:
@@ -320,13 +328,14 @@ class _SocketIO(object):
         except AttributeError:
             raise SocketIOPacketError('Received invalid packet (%s)' % packet)
         packetCount = len(packetParts)
+        code, packetID, channelPath, data = None, None, None, None
         if 4 == packetCount:
             code, packetID, channelPath, data = packetParts
         elif 3 == packetCount:
             code, packetID, channelPath = packetParts
-        elif 1 == packetCount:  # pragma: no cover
+        elif 1 == packetCount:
             code = packetParts[0]
-        return int(code), packetID, channelPath, data
+        return code, packetID, channelPath, data
 
     def send_packet(self, code, channelPath='', data='', messageCallback=None):
         callbackNumber = self.set_messageCallback(messageCallback) if messageCallback else ''

@@ -24,14 +24,14 @@ class TestSocketIO(TestCase):
         socketIO = SocketIO('localhost', 8000)
         socketIO.define(Namespace)
         socketIO.emit('aaa')
-        sleep(0.5)
+        sleep(0.1)
         self.assertEqual(socketIO.get_namespace().payload, '')
 
     def test_emit_with_payload(self):
         socketIO = SocketIO('localhost', 8000)
         socketIO.define(Namespace)
         socketIO.emit('aaa', PAYLOAD)
-        sleep(0.5)
+        sleep(0.1)
         self.assertEqual(socketIO.get_namespace().payload, PAYLOAD)
 
     def test_emit_with_callback(self):
@@ -42,13 +42,21 @@ class TestSocketIO(TestCase):
         socketIO.wait(forCallbacks=True)
         self.assertEqual(ON_RESPONSE_CALLED, True)
 
+    def test_message(self):
+        global ON_RESPONSE_CALLED
+        ON_RESPONSE_CALLED = False
+        socketIO = SocketIO('localhost', 8000)
+        socketIO.message(PAYLOAD, on_response)
+        socketIO.wait(forCallbacks=True)
+        self.assertEqual(ON_RESPONSE_CALLED, True)
+
     def test_events(self):
         global ON_RESPONSE_CALLED
         ON_RESPONSE_CALLED = False
         socketIO = SocketIO('localhost', 8000)
         socketIO.on('ddd', on_response)
         socketIO.emit('aaa', PAYLOAD)
-        sleep(0.5)
+        sleep(0.1)
         self.assertEqual(ON_RESPONSE_CALLED, True)
 
     def test_channels(self):
@@ -56,11 +64,21 @@ class TestSocketIO(TestCase):
         mainSocket = socketIO.define(Namespace)
         chatSocket = socketIO.define(Namespace, '/chat')
         newsSocket = socketIO.define(Namespace, '/news')
-        newsSocket.emit('aaa', PAYLOAD)
-        sleep(0.5)
         self.assertNotEqual(mainSocket.get_namespace().payload, PAYLOAD)
         self.assertNotEqual(chatSocket.get_namespace().payload, PAYLOAD)
+        self.assertNotEqual(newsSocket.get_namespace().payload, PAYLOAD)
+        newsSocket.emit('aaa', PAYLOAD)
+        sleep(0.1)
         self.assertEqual(newsSocket.get_namespace().payload, PAYLOAD)
+
+    def test_channels_with_callback(self):
+        global ON_RESPONSE_CALLED
+        ON_RESPONSE_CALLED = False
+        socketIO = SocketIO('localhost', 8000)
+        mainSocket = socketIO.get_channel()
+        mainSocket.message(PAYLOAD, on_response)
+        sleep(0.1)
+        self.assertEqual(ON_RESPONSE_CALLED, True)
 
     def test_delete(self):
         socketIO = SocketIO('localhost', 8000)
