@@ -277,7 +277,7 @@ class ListenerThread(Thread):
     def on_event(self, packetID, channelName, data):
         valueByName = loads(data)
         eventName = valueByName['name']
-        eventArguments = valueByName['args']
+        eventArguments = valueByName.get('args', [])
         callback = self.get_callback(channelName, eventName)
         callback(*eventArguments)
 
