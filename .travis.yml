@@ -7,5 +7,6 @@ matrix:
   allow_failures:
     - python: 3.3
 install:
+  - sudo apt-get build-dep -qq python-gevent
   - pip install -r requirements.txt --use-mirrors
 script: python setup.py test
