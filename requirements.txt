@@ -5,5 +5,3 @@ websocket-client
 nose
 nose-cov
 gevent-socketio
-multiprocessing
-
