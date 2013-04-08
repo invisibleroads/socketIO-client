@@ -1,0 +1,7 @@
+#Install
+anyjson
+websocket-client
+#Test
+nose
+nose-cov
+gevent-socketio
