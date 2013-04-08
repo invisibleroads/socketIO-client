@@ -3,6 +3,46 @@ from time import sleep
 from unittest import TestCase
 
 
+from socketio import socketio_manage
+from socketio.namespace import BaseNamespace as SIOBaseNameSpace
+from socketio.server import SocketIOServer
+
+from multiprocessing import Process
+
+
+class SIONamespace(SIOBaseNameSpace):
+
+    def on_aaa(self, *args):
+        self.socket.send_packet(dict(
+            type='event',
+            name='ddd',
+            args=args,
+            endpoint=self.ns_name))
+
+
+class Application(object):
+
+    def __call__(self, environ, start_response):
+        socketio_manage(environ, {
+            '': SIONamespace,
+            '/chat': SIONamespace,
+            '/news': SIONamespace,
+        })
+
+
+socketIOServer = SocketIOServer(('0.0.0.0', 8000), Application())
+
+p = Process(target=socketIOServer.serve_forever)
+
+
+def setup_module(module):
+    p.start()
+
+
+def teardown_module(module):
+    p.terminate()
+
+
 PAYLOAD = {'bbb': 'ccc'}
 ON_RESPONSE_CALLED = False
 

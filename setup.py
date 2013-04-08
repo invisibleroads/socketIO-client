@@ -26,6 +26,7 @@ setup(
         'anyjson',
         'websocket-client',
     ],
+    test_suite="nose.collector",
     packages=find_packages(),
     include_package_data=True,
     zip_safe=True)
