@@ -286,7 +286,6 @@ class _SocketIO(object):
         self.send_packet(code, channelPath, data, messageCallback)
 
     def emit(self, eventName, *eventArguments, **eventKeywords):
-        code = 5
         if eventArguments and callable(eventArguments[-1]):
             messageCallback = eventArguments[-1]
             eventArguments = eventArguments[:-1]
@@ -294,7 +293,7 @@ class _SocketIO(object):
             messageCallback = None
         channelPath = eventKeywords.get('channelPath', '')
         data = dumps(dict(name=eventName, args=eventArguments))
-        self.send_packet(code, channelPath, data, messageCallback)
+        self.send_packet(5, channelPath, data, messageCallback)
 
     def set_messageCallback(self, callback):
         'Set callback that will be called after receiving an acknowledgment'

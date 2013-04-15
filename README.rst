@@ -86,11 +86,11 @@ Define standard events. ::
         def on_disconnect(self):
             print '[Disconnected]'
 
-        def on_error(self, name, message):
-            print '[Error] %s: %s' % (name, message)
+        def on_error(self, reason, advice):
+            print '[Error] %s' % advice
 
-        def on_message(self, id, message):
-            print '[Message] %s: %s' % (id, message)
+        def on_message(self, messageData):
+            print '[Message] %s' % messageData
 
     socketIO = SocketIO('localhost', 8000)
     socketIO.define(Namespace)
@@ -100,17 +100,17 @@ Define different namespaces on a single socket. ::
 
     from socketIO_client import SocketIO, BaseNamespace
 
-    class MainNamespace(Channel):
+    class MainNamespace(BaseNamespace):
 
         def on_aaa(self, *args):
             print 'aaa', args
 
-    class ChatNamespace(Channel):
+    class ChatNamespace(BaseNamespace):
 
         def on_bbb(self, *args):
             print 'bbb', args
 
-    class NewsNamespace(Channel):
+    class NewsNamespace(BaseNamespace):
 
         def on_ccc(self, *args):
             print 'ccc', args
@@ -128,6 +128,7 @@ Open secure websockets (HTTPS / WSS) behind a proxy. ::
     SocketIO('localhost', 8000, 
         secure=True,
         proxies={'http': 'http://proxy.example.com:8080'})
+
 
 License
 -------

@@ -1,5 +1,4 @@
 'Launch this server in another terminal window before running tests'
-import sys
 try:
     from socketio import socketio_manage
     from socketio.namespace import BaseNamespace
@@ -8,17 +7,13 @@ except ImportError:
     from setuptools.command import easy_install
     easy_install.main(['-U', 'gevent-socketio'])
     print('\nPlease run the script again to launch the test server.')
-    sys.exit(1)
+    import sys; sys.exit(1)
 
 
 class Namespace(BaseNamespace):
 
     def on_aaa(self, *args):
-        self.socket.send_packet(dict(
-            type='event',
-            name='ddd',
-            args=args,
-            endpoint=self.ns_name))
+        self.emit('aaa_response', *args)
 
 
 class Application(object):
@@ -32,7 +27,7 @@ class Application(object):
 
 
 if __name__ == '__main__':
-    port = 8000
-    print 'Starting server at port %s' % port
-    socketIOServer = SocketIOServer(('0.0.0.0', port), Application())
+    from socketIO_client.tests import PORT
+    print 'Starting server at port %s' % PORT
+    socketIOServer = SocketIOServer(('0.0.0.0', PORT), Application())
     socketIOServer.serve_forever()

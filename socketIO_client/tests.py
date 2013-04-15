@@ -3,67 +3,53 @@ from time import sleep
 from unittest import TestCase
 
 
-PAYLOAD = {'bbb': 'ccc'}
 ON_RESPONSE_CALLED = False
+PORT = 8000
+PAYLOAD = {'xxx': 'yyy'}
 
 
 class TestSocketIO(TestCase):
 
-    def test_disconnect(self):
-        socketIO = SocketIO('localhost', 8000)
-        socketIO.disconnect()
-        self.assertEqual(False, socketIO.connected)
-        childThreads = [
-            socketIO._rhythmicThread,
-            socketIO._listenerThread,
-        ]
-        for childThread in childThreads:
-            self.assertEqual(True, childThread.done.is_set())
-
-    def test_emit(self):
-        socketIO = SocketIO('localhost', 8000)
-        socketIO.define(Namespace)
-        socketIO.emit('aaa')
-        sleep(0.1)
-        self.assertEqual(socketIO.get_namespace().payload, '')
-
-    def test_emit_with_payload(self):
-        socketIO = SocketIO('localhost', 8000)
-        socketIO.define(Namespace)
-        socketIO.emit('aaa', PAYLOAD)
-        sleep(0.1)
-        self.assertEqual(socketIO.get_namespace().payload, PAYLOAD)
-
-    def test_emit_with_callback(self):
+    def setUp(self):
         global ON_RESPONSE_CALLED
         ON_RESPONSE_CALLED = False
-        socketIO = SocketIO('localhost', 8000)
-        socketIO.emit('aaa', PAYLOAD, on_response)
-        socketIO.wait(forCallbacks=True)
+        self.socketIO = SocketIO('localhost', PORT)
+
+    def tearDown(self):
+        del self.socketIO
+
+    def test_emit(self):
+        self.socketIO.define(Namespace)
+        self.socketIO.emit('aaa')
+        sleep(0.1)
+        self.assertEqual(self.socketIO.get_namespace().payload, '')
+
+    def test_emit_with_payload(self):
+        self.socketIO.define(Namespace)
+        self.socketIO.emit('aaa', PAYLOAD)
+        sleep(0.1)
+        self.assertEqual(self.socketIO.get_namespace().payload, PAYLOAD)
+
+    def test_emit_with_callback(self):
+        self.socketIO.emit('aaa', PAYLOAD, on_response)
+        self.socketIO.wait(forCallbacks=True)
         self.assertEqual(ON_RESPONSE_CALLED, True)
 
     def test_message(self):
-        global ON_RESPONSE_CALLED
-        ON_RESPONSE_CALLED = False
-        socketIO = SocketIO('localhost', 8000)
-        socketIO.message(PAYLOAD, on_response)
-        socketIO.wait(forCallbacks=True)
+        self.socketIO.message(PAYLOAD, on_response)
+        self.socketIO.wait(forCallbacks=True)
         self.assertEqual(ON_RESPONSE_CALLED, True)
 
     def test_events(self):
-        global ON_RESPONSE_CALLED
-        ON_RESPONSE_CALLED = False
-        socketIO = SocketIO('localhost', 8000)
-        socketIO.on('ddd', on_response)
-        socketIO.emit('aaa', PAYLOAD)
+        self.socketIO.on('aaa_response', on_response)
+        self.socketIO.emit('aaa', PAYLOAD)
         sleep(0.1)
         self.assertEqual(ON_RESPONSE_CALLED, True)
 
     def test_channels(self):
-        socketIO = SocketIO('localhost', 8000)
-        mainSocket = socketIO.define(Namespace)
-        chatSocket = socketIO.define(Namespace, '/chat')
-        newsSocket = socketIO.define(Namespace, '/news')
+        mainSocket = self.socketIO.define(Namespace)
+        chatSocket = self.socketIO.define(Namespace, '/chat')
+        newsSocket = self.socketIO.define(Namespace, '/news')
         self.assertNotEqual(mainSocket.get_namespace().payload, PAYLOAD)
         self.assertNotEqual(chatSocket.get_namespace().payload, PAYLOAD)
         self.assertNotEqual(newsSocket.get_namespace().payload, PAYLOAD)
@@ -72,31 +58,28 @@ class TestSocketIO(TestCase):
         self.assertEqual(newsSocket.get_namespace().payload, PAYLOAD)
 
     def test_channels_with_callback(self):
-        global ON_RESPONSE_CALLED
-        ON_RESPONSE_CALLED = False
-        socketIO = SocketIO('localhost', 8000)
-        mainSocket = socketIO.get_channel()
+        mainSocket = self.socketIO.get_channel()
         mainSocket.message(PAYLOAD, on_response)
         sleep(0.1)
         self.assertEqual(ON_RESPONSE_CALLED, True)
 
-    def test_delete(self):
-        socketIO = SocketIO('localhost', 8000)
+    def test_disconnect(self):
         childThreads = [
-            socketIO._rhythmicThread,
-            socketIO._listenerThread,
+            self.socketIO._rhythmicThread,
+            self.socketIO._listenerThread,
         ]
-        del socketIO
+        self.socketIO.disconnect()
         for childThread in childThreads:
             self.assertEqual(True, childThread.done.is_set())
+        self.assertEqual(False, self.socketIO.connected)
 
 
 class Namespace(BaseNamespace):
 
     payload = None
 
-    def on_ddd(self, data=''):
-        print '[Event] ddd(%s)' % data
+    def on_aaa_response(self, data=''):
+        print '[Event] aaa_response(%s)' % data
         self.payload = data
 
 
