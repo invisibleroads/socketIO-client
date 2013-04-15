@@ -1,15 +1,16 @@
 import socket
 from anyjson import dumps, loads
-from threading import Event, Thread
+from threading import Thread, Event
 from time import sleep
 from urllib import urlopen
 from websocket import WebSocketConnectionClosedException, create_connection
 
 
-PROTOCOL = 1  # SocketIO protocol version
+PROTOCOL = 1  # socket.io protocol version
 
 
 class BaseNamespace(object):  # pragma: no cover
+    'Define socket.io behavior'
 
     def __init__(self, _socketIO):
         self._socketIO = _socketIO
@@ -138,7 +139,7 @@ class _RhythmicThread(Thread):
 
 
 class _ListenerThread(Thread):
-    'Process messages from SocketIO server'
+    'Process messages from socket.io server'
 
     daemon = True
 
@@ -195,7 +196,6 @@ class _ListenerThread(Thread):
         get_eventCallback('connect')()
 
     def on_heartbeat(self, packetID, get_eventCallback, data):
-        # get_eventCallback('heartbeat')()
         pass
 
     def on_message(self, packetID, get_eventCallback, data):
@@ -207,7 +207,7 @@ class _ListenerThread(Thread):
     def on_event(self, packetID, get_eventCallback, data):
         valueByName = loads(data)
         eventName = valueByName['name']
-        eventArguments = valueByName['args']
+        eventArguments = valueByName.get('args', [])
         get_eventCallback(eventName)(*eventArguments)
 
     def on_acknowledgment(self, packetID, get_eventCallback, data):

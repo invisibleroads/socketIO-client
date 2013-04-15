@@ -1,8 +1,9 @@
 *~
+*.sw[op]
+*.py[cod]
+*.egg
 *.egg-info
-*.pyc
-*.swo
-*.swp
-.coverage
 build
 dist
+sdist
+.coverage
