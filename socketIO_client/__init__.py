@@ -73,7 +73,7 @@ class SocketIO(object):
     def __init__(self, host, port, secure=False, proxies=None):
         """
         Create a socket.io client that connects to a socket.io server
-        at the specified host and port.  Set secure=True to use HTTPS/WSS.
+        at the specified host and port.  Set secure=True to use HTTPS / WSS.
 
         SocketIO('localhost', 8000, secure=True,
             proxies={'https': 'https://proxy.example.com:8080'})

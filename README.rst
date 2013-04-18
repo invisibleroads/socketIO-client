@@ -4,9 +4,9 @@ Here is a socket.io_ client library for Python.  You can use it to write test co
 
 Thanks to rod_ for the `StackOverflow question and answer`__ on which this code is based.
 
-Thanks to liris_ for websocket-client_ and to guille_ for the `socket.io specification`_.
+Thanks to `Hiroki Ohtani`_ for websocket-client_, `Guillermo Rauch`_ for the `socket.io specification`_ and `Alexandre Bourget`_ for gevent-socketio_.
 
-Thanks to `Paul Kienzle`_, `Josh VanderLinden`_, `Ian Fitzpatrick`_ for submitting code to expand support of the socket.io protocol.
+Thanks to `Paul Kienzle`_, `Zac Lee`_, `Josh VanderLinden`_, `Ian Fitzpatrick`_, `Lucas Klein`_ for submitting code to expand support of the socket.io protocol.
 
 
 Installation
@@ -68,7 +68,7 @@ Define events in a namespace. ::
     class Namespace(BaseNamespace):
 
         def on_ddd(self, *args):
-            self.socketIO.emit('eee', {'fff': 'ggg'})
+            self.emit('eee', {'fff': 'ggg'})
 
     socketIO = SocketIO('localhost', 8000)
     socketIO.define(Namespace)
@@ -117,10 +117,10 @@ Define different namespaces on a single socket. ::
 
     socketIO = SocketIO('localhost', 8000)
     socketIO.define(MainNamespace)
-    chatSocket = socketIO.define(ChatNamespace, '/chat')
-    chatSocket.emit('bbb')
-    newsSocket = socketIO.define(NewsNamespace, '/news')
-    newsSocket.emit('ccc')
+    chatNamespace = socketIO.define(ChatNamespace, '/chat')
+    chatNamespace.emit('bbb')
+    newsNamespace = socketIO.define(NewsNamespace, '/news')
+    newsNamespace.emit('ccc')
     socketIO.wait()  # Loop until CTRL-C
 
 Open secure websockets (HTTPS / WSS) behind a proxy. ::
@@ -139,10 +139,14 @@ This software is available under the MIT License.
 .. _rod: http://stackoverflow.com/users/370115/rod
 .. _StackOverflowQA: http://stackoverflow.com/questions/6692908/formatting-messages-to-send-to-socket-io-node-js-server-from-python-client
 __ StackOverflowQA_
-.. _liris: https://github.com/liris
 .. _websocket-client: https://github.com/liris/websocket-client
-.. _guille: https://github.com/guille
 .. _socket.io specification: https://github.com/LearnBoost/socket.io-spec
+.. _gevent-socketio: https://github.com/abourget/gevent-socketio
+.. _Hiroki Ohtani: https://github.com/liris
+.. _Guillermo Rauch: https://github.com/guille
+.. _Alexandre Bourget: https://github.com/abourget
 .. _Paul Kienzle: https://github.com/pkienzle
 .. _Josh VanderLinden: https://github.com/codekoala
 .. _Ian Fitzpatrick: https://github.com/GraphEffect
+.. _Zac Lee: https://github.com/zratic
+.. _Lucas Klein: https://github.com/lukashed
