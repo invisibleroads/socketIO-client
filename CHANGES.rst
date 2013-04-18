@@ -1,5 +1,7 @@
 0.4
 ---
+- Merged Channel functionality into BaseNamespace thanks to Alexandre Bourget
+- Added support for unicode thanks to Zac Lee
 
 0.3
 ---

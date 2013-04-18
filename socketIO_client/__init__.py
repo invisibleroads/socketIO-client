@@ -12,8 +12,10 @@ PROTOCOL = 1  # socket.io protocol version
 class BaseNamespace(object):  # pragma: no cover
     'Define socket.io behavior'
 
-    def __init__(self, _socketIO):
+    def __init__(self, _socketIO, namespacePath):
         self._socketIO = _socketIO
+        self._namespacePath = namespacePath
+        self._callbackByEvent = {}
 
     def on_connect(self):
         pass
@@ -27,7 +29,7 @@ class BaseNamespace(object):  # pragma: no cover
     def on_message(self, messageData):
         print '[Message] %s' % messageData
 
-    def on_(self, eventName, *eventArguments):
+    def on_default(self, eventName, *eventArguments):
         print '[Event] %s%s' % (eventName, eventArguments)
 
     def on_open(self, *args):
@@ -42,6 +44,29 @@ class BaseNamespace(object):  # pragma: no cover
     def on_reconnect(self, *args):
         print '[Reconnect]', args
 
+    def message(self, messageData, messageCallback=None):
+        self._socketIO.message(
+            messageData, messageCallback, namespacePath=self._namespacePath)
+
+    def emit(self, eventName, *eventArguments):
+        self._socketIO.emit(
+            eventName, *eventArguments, namespacePath=self._namespacePath)
+
+    def on(self, eventName, eventCallback):
+        self._callbackByEvent[eventName] = eventCallback
+
+    def _get_eventCallback(self, eventName):
+        # Check callbacks defined by on()
+        try:
+            return self._callbackByEvent[eventName]
+        except KeyError:
+            pass
+
+        # Check callbacks defined explicitly or use on_default()
+        def callback(*eventArguments):
+            return self.on_default(eventName, *eventArguments)
+        return getattr(self, 'on_' + eventName.replace(' ', '_'), callback)
+
 
 class SocketIO(object):
 
@@ -54,7 +79,7 @@ class SocketIO(object):
             proxies={'https': 'https://proxy.example.com:8080'})
         """
         self._socketIO = _SocketIO(host, port, secure, proxies)
-        self._channelByPath = {}
+        self._namespaceByPath = {}
         self.define(BaseNamespace)  # Define default namespace
 
         self._rhythmicThread = _RhythmicThread(
@@ -64,7 +89,7 @@ class SocketIO(object):
 
         self._listenerThread = _ListenerThread(
             self._socketIO,
-            self._channelByPath)
+            self._namespaceByPath)
         self._listenerThread.start()
 
     def __enter__(self):
@@ -80,32 +105,29 @@ class SocketIO(object):
     def connected(self):
         return self._socketIO.connected
 
-    def disconnect(self, channelPath='', closeSocket=True):
+    def disconnect(self, namespacePath='', closeSocket=True):
         if self.connected:
-            self._socketIO.disconnect(channelPath, closeSocket)
-        if channelPath:
-            del self._channelByPath[channelPath]
+            self._socketIO.disconnect(namespacePath, closeSocket)
+        if namespacePath:
+            del self._namespaceByPath[namespacePath]
         else:
             self._rhythmicThread.cancel()
             self._listenerThread.cancel()
 
-    def define(self, Namespace, channelPath=''):
-        self._socketIO.connect(channelPath)
-        channel = Channel(self._socketIO, Namespace, channelPath)
-        self._channelByPath[channelPath] = channel
-        return channel
+    def define(self, Namespace, namespacePath=''):
+        self._socketIO.connect(namespacePath)
+        namespace = Namespace(self._socketIO, namespacePath)
+        self._namespaceByPath[namespacePath] = namespace
+        return namespace
 
-    def get_channel(self, channelPath=''):
-        return self._channelByPath[channelPath]
+    def get_namespace(self, namespacePath=''):
+        return self._namespaceByPath[namespacePath]
 
-    def get_namespace(self, channelPath=''):
-        return self.get_channel(channelPath).get_namespace()
+    def on(self, eventName, eventCallback, namespacePath=''):
+        return self.get_namespace(namespacePath).on(eventName, eventCallback)
 
-    def on(self, eventName, eventCallback, channelPath=''):
-        return self.get_channel(channelPath).on(eventName, eventCallback)
-
-    def message(self, messageData, messageCallback=None, channelPath=''):
-        self._socketIO.message(messageData, messageCallback, channelPath)
+    def message(self, messageData, messageCallback=None, namespacePath=''):
+        self._socketIO.message(messageData, messageCallback, namespacePath)
 
     def emit(self, eventName, *eventArguments, **eventKeywords):
         self._socketIO.emit(eventName, *eventArguments, **eventKeywords)
@@ -150,10 +172,10 @@ class _ListenerThread(Thread):
 
     daemon = True
 
-    def __init__(self, _socketIO, _channelByPath):
+    def __init__(self, _socketIO, _namespaceByPath):
         super(_ListenerThread, self).__init__()
         self._socketIO = _socketIO
-        self._channelByPath = _channelByPath
+        self._namespaceByPath = _namespaceByPath
         self.done = Event()
         self.waiting = Event()
 
@@ -168,7 +190,7 @@ class _ListenerThread(Thread):
     def run(self):
         while not self.done.is_set():
             try:
-                code, packetID, channelPath, data = self._socketIO.recv_packet()
+                code, packetID, namespacePath, data = self._socketIO.recv_packet()
             except SocketIOConnectionError, error:
                 print error
                 return
@@ -176,9 +198,9 @@ class _ListenerThread(Thread):
                 print error
                 continue
             try:
-                channel = self._channelByPath[channelPath]
+                namespace = self._namespaceByPath[namespacePath]
             except KeyError:
-                print 'Received unexpected channelPath (%s)' % channelPath
+                print 'Received unexpected namespacePath (%s)' % namespacePath
                 continue
             try:
                 delegate = {
@@ -194,7 +216,7 @@ class _ListenerThread(Thread):
             except KeyError:
                 print 'Received unexpected code (%s)' % code
                 continue
-            delegate(packetID, channel._get_eventCallback, data)
+            delegate(packetID, namespace._get_eventCallback, data)
 
     def on_disconnect(self, packetID, get_eventCallback, data):
         get_eventCallback('disconnect')()
@@ -264,16 +286,16 @@ class _SocketIO(object):
     def __del__(self):
         self.disconnect(closeSocket=False)
 
-    def disconnect(self, channelPath='', closeSocket=True):
+    def disconnect(self, namespacePath='', closeSocket=True):
         if not self.connected:
             return
-        if channelPath:
-            self.send_packet(0, channelPath)
+        if namespacePath:
+            self.send_packet(0, namespacePath)
         elif closeSocket:
             self.connection.close()
 
-    def connect(self, channelPath):
-        self.send_packet(1, channelPath)
+    def connect(self, namespacePath):
+        self.send_packet(1, namespacePath)
 
     def send_heartbeat(self):
         try:
@@ -282,14 +304,14 @@ class _SocketIO(object):
             print 'Could not send heartbeat'
             pass
 
-    def message(self, messageData, messageCallback, channelPath):
+    def message(self, messageData, messageCallback, namespacePath):
         if isinstance(messageData, basestring):
             code = 3
             data = messageData
         else:
             code = 4
             data = dumps(messageData, ensure_ascii=False)
-        self.send_packet(code, channelPath, data, messageCallback)
+        self.send_packet(code, namespacePath, data, messageCallback)
 
     def emit(self, eventName, *eventArguments, **eventKeywords):
         if eventArguments and callable(eventArguments[-1]):
@@ -297,9 +319,9 @@ class _SocketIO(object):
             eventArguments = eventArguments[:-1]
         else:
             messageCallback = None
-        channelPath = eventKeywords.get('channelPath', '')
+        namespacePath = eventKeywords.get('namespacePath', '')
         data = dumps(dict(name=eventName, args=eventArguments), ensure_ascii=False)
-        self.send_packet(5, channelPath, data, messageCallback)
+        self.send_packet(5, namespacePath, data, messageCallback)
 
     def set_messageCallback(self, callback):
         'Set callback that will be called after receiving an acknowledgment'
@@ -333,18 +355,18 @@ class _SocketIO(object):
         except AttributeError:
             raise SocketIOPacketError('Received invalid packet (%s)' % packet)
         packetCount = len(packetParts)
-        code, packetID, channelPath, data = None, None, None, None
+        code, packetID, namespacePath, data = None, None, None, None
         if 4 == packetCount:
-            code, packetID, channelPath, data = packetParts
+            code, packetID, namespacePath, data = packetParts
         elif 3 == packetCount:
-            code, packetID, channelPath = packetParts
+            code, packetID, namespacePath = packetParts
         elif 1 == packetCount:
             code = packetParts[0]
-        return code, packetID, channelPath, data
+        return code, packetID, namespacePath, data
 
-    def send_packet(self, code, channelPath='', data='', messageCallback=None):
+    def send_packet(self, code, namespacePath='', data='', messageCallback=None):
         callbackNumber = self.set_messageCallback(messageCallback) if messageCallback else ''
-        packetParts = [str(code), callbackNumber, channelPath, data]
+        packetParts = [str(code), callbackNumber, namespacePath, data]
         try:
             self.connection.send(':'.join(packetParts))
         except socket.error:
@@ -353,39 +375,6 @@ class _SocketIO(object):
     @property
     def connected(self):
         return self.connection.connected
-
-
-class Channel(object):
-
-    def __init__(self, _socketIO, Namespace, channelPath):
-        self._socketIO = _socketIO
-        self._namespace = Namespace(_socketIO)
-        self._channelPath = channelPath
-        self._callbackByEvent = {}
-
-    def on(self, eventName, eventCallback):
-        self._callbackByEvent[eventName] = eventCallback
-
-    def message(self, messageData, messageCallback=None):
-        self._socketIO.message(messageData, messageCallback, channelPath=self._channelPath)
-
-    def emit(self, eventName, *eventArguments):
-        self._socketIO.emit(eventName, *eventArguments, channelPath=self._channelPath)
-
-    def get_namespace(self):
-        return self._namespace
-
-    def _get_eventCallback(self, eventName):
-        # Check callbacks defined by on()
-        try:
-            return self._callbackByEvent[eventName]
-        except KeyError:
-            pass
-        # Check callbacks defined explicitly or use on_()
-        eventNamespace = self.get_namespace()
-        callbackName = 'on_' + eventName.replace(' ', '_')
-        defaultCallback = lambda *eventArguments: eventNamespace.on_(eventName, *eventArguments)
-        return getattr(eventNamespace, callbackName, defaultCallback)
 
 
 class SocketIOError(Exception):

@@ -46,20 +46,20 @@ class TestSocketIO(TestCase):
         sleep(0.1)
         self.assertEqual(ON_RESPONSE_CALLED, True)
 
-    def test_channels(self):
-        mainSocket = self.socketIO.define(Namespace)
-        chatSocket = self.socketIO.define(Namespace, '/chat')
-        newsSocket = self.socketIO.define(Namespace, '/news')
-        self.assertNotEqual(mainSocket.get_namespace().payload, PAYLOAD)
-        self.assertNotEqual(chatSocket.get_namespace().payload, PAYLOAD)
-        self.assertNotEqual(newsSocket.get_namespace().payload, PAYLOAD)
-        newsSocket.emit('aaa', PAYLOAD)
+    def test_namespaces(self):
+        mainNamespace = self.socketIO.define(Namespace)
+        chatNamespace = self.socketIO.define(Namespace, '/chat')
+        newsNamespace = self.socketIO.define(Namespace, '/news')
+        self.assertNotEqual(mainNamespace.payload, PAYLOAD)
+        self.assertNotEqual(chatNamespace.payload, PAYLOAD)
+        self.assertNotEqual(newsNamespace.payload, PAYLOAD)
+        newsNamespace.emit('aaa', PAYLOAD)
         sleep(0.1)
-        self.assertEqual(newsSocket.get_namespace().payload, PAYLOAD)
+        self.assertEqual(newsNamespace.payload, PAYLOAD)
 
-    def test_channels_with_callback(self):
-        mainSocket = self.socketIO.get_channel()
-        mainSocket.message(PAYLOAD, on_response)
+    def test_namespaces_with_callback(self):
+        mainNamespace = self.socketIO.get_namespace()
+        mainNamespace.message(PAYLOAD, on_response)
         sleep(0.1)
         self.assertEqual(ON_RESPONSE_CALLED, True)
 
