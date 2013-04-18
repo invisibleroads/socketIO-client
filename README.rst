@@ -133,8 +133,8 @@ Credits
 -------
 - `Guillermo Rauch`_ wrote the `socket.io specification`_.
 - `Hiroki Ohtani`_ wrote websocket-client_.
-- rod_ wrote a `prototype for a python client to a socket.io server`_ on StackOverflow.
-- `Alexandre Bourget`_ wrote gevent-socketio_, which is a socket.io server written in python.
+- rod_ wrote a `prototype for a Python client to a socket.io server`_ on StackOverflow.
+- `Alexandre Bourget`_ wrote gevent-socketio_, which is a socket.io server written in Python.
 - `Paul Kienzle`_, `Zac Lee`_, `Josh VanderLinden`_, `Ian Fitzpatrick`_, `Lucas Klein`_ submitted code to expand support of the socket.io protocol.
 
 
@@ -147,7 +147,7 @@ Credits
 .. _websocket-client: https://github.com/liris/websocket-client
 
 .. _rod: http://stackoverflow.com/users/370115/rod
-.. _prototype for a python client to a socket.io server: http://stackoverflow.com/questions/6692908/formatting-messages-to-send-to-socket-io-node-js-server-from-python-client
+.. _prototype for a Python client to a socket.io server: http://stackoverflow.com/questions/6692908/formatting-messages-to-send-to-socket-io-node-js-server-from-python-client
 
 .. _Alexandre Bourget: https://github.com/abourget
 .. _gevent-socketio: https://github.com/abourget/gevent-socketio
