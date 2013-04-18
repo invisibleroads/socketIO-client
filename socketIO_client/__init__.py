@@ -1,5 +1,5 @@
 import socket
-from anyjson import dumps, loads
+from json import dumps, loads
 from threading import Thread, Event
 from time import sleep
 from urllib import urlopen
@@ -46,6 +46,13 @@ class BaseNamespace(object):  # pragma: no cover
 class SocketIO(object):
 
     def __init__(self, host, port, secure=False, proxies=None):
+        """
+        Create a socket.io client that connects to a socket.io server
+        at the specified host and port.  Set secure=True to use HTTPS/WSS.
+
+        SocketIO('localhost', 8000, secure=True,
+            proxies={'https': 'https://proxy.example.com:8080'})
+        """
         self._socketIO = _SocketIO(host, port, secure, proxies)
         self._channelByPath = {}
         self.define(BaseNamespace)  # Define default namespace
@@ -67,15 +74,15 @@ class SocketIO(object):
         self.disconnect()
 
     def __del__(self):
-        self.disconnect(force=True)
+        self.disconnect(closeSocket=False)
 
     @property
     def connected(self):
         return self._socketIO.connected
 
-    def disconnect(self, channelPath='', force=False):
+    def disconnect(self, channelPath='', closeSocket=True):
         if self.connected:
-            self._socketIO.disconnect(channelPath, force)
+            self._socketIO.disconnect(channelPath, closeSocket)
         if channelPath:
             del self._channelByPath[channelPath]
         else:
@@ -255,15 +262,14 @@ class _SocketIO(object):
         self.callbackByMessageID = {}
 
     def __del__(self):
-        self.disconnect(force=True)
+        self.disconnect(closeSocket=False)
 
-    def disconnect(self, channelPath='', force=False):
-        'Set force=True to skip closing the websocket'
+    def disconnect(self, channelPath='', closeSocket=True):
         if not self.connected:
             return
         if channelPath:
             self.send_packet(0, channelPath)
-        elif not force:
+        elif closeSocket:
             self.connection.close()
 
     def connect(self, channelPath):
@@ -282,7 +288,7 @@ class _SocketIO(object):
             data = messageData
         else:
             code = 4
-            data = dumps(messageData)
+            data = dumps(messageData, ensure_ascii=False)
         self.send_packet(code, channelPath, data, messageCallback)
 
     def emit(self, eventName, *eventArguments, **eventKeywords):
@@ -292,7 +298,7 @@ class _SocketIO(object):
         else:
             messageCallback = None
         channelPath = eventKeywords.get('channelPath', '')
-        data = dumps(dict(name=eventName, args=eventArguments))
+        data = dumps(dict(name=eventName, args=eventArguments), ensure_ascii=False)
         self.send_packet(5, channelPath, data, messageCallback)
 
     def set_messageCallback(self, callback):
