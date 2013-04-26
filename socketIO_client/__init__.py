@@ -16,25 +16,39 @@ class BaseNamespace(object):  # pragma: no cover
         self._socketIO = _socketIO
         self._path = path
         self._callbackByEvent = {}
+        self.initialize()
+
+    def initialize(self):
+        'Initialize custom variables here; you can override this method'
+        pass
 
     def on_connect(self):
+        'Called when socket is connecting; you can override this method'
         pass
 
     def on_disconnect(self):
+        'Called when socket is disconnecting; you can override this method'
         pass
 
     def on_error(self, reason, advice):
+        'Called when server sends an error; you can override this method'
         print '[Error] %s' % advice
 
     def on_message(self, data):
+        'Called when server sends a message; you can override this method'
         print '[Message] %s' % data
 
-    def on_default(self, event, *args):
+    def on_event(self, event, *args):
+        """
+        Called when server emits an event; you can override this method.
+        Called only if the program cannot find a more specific event handler,
+        such as one defined by namespace.on('my_event', my_function).
+        """
         callback, args = find_callback(args)
-        arguments = [str(_) for _ in args]
+        arguments = [repr(_) for _ in args]
         if callback:
             arguments.append('callback(*args)')
-            callback()
+            callback(*args)
         print '[Event] %s(%s)' % (event, ', '.join(arguments))
 
     def on_open(self, *args):
@@ -49,7 +63,7 @@ class BaseNamespace(object):  # pragma: no cover
     def on_reconnect(self, *args):
         print '[Reconnect]', args
 
-    def message(self, data, callback=None):
+    def message(self, data='', callback=None):
         self._socketIO.message(data, callback, path=self._path)
 
     def emit(self, event, *args, **kw):
@@ -57,6 +71,7 @@ class BaseNamespace(object):  # pragma: no cover
         self._socketIO.emit(event, *args, **kw)
 
     def on(self, event, callback):
+        'Define a callback to handle a custom event emitted by the server'
         self._callbackByEvent[event] = callback
 
     def _get_eventCallback(self, event):
@@ -65,8 +80,8 @@ class BaseNamespace(object):  # pragma: no cover
             return self._callbackByEvent[event]
         except KeyError:
             pass
-        # Check callbacks defined explicitly or use on_default()
-        callback = lambda *args: self.on_default(event, *args)
+        # Check callbacks defined explicitly or use on_event()
+        callback = lambda *args: self.on_event(event, *args)
         return getattr(self, 'on_' + event.replace(' ', '_'), callback)
 
 
@@ -117,7 +132,8 @@ class SocketIO(object):
             self._listenerThread.cancel()
 
     def define(self, Namespace, path=''):
-        self._socketIO.connect(path)
+        if path:
+            self._socketIO.connect(path)
         namespace = Namespace(self._socketIO, path)
         self._namespaceByPath[path] = namespace
         return namespace
@@ -128,23 +144,24 @@ class SocketIO(object):
     def on(self, event, callback, path=''):
         return self.get_namespace(path).on(event, callback)
 
-    def message(self, data, callback=None, path=''):
+    def message(self, data='', callback=None, path=''):
         self._socketIO.message(data, callback, path)
 
     def emit(self, event, *args, **kw):
         self._socketIO.emit(event, *args, **kw)
 
-    def wait(self, seconds=None, forCallbacks=False):
-        if forCallbacks:
-            self._listenerThread.wait_for_callbacks(seconds)
-        elif seconds:
-            sleep(seconds)
+    def wait(self, seconds=None):
+        if seconds:
+            self._listenerThread.wait(seconds)
         else:
             try:
                 while self.connected:
                     sleep(1)
             except KeyboardInterrupt:
                 pass
+
+    def wait_for_callbacks(self, seconds=None):
+        self._listenerThread.wait_for_callbacks(seconds)
 
 
 class _RhythmicThread(Thread):
@@ -179,15 +196,18 @@ class _ListenerThread(Thread):
         self._socketIO = _socketIO
         self._namespaceByPath = _namespaceByPath
         self.done = Event()
-        self.waiting = Event()
+        self.ready = Event()
+        self.ready.set()
 
     def cancel(self):
         self.done.set()
 
+    def wait(self, seconds):
+        self.done.wait(seconds)
+
     def wait_for_callbacks(self, seconds):
-        self.waiting.set()
-        # Block callingThread until listenerThread terminates
-        self.join(seconds)
+        self.ready.clear()
+        self.ready.wait(seconds)
 
     def get_ackCallback(self, packetID):
         return lambda *args: self._socketIO.ack(packetID, *args)
@@ -215,7 +235,7 @@ class _ListenerThread(Thread):
                     '3': self.on_message,
                     '4': self.on_json,
                     '5': self.on_event,
-                    '6': self.on_acknowledgment,
+                    '6': self.on_ack,
                     '7': self.on_error,
                 }[code]
             except KeyError:
@@ -236,13 +256,13 @@ class _ListenerThread(Thread):
         args = [data]
         if packetID:
             args.append(self.get_ackCallback(packetID))
-        get_eventCallback('message')(args)
+        get_eventCallback('message')(*args)
 
     def on_json(self, packetID, get_eventCallback, data):
         args = [loads(data)]
         if packetID:
             args.append(self.get_ackCallback(packetID))
-        get_eventCallback('message')(args)
+        get_eventCallback('message')(*args)
 
     def on_event(self, packetID, get_eventCallback, data):
         valueByName = loads(data)
@@ -252,16 +272,16 @@ class _ListenerThread(Thread):
             args.append(self.get_ackCallback(packetID))
         get_eventCallback(event)(*args)
 
-    def on_acknowledgment(self, packetID, get_eventCallback, data):
+    def on_ack(self, packetID, get_eventCallback, data):
         dataParts = data.split('+', 1)
         messageID = int(dataParts[0])
-        args = loads(dataParts[1]) or []
+        args = loads(dataParts[1]) if len(dataParts) > 1 else []
         callback = self._socketIO.get_messageCallback(messageID)
         if not callback:
             return
         callback(*args)
-        if self.waiting.is_set() and not self._socketIO.has_messageCallback:
-            self.cancel()
+        if not self._socketIO.has_messageCallback:
+            self.ready.set()
 
     def on_error(self, packetID, get_eventCallback, data):
         reason, advice = data.split('+', 1)
@@ -289,7 +309,7 @@ class _SocketIO(object):
         # connectionTimeout = int(responseParts[2])
         supportedTransports = responseParts[3].split(',')
         if 'websocket' not in supportedTransports:
-            raise SocketIOError('Could not parse handshake')  # pragma: no cover
+            raise SocketIOError('Could not parse handshake')
         socketScheme = 'wss' if secure else 'ws'
         socketURL = '%s://%s/websocket/%s' % (socketScheme, baseURL, sessionID)
         self.connection = create_connection(socketURL)
@@ -334,7 +354,10 @@ class _SocketIO(object):
 
     def ack(self, packetID, *args):
         packetID = packetID.rstrip('+')
-        packetData = '%s+%s' % (packetID, dumps(args, ensure_ascii=False)) if args else packetID
+        packetData = '%s+%s' % (
+            packetID,
+            dumps(args, ensure_ascii=False),
+        ) if args else packetID
         self.send_packet(6, data=packetData)
 
     def set_messageCallback(self, callback):
@@ -359,11 +382,14 @@ class _SocketIO(object):
         try:
             packet = self.connection.recv()
         except WebSocketConnectionClosedException:
-            raise SocketIOConnectionError('Lost connection (Connection closed)')
+            text = 'Lost connection (Connection closed)'
+            raise SocketIOConnectionError(text)
         except socket.timeout:
-            raise SocketIOConnectionError('Lost connection (Connection timed out)')
+            text = 'Lost connection (Connection timed out)'
+            raise SocketIOConnectionError(text)
         except socket.error:
-            raise SocketIOConnectionError('Lost connection')
+            text = 'Lost connection'
+            raise SocketIOConnectionError(text)
         try:
             packetParts = packet.split(':', 3)
         except AttributeError:
@@ -382,7 +408,8 @@ class _SocketIO(object):
         packetID = self.set_messageCallback(callback) if callback else ''
         packetParts = [str(code), packetID, path, data]
         try:
-            self.connection.send(':'.join(packetParts))
+            packet = ':'.join(packetParts)
+            self.connection.send(packet)
         except socket.error:
             raise SocketIOPacketError('Could not send packet')
 

@@ -1,6 +1,6 @@
 = Resolve pull requests
-    = Resolve pull request #6
-        Add unit test for handling server callback
+    + Resolve pull request #6
+        + Add unit test for handling server callback
         + Use json with ensure_ascii=False
         + Add emit with callback in serve_tests
 Resolve issues

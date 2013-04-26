@@ -16,7 +16,7 @@ Installation
     source $VIRTUAL_ENV/bin/activate
 
     # Install package
-    easy_install -U socketIO-client
+    pip install -U socketIO-client
 
 
 Usage
@@ -29,31 +29,33 @@ Activate isolated environment. ::
 Emit. ::
 
     from socketIO_client import SocketIO
+
     with SocketIO('localhost', 8000) as socketIO:
         socketIO.emit('aaa')
-        socketIO.wait(1)  # Wait a second
+        socketIO.wait(seconds=1)
 
 Emit with callback. ::
 
     from socketIO_client import SocketIO
 
-    def on_response(*args):
-        print args
+    def on_bbb_response(*args):
+        print 'on_bbb_response', args
 
     with SocketIO('localhost', 8000) as socketIO:
-        socketIO.emit('aaa', {'bbb': 'ccc'}, on_response)
-        socketIO.wait(seconds=1, forCallbacks=True)  # Wait for callback
+        socketIO.emit('bbb', {'xxx': 'yyy'}, on_bbb_response)
+        socketIO.wait_for_callbacks(seconds=1)
 
 Define events. ::
 
     from socketIO_client import SocketIO
 
-    def on_ddd(*args):
-        print args
+    def on_aaa_response(*args):
+        print 'on_aaa_response', args
 
     socketIO = SocketIO('localhost', 8000)
-    socketIO.on('ddd', on_ddd)
-    socketIO.wait()  # Loop until CTRL-C
+    socketIO.on('aaa_response', on_aaa_response)
+    socketIO.emit('aaa')
+    socketIO.wait(seconds=1)
 
 Define events in a namespace. ::
 
@@ -61,12 +63,14 @@ Define events in a namespace. ::
 
     class Namespace(BaseNamespace):
 
-        def on_ddd(self, *args):
-            self.emit('eee', {'fff': 'ggg'})
+        def on_aaa_response(self, *args):
+            print 'on_aaa_response', args
+            self.emit('bbb')
 
     socketIO = SocketIO('localhost', 8000)
     socketIO.define(Namespace)
-    socketIO.wait()  # Loop until CTRL-C
+    socketIO.emit('aaa')
+    socketIO.wait(seconds=1)
 
 Define standard events. ::
 
@@ -77,51 +81,37 @@ Define standard events. ::
         def on_connect(self):
             print '[Connected]'
 
-        def on_disconnect(self):
-            print '[Disconnected]'
-
-        def on_error(self, reason, advice):
-            print '[Error] %s' % advice
-
-        def on_message(self, messageData):
-            print '[Message] %s' % messageData
-
     socketIO = SocketIO('localhost', 8000)
     socketIO.define(Namespace)
-    socketIO.wait()  # Loop until CTRL-C
+    socketIO.wait(seconds=1)
 
 Define different namespaces on a single socket. ::
 
     from socketIO_client import SocketIO, BaseNamespace
 
-    class MainNamespace(BaseNamespace):
-
-        def on_aaa(self, *args):
-            print 'aaa', args
-
     class ChatNamespace(BaseNamespace):
 
-        def on_bbb(self, *args):
-            print 'bbb', args
+        def on_aaa_response(self, *args):
+            print 'on_aaa_response', args
 
     class NewsNamespace(BaseNamespace):
 
-        def on_ccc(self, *args):
-            print 'ccc', args
+        def on_aaa_response(self, *args):
+            print 'on_aaa_response', args
 
     socketIO = SocketIO('localhost', 8000)
-    socketIO.define(MainNamespace)
     chatNamespace = socketIO.define(ChatNamespace, '/chat')
-    chatNamespace.emit('bbb')
     newsNamespace = socketIO.define(NewsNamespace, '/news')
-    newsNamespace.emit('ccc')
-    socketIO.wait()  # Loop until CTRL-C
+
+    chatNamespace.emit('aaa')
+    newsNamespace.emit('aaa')
+    socketIO.wait(seconds=1)
 
 Open secure websockets (HTTPS / WSS) behind a proxy. ::
 
     SocketIO('localhost', 8000, 
         secure=True,
-        proxies={'http': 'http://proxy.example.com:8080'})
+        proxies={'https': 'https://proxy.example.com:8080'})
 
 
 License
