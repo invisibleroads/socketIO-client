@@ -109,9 +109,19 @@ Define different namespaces on a single socket. ::
 
 Open secure websockets (HTTPS / WSS) behind a proxy. ::
 
+    from socketIO_client import SocketIO
+
     SocketIO('localhost', 8000, 
         secure=True,
         proxies={'https': 'https://proxy.example.com:8080'})
+
+Specify custom headers thanks to the `requests`_ library. ::
+
+    from socketIO_client import SocketIO
+    from base64 import b64encode
+
+    SocketIO('localhost', 8000, 
+        headers={'Authorization': 'Basic ' + b64encode('username:password')})
 
 
 License
@@ -129,6 +139,7 @@ Credits
 
 
 .. _socket.io: http://socket.io
+.. _requests: http://python-requests.org
 
 .. _Guillermo Rauch: https://github.com/guille
 .. _socket.io specification: https://github.com/LearnBoost/socket.io-spec
