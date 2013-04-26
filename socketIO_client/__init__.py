@@ -1,8 +1,8 @@
+import requests
 import socket
 from json import dumps, loads
 from threading import Thread, Event
 from time import sleep
-from urllib import urlopen
 from websocket import WebSocketConnectionClosedException, create_connection
 
 
@@ -87,7 +87,7 @@ class BaseNamespace(object):  # pragma: no cover
 
 class SocketIO(object):
 
-    def __init__(self, host, port, secure=False, proxies=None):
+    def __init__(self, host, port, secure=False, headers=None, proxies=None):
         """
         Create a socket.io client that connects to a socket.io server
         at the specified host and port.  Set secure=True to use HTTPS / WSS.
@@ -95,7 +95,7 @@ class SocketIO(object):
         SocketIO('localhost', 8000, secure=True,
             proxies={'https': 'https://proxy.example.com:8080'})
         """
-        self._socketIO = _SocketIO(host, port, secure, proxies)
+        self._socketIO = _SocketIO(host, port, secure, headers, proxies)
         self._namespaceByPath = {}
         self.define(BaseNamespace)  # Define default namespace
 
@@ -294,17 +294,20 @@ class _SocketIO(object):
 
     messageID = 0
 
-    def __init__(self, host, port, secure, proxies):
+    def __init__(self, host, port, secure, headers, proxies):
         baseURL = '%s:%d/socket.io/%s' % (host, port, PROTOCOL)
         targetScheme = 'https' if secure else 'http'
         targetURL = '%s://%s/' % (targetScheme, baseURL)
         try:
-            response = urlopen(targetURL, proxies=proxies)
+            response = requests.get(
+                targetURL,
+                headers=headers,
+                proxies=proxies)
         except IOError:  # pragma: no cover
             raise SocketIOError('Could not start connection')
-        if 200 != response.getcode():  # pragma: no cover
+        if 200 != response.status_code:  # pragma: no cover
             raise SocketIOError('Could not establish connection')
-        responseParts = response.readline().split(':')
+        responseParts = response.text.split(':')
         sessionID = responseParts[0]
         heartbeatTimeout = int(responseParts[1])
         # connectionTimeout = int(responseParts[2])

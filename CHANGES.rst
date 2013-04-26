@@ -1,5 +1,6 @@
 0.4
 ---
+- Added support for custom headers and proxies thanks to Rui and Sajal
 - Added support for server-side callbacks thanks to Zac Lee
 - Added low-level _SocketIO to remove cyclic references
 - Merged Channel functionality into BaseNamespace thanks to Alexandre Bourget
