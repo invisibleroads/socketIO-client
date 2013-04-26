@@ -1,12 +1,7 @@
 = Resolve pull requests
-    + Resolve pull request #6
-        + Add unit test for handling server callback
-        + Use json with ensure_ascii=False
-        + Add emit with callback in serve_tests
 Resolve issues
     Investigate issue #8
 Examine forks
-    Integrate Zac's fork #6
     Integrate Sajal's fork #7
     Integrate Francis's fork #10
     Integrate Paul's fork
