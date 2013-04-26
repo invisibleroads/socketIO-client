@@ -1,8 +1,14 @@
+0.4
+---
+- Added support for server-side callbacks thanks to Zac Lee
+- Added low-level _SocketIO to remove cyclic references
+- Merged Channel functionality into BaseNamespace thanks to Alexandre Bourget
+
 0.3
 ---
 - Added support for secure connections
 - Added socketIO.wait()
-- Improved exception handling in heartbeatThread and namespaceThread
+- Improved exception handling in _RhythmicThread and _ListenerThread
 
 0.2
 ---
