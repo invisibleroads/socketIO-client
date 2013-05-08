@@ -67,8 +67,7 @@ Define events in a namespace. ::
             print 'on_aaa_response', args
             self.emit('bbb')
 
-    socketIO = SocketIO('localhost', 8000)
-    socketIO.define(Namespace)
+    socketIO = SocketIO('localhost', 8000, Namespace)
     socketIO.emit('aaa')
     socketIO.wait(seconds=1)
 
@@ -81,8 +80,7 @@ Define standard events. ::
         def on_connect(self):
             print '[Connected]'
 
-    socketIO = SocketIO('localhost', 8000)
-    socketIO.define(Namespace)
+    socketIO = SocketIO('localhost', 8000, Namespace)
     socketIO.wait(seconds=1)
 
 Define different namespaces on a single socket. ::

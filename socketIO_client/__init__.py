@@ -87,7 +87,7 @@ class BaseNamespace(object):  # pragma: no cover
 
 class SocketIO(object):
 
-    def __init__(self, host, port, secure=False, headers=None, proxies=None):
+    def __init__(self, host, port, Namespace=BaseNamespace, secure=False, headers=None, proxies=None):
         """
         Create a socket.io client that connects to a socket.io server
         at the specified host and port.  Set secure=True to use HTTPS / WSS.
@@ -97,7 +97,7 @@ class SocketIO(object):
         """
         self._socketIO = _SocketIO(host, port, secure, headers, proxies)
         self._namespaceByPath = {}
-        self.define(BaseNamespace)  # Define default namespace
+        self.define(Namespace)
 
         self._rhythmicThread = _RhythmicThread(
             self._socketIO.heartbeatInterval,
