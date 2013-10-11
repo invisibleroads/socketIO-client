@@ -1,3 +1,7 @@
+0.5
+---
+- 
+
 0.4
 ---
 - Added support for custom headers and proxies thanks to Rui and Sajal
