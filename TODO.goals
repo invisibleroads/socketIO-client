@@ -1,19 +1,8 @@
-= Resolve pull requests
-    Resolve pull request #10
-    Resolve pull request #13
-    Resolve pull request #14
-    Resolve pull request #18
-    Resolve pull request #20
-    Resolve pull request #21
-    Resolve pull request #23
-Resolve issues
-    Resolve issue #8
-    Resolve issue #10
-    Resolve issue #11
-    Resolve issue #13
-    Resolve issue #14
-    Resolve issue #18
-    Resolve issue #20
-    Resolve issue #21
-    Resolve issue #22
-    Resolve issue #23
+= Investigate coroutine replacement for threads
+Make client robust if server disconnects
+Signal on_disconnect
+Add on_noop
+Add query_string
+Add more transports
+Replace print with logging
+Test with django-socketio
