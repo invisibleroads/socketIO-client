@@ -1,8 +1,8 @@
-= Investigate coroutine replacement for threads
-Make client robust if server disconnects
-Signal on_disconnect
-Add on_noop
-Add query_string
-Add more transports
-Replace print with logging
-Test with django-socketio
+= Test with django-socketio
++ Investigate coroutine replacement for threads
++ Make client robust if server disconnects
++ Signal on_disconnect
++ Add on_noop
++ Add query_string
++ Add more transports
++ Replace print with logging
