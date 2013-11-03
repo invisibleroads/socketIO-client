@@ -149,6 +149,9 @@ class _XHR_PollingTransport(_AbstractTransport):
             base_url, socketIO_session.id)
         self._connected = True
         self._http_session = _prepare_http_session(kw)
+        # Create connection
+        for packet_text in self.recv_packet():
+            pass
 
     @property
     def connected(self):
@@ -156,7 +159,7 @@ class _XHR_PollingTransport(_AbstractTransport):
 
     @property
     def _params(self):
-        return dict(t=time.time())
+        return dict(t=int(time.time()))
 
     def send(self, packet_text):
         _get_response(
@@ -197,7 +200,10 @@ class _JSONP_PollingTransport(_AbstractTransport):
             base_url, socketIO_session.id)
         self._connected = True
         self._http_session = _prepare_http_session(kw)
-        self._jsonp_id = 0
+        self._id = 0
+        # Create connection
+        for packet_text in self.recv_packet():
+            pass
 
     @property
     def connected(self):
@@ -205,7 +211,7 @@ class _JSONP_PollingTransport(_AbstractTransport):
 
     @property
     def _params(self):
-        return dict(t=time.time(), jsonp=self._jsonp_id)
+        return dict(t=int(time.time()), i=self._id)
 
     def send(self, packet_text):
         _get_response(
@@ -221,11 +227,11 @@ class _JSONP_PollingTransport(_AbstractTransport):
             self._http_session.get,
             self._url,
             params=self._params,
-            headers={'content-type': 'application/javascript'},
+            headers={'content-type': 'text/javascript; charset=UTF-8'},
             timeout=TIMEOUT_IN_SECONDS)
         encoded_text = response.text.encode('utf-8')
         if not encoded_text.startswith(BOUNDARY):
-            self._jsonp_id, encoded_data = self.DATA_PATTERN.match(
+            self._id, encoded_data = self.DATA_PATTERN.match(
                 encoded_text).groups()
             yield encoded_data.decode('utf-8')
         for packet_text in _yield_text_from_framed_data(encoded_text):
@@ -261,11 +267,12 @@ def _negotiate_transport(
 def _yield_text_from_framed_data(framed_data):
     parts = [x.decode('utf-8') for x in framed_data.split(BOUNDARY)]
     for text_length, text in izip(parts[1::2], parts[2::2]):
-        if text_length == str(len(text)):
-            yield text
-        warning = 'invalid declared length=%s for packet_text=%s' % (
-            text_length, text)
-        _log.warn('[packet error] %s', warning)
+        if text_length != str(len(text)):
+            warning = 'invalid declared length=%s for packet_text=%s' % (
+                text_length, text)
+            _log.warn('[packet error] %s', warning)
+            continue
+        yield text
 
 
 def _get_response(request, *args, **kw):

@@ -140,14 +140,14 @@ class BaseMixin(TestCase):
 
     def test_namespaces(self):
         'Behave differently in different namespaces'
-        mainNamespace = self.socketIO.define(Namespace)
-        chatNamespace = self.socketIO.define(Namespace, '/chat')
-        newsNamespace = self.socketIO.define(Namespace, '/news')
-        newsNamespace.emit('emit_with_payload', PAYLOAD)
+        main_namespace = self.socketIO.define(Namespace)
+        chat_namespace = self.socketIO.define(Namespace, '/chat')
+        news_namespace = self.socketIO.define(Namespace, '/news')
+        news_namespace.emit('emit_with_payload', PAYLOAD)
         self.socketIO.wait(self.wait_time_in_seconds)
-        self.assertEqual(mainNamespace.args_by_event, {})
-        self.assertEqual(chatNamespace.args_by_event, {})
-        self.assertEqual(newsNamespace.args_by_event, {
+        self.assertEqual(main_namespace.args_by_event, {})
+        self.assertEqual(chat_namespace.args_by_event, {})
+        self.assertEqual(news_namespace.args_by_event, {
             'emit_with_payload_response': (PAYLOAD,),
         })
 

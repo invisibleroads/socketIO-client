@@ -23,7 +23,7 @@ class BaseNamespace(object):
 
     def __init__(self, _transport, path):
         self._transport = _transport
-        self._path = path
+        self.path = path
         self._callback_by_event = {}
         self.initialize()
 
@@ -32,11 +32,11 @@ class BaseNamespace(object):
         pass
 
     def message(self, data='', callback=None):
-        self._transport.message(self._path, data, callback)
+        self._transport.message(self.path, data, callback)
 
     def emit(self, event, *args, **kw):
         callback, args = find_callback(args, kw)
-        self._transport.emit(self._path, event, args, callback)
+        self._transport.emit(self.path, event, args, callback)
 
     def on(self, event, callback):
         'Define a callback to handle a custom event emitted by the server'
@@ -44,19 +44,19 @@ class BaseNamespace(object):
 
     def on_connect(self):
         'Called after server connects; you can override this method'
-        _log.debug('[connect]')
+        _log.debug('%s [connect]', self.path)
 
     def on_disconnect(self):
         'Called after server disconnects; you can override this method'
-        _log.debug('[disconnect]')
+        _log.debug('%s [disconnect]', self.path)
 
     def on_heartbeat(self):
         'Called after server sends a heartbeat; you can override this method'
-        _log.debug('[heartbeat]')
+        _log.debug('%s [heartbeat]', self.path)
 
     def on_message(self, data):
         'Called after server sends a message; you can override this method'
-        _log.info('[message] %s', data)
+        _log.info('%s [message] %s', self.path, data)
 
     def on_event(self, event, *args):
         """
@@ -69,27 +69,27 @@ class BaseNamespace(object):
         if callback:
             arguments.append('callback(*args)')
             callback(*args)
-        _log.info('[event] %s(%s)', event, ', '.join(arguments))
+        _log.info('%s [event] %s(%s)', self.path, event, ', '.join(arguments))
 
     def on_error(self, reason, advice):
         'Called after server sends an error; you can override this method'
-        _log.info('[error] %s', advice)
+        _log.info('%s [error] %s', self.path, advice)
 
     def on_noop(self):
         'Called after server sends a noop; you can override this method'
-        _log.info('[noop]')
+        _log.info('%s [noop]', self.path)
 
     def on_open(self, *args):
-        _log.info('[open] %s', args)
+        _log.info('%s [open] %s', self.path, args)
 
     def on_close(self, *args):
-        _log.info('[close] %s', args)
+        _log.info('%s [close] %s', self.path, args)
 
     def on_retry(self, *args):
-        _log.info('[retry] %s', args)
+        _log.info('%s [retry] %s', self.path, args)
 
     def on_reconnect(self, *args):
-        _log.info('[reconnect] %s', args)
+        _log.info('%s [reconnect] %s', self.path, args)
 
     def _find_event_callback(self, event):
         # Check callbacks defined by on()
@@ -142,6 +142,7 @@ class SocketIO(object):
         if path:
             self._transport.connect(path)
         namespace = Namespace(self._transport, path)
+        namespace.on_connect()
         self._namespace_by_path[path] = namespace
         return namespace
 
@@ -164,12 +165,13 @@ class SocketIO(object):
                     if for_callbacks and not self._transport.has_ack_callback:
                         break
                     try:
-                        packet = self._transport.recv_packet().next()
-                        self._process_packet(packet)
+                        for packet in self._transport.recv_packet():
+                            try:
+                                self._process_packet(packet)
+                            except _PacketError as e:
+                                _log.warn('[packet error] %s', e)
                     except _TimeoutError:
                         pass
-                    except _PacketError as e:
-                        _log.warn('[packet error] %s', e)
                     self.heartbeat_pacemaker.send(elapsed_time)
                 except SocketIOConnectionError as e:
                     try:
@@ -366,12 +368,3 @@ def _get_socketIO_session(secure, base_url, **kw):
         id=response_parts[0],
         heartbeat_timeout=int(response_parts[1]),
         server_supported_transports=response_parts[3].split(','))
-
-
-if __name__ == '__main__':
-    requests_log = logging.getLogger('requests')
-    requests_log.setLevel(logging.WARNING)
-    logging.basicConfig(level=logging.DEBUG)
-    socketIO = SocketIO('localhost', 8000)
-    socketIO.emit('aaa')
-    socketIO.wait()

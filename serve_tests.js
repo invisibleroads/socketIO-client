@@ -15,7 +15,6 @@ var main = io.of('').on('connection', function(socket) {
     }
   });
   socket.on('emit', function() {
-    console.log('hey');
     socket.emit('emit_response');
   });
   socket.on('emit_with_payload', function(payload) {
