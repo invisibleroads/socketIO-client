@@ -1,20 +1,21 @@
 import logging
 import json
 import requests
-import socket
 import time
-import websocket
 from collections import namedtuple
 
+from .exceptions import SocketIOConnectionError, _TimeoutError, _PacketError
+from .transports import _get_response, _negotiate_transport, TRANSPORTS
 
-_Session = namedtuple('_Session', [
+
+_SocketIOSession = namedtuple('_SocketIOSession', [
     'id',
     'heartbeat_timeout',
     'server_supported_transports',
 ])
 _log = logging.getLogger(__name__)
-TRANSPORTS = 'websocket', 'xhr-polling', 'jsonp-polling'
 PROTOCOL_VERSION = 1
+RETRY_INTERVAL_IN_SECONDS = 1
 
 
 class BaseNamespace(object):
@@ -157,22 +158,26 @@ class SocketIO(object):
 
     def wait(self, seconds=None, for_callbacks=False):
         try:
-            warning_screen = _yield_warning_screen(seconds, sleep=1)
+            warning_screen = _yield_warning_screen(seconds)
             for elapsed_time in warning_screen:
                 try:
                     if for_callbacks and not self._transport.has_ack_callback:
                         break
                     try:
-                        self._process_packet(self._transport.recv_packet())
+                        packet = self._transport.recv_packet().next()
+                        self._process_packet(packet)
                     except _TimeoutError:
                         pass
-                    except _PacketError as error:
-                        _log.warn('[packet error] %s', error)
+                    except _PacketError as e:
+                        _log.warn('[packet error] %s', e)
                     self.heartbeat_pacemaker.send(elapsed_time)
-                except SocketIOConnectionError as error:
+                except SocketIOConnectionError as e:
+                    try:
+                        warning = Exception('[connection error] %s' % e)
+                        warning_screen.throw(warning)
+                    except StopIteration:
+                        _log.warn(warning)
                     self.disconnect()
-                    warning = Exception('[connection error] %s' % error)
-                    warning_screen.throw(warning)
         except KeyboardInterrupt:
             pass
 
@@ -198,29 +203,33 @@ class SocketIO(object):
                 return self.__transport
         except AttributeError:
             pass
-        warning_screen = _yield_warning_screen(seconds=None, sleep=1)
+        warning_screen = _yield_warning_screen(seconds=None)
         for elapsed_time in warning_screen:
             try:
                 self.__transport = self._get_transport()
                 break
-            except SocketIOConnectionError as error:
+            except SocketIOConnectionError as e:
                 if not self.wait_for_connection:
                     raise
-                warning = Exception('[waiting for connection] %s' % error)
-                warning_screen.throw(warning)
+                try:
+                    warning = Exception('[waiting for connection] %s' % e)
+                    warning_screen.throw(warning)
+                except StopIteration:
+                    _log.warn(warning)
         return self.__transport
 
     def _get_transport(self):
-        self.session = _get_session(self.secure, self.base_url, **self.kw)
+        socketIO_session = _get_socketIO_session(
+            self.secure, self.base_url, **self.kw)
         _log.debug('[transports available] %s', ' '.join(
-            self.session.server_supported_transports))
+            socketIO_session.server_supported_transports))
         # Initialize heartbeat_pacemaker
         self.heartbeat_pacemaker = self._make_heartbeat_pacemaker(
-            heartbeat_interval=self.session.heartbeat_timeout - 2)
+            heartbeat_interval=socketIO_session.heartbeat_timeout - 2)
         self.heartbeat_pacemaker.next()
         # Negotiate transport
         transport = _negotiate_transport(
-            self.client_supported_transports, self.session,
+            self.client_supported_transports, socketIO_session,
             self.secure, self.base_url, **self.kw)
         # Update namespaces
         for namespace in self._namespace_by_path.values():
@@ -314,143 +323,6 @@ class SocketIO(object):
         return lambda *args: self._transport.ack(packet_id, *args)
 
 
-class SocketIOError(Exception):
-    pass
-
-
-class _TimeoutError(Exception):
-    pass
-
-
-class _PacketError(SocketIOError):
-    pass
-
-
-class SocketIOConnectionError(SocketIOError):
-    pass
-
-
-class _AbstractTransport(object):
-
-    def __init__(self):
-        self._packet_id = 0
-        self._callback_by_packet_id = {}
-
-    def disconnect(self, path=''):
-        if not self.connected:
-            return
-        if path:
-            self.send_packet(0, path)
-        else:
-            self.connection.close()
-
-    def connect(self, path):
-        self.send_packet(1, path)
-
-    def send_heartbeat(self):
-        self.send_packet(2)
-
-    def message(self, path, data, callback):
-        if isinstance(data, basestring):
-            code = 3
-        else:
-            code = 4
-            data = json.dumps(data, ensure_ascii=False)
-        self.send_packet(code, path, data, callback)
-
-    def emit(self, path, event, args, callback):
-        data = json.dumps(dict(name=event, args=args), ensure_ascii=False)
-        self.send_packet(5, path, data, callback)
-
-    def ack(self, packet_id, *args):
-        packet_id = packet_id.rstrip('+')
-        data = '%s+%s' % (
-            packet_id,
-            json.dumps(args, ensure_ascii=False),
-        ) if args else packet_id
-        self.send_packet(6, data=data)
-
-    def noop(self):
-        self.send_packet(8)
-
-    def send_packet(self, code, path='', data='', callback=None):
-        packet_id = self.set_ack_callback(callback) if callback else ''
-        packet_parts = str(code), packet_id, path, data
-        packet_text = ':'.join(packet_parts)
-        self.send(packet_text)
-        _log.debug('[packet sent] %s', packet_text)
-
-    def recv_packet(self):
-        code, packet_id, path, data = None, None, None, None
-        packet_text = self.recv()
-        _log.debug('[packet received] %s', packet_text)
-        try:
-            packet_parts = packet_text.split(':', 3)
-        except AttributeError:
-            raise _PacketError('invalid packet (%s)' % packet_text)
-        packet_count = len(packet_parts)
-        if 4 == packet_count:
-            code, packet_id, path, data = packet_parts
-        elif 3 == packet_count:
-            code, packet_id, path = packet_parts
-        elif 1 == packet_count:
-            code = packet_parts[0]
-        return code, packet_id, path, data
-
-    def set_ack_callback(self, callback):
-        'Set callback to be called after server sends an acknowledgment'
-        self._packet_id += 1
-        self._callback_by_packet_id[str(self._packet_id)] = callback
-        return '%s+' % self._packet_id
-
-    def get_ack_callback(self, packet_id):
-        'Get callback to be called after server sends an acknowledgment'
-        callback = self._callback_by_packet_id[packet_id]
-        del self._callback_by_packet_id[packet_id]
-        return callback
-
-    @property
-    def has_ack_callback(self):
-        return True if self._callback_by_packet_id else False
-
-
-class _WebsocketTransport(_AbstractTransport):
-
-    def __init__(self, session, secure, base_url, **kw):
-        super(_WebsocketTransport, self).__init__()
-        url = '%s://%s/websocket/%s' % (
-            'wss' if secure else 'ws',
-            base_url, session.id)
-        _log.debug('[transport selected] %s', url)
-        try:
-            self.connection = websocket.create_connection(url)
-        except socket.timeout as error:
-            raise SocketIOConnectionError(error)
-        except socket.error as error:
-            raise SocketIOConnectionError(error)
-        self.connection.settimeout(1)
-
-    @property
-    def connected(self):
-        return self.connection.connected
-
-    def recv(self):
-        try:
-            return self.connection.recv()
-        except socket.timeout:
-            raise _TimeoutError
-        except socket.error as error:
-            raise SocketIOConnectionError(error)
-        except websocket.WebSocketConnectionClosedException:
-            raise SocketIOConnectionError('server closed connection')
-
-    def send(self, packet_text):
-        try:
-            self.connection.send(packet_text)
-        except socket.error:
-            raise SocketIOConnectionError('could not send %s' % packet_text)
-
-
 def find_callback(args, kw=None):
     'Return callback whether passed as a last argument or as a keyword'
     if args and callable(args[-1]):
@@ -461,7 +333,7 @@ def find_callback(args, kw=None):
         return None, args
 
 
-def _yield_warning_screen(seconds=None, sleep=0):
+def _yield_warning_screen(seconds=None):
     last_warning = None
     for elapsed_time in _yield_elapsed_time(seconds):
         try:
@@ -471,7 +343,7 @@ def _yield_warning_screen(seconds=None, sleep=0):
             if last_warning != warning:
                 last_warning = warning
                 _log.warn(warning)
-            time.sleep(sleep)
+            time.sleep(RETRY_INTERVAL_IN_SECONDS)
 
 
 def _yield_elapsed_time(seconds=None):
@@ -483,38 +355,17 @@ def _yield_elapsed_time(seconds=None):
         yield time.time() - start_time
 
 
-def _get_session(secure, base_url, **kw):
+def _get_socketIO_session(secure, base_url, **kw):
     server_url = '%s://%s/' % ('https' if secure else 'http', base_url)
     try:
-        response = requests.get(server_url, **kw)
-    except requests.exceptions.ConnectionError:
-        raise SocketIOConnectionError('could not start connection')
-    status = response.status_code
-    if 200 != status:
-        raise SocketIOConnectionError('unexpected status code (%s)' % status)
+        response = _get_response(requests.get, server_url, **kw)
+    except _TimeoutError as e:
+        raise SocketIOConnectionError(e)
     response_parts = response.text.split(':')
-    return _Session(
+    return _SocketIOSession(
         id=response_parts[0],
         heartbeat_timeout=int(response_parts[1]),
         server_supported_transports=response_parts[3].split(','))
-
-
-def _negotiate_transport(
-        client_supported_transports, session,
-        secure, base_url, **kw):
-    server_supported_transports = session.server_supported_transports
-    for supported_transport in client_supported_transports:
-        if supported_transport in server_supported_transports:
-            return {
-                'websocket': _WebsocketTransport,
-                # 'xhr-polling':
-                # 'jsonp-polling':
-            }[supported_transport](session, secure, base_url, **kw)
-    raise SocketIOError(' '.join([
-        'could not negotiate a transport:',
-        'client supports %s but' % ', '.join(client_supported_transports),
-        'server supports %s' % ', '.join(server_supported_transports),
-    ]))
 
 
 if __name__ == '__main__':
