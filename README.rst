@@ -135,8 +135,10 @@ Credits
 - `Hiroki Ohtani`_ wrote websocket-client_.
 - rod_ wrote a `prototype for a Python client to a socket.io server`_ on StackOverflow.
 - `Alexandre Bourget`_ wrote gevent-socketio_, which is a socket.io server written in Python.
-- `Paul Kienzle`_, `Zac Lee`_, `Josh VanderLinden`_, `Ian Fitzpatrick`_, `Lucas Klein`_ submitted code to expand support of the socket.io protocol.
-
+- `Paul Kienzle`_, `Zac Lee`_, `Josh VanderLinden`_, `Ian Fitzpatrick`_, `Lucas Klein`_, `Rui Chicoria`_ submitted code to expand support of the socket.io protocol.
+- `Guy Zmo`_ and `Francis Bull`_ wrote prototypes to support xhr-polling and jsonp-polling.
+- `Eric Chen`_, `Denis Zinevich`_, `Thiago Hersan`_ suggested ways to make the connection more robust.
+  
 
 .. _socket.io: http://socket.io
 .. _requests: http://python-requests.org
@@ -153,8 +155,15 @@ Credits
 .. _Alexandre Bourget: https://github.com/abourget
 .. _gevent-socketio: https://github.com/abourget/gevent-socketio
 
+.. _Guy Zmo: https://github.com/guyzmo
+.. _Francis Bull: https://github.com/franbull
 .. _Paul Kienzle: https://github.com/pkienzle
 .. _Zac Lee: https://github.com/zratic
 .. _Josh VanderLinden: https://github.com/codekoala
 .. _Ian Fitzpatrick: https://github.com/GraphEffect
 .. _Lucas Klein: https://github.com/lukashed
+.. _Rui Chicoria: https://github.com/rchicoria
+
+.. _Eric Chen: https://github.com/taiyangc
+.. _Denis Zinevich: https://github.com/dzinevich 
+.. _Thiago Hersan: https://github.com/thiagohersan
