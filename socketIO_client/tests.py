@@ -12,7 +12,7 @@ PAYLOAD = {'xxx': 'yyy'}
 logging.basicConfig(level=logging.DEBUG)
 
 
-class BaseMixin(TestCase):
+class BaseMixin(object):
 
     def setUp(self):
         self.called_on_response = False
@@ -152,7 +152,7 @@ class BaseMixin(TestCase):
         })
 
 
-class Test_WebsocketTransport(BaseMixin):
+class Test_WebsocketTransport(TestCase, BaseMixin):
 
     def setUp(self):
         super(Test_WebsocketTransport, self).setUp()
@@ -160,7 +160,7 @@ class Test_WebsocketTransport(BaseMixin):
         self.wait_time_in_seconds = 0.1
 
 
-class Test_XHR_PollingTransport(BaseMixin):
+class Test_XHR_PollingTransport(TestCase, BaseMixin):
 
     def setUp(self):
         super(Test_XHR_PollingTransport, self).setUp()
@@ -168,7 +168,7 @@ class Test_XHR_PollingTransport(BaseMixin):
         self.wait_time_in_seconds = TIMEOUT_IN_SECONDS + 1
 
 
-class Test_JSONP_PollingTransport(BaseMixin):
+class Test_JSONP_PollingTransport(TestCase, BaseMixin):
 
     def setUp(self):
         super(Test_JSONP_PollingTransport, self).setUp()

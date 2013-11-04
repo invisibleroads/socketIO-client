@@ -11,7 +11,7 @@ from .exceptions import SocketIOError, SocketIOConnectionError, _TimeoutError
 
 
 TRANSPORTS = 'websocket', 'xhr-polling', 'jsonp-polling'
-BOUNDARY = u'\ufffd'.encode('utf-8')
+BOUNDARY = u'\ufffd'
 TIMEOUT_IN_SECONDS = 2
 _log = logging.getLogger(__name__)
 
@@ -175,10 +175,11 @@ class _XHR_PollingTransport(_AbstractTransport):
             self._url,
             params=self._params,
             timeout=TIMEOUT_IN_SECONDS)
-        encoded_text = response.text.encode('utf-8')
-        if not encoded_text.startswith(BOUNDARY):
-            yield encoded_text.decode('utf-8')
-        for packet_text in _yield_text_from_framed_data(encoded_text):
+        response_text = response.text
+        if not response_text.startswith(BOUNDARY):
+            yield response_text
+            return
+        for packet_text in _yield_text_from_framed_data(response_text):
             yield packet_text
 
     def close(self):
@@ -191,7 +192,7 @@ class _XHR_PollingTransport(_AbstractTransport):
 
 class _JSONP_PollingTransport(_AbstractTransport):
 
-    DATA_PATTERN = re.compile(r'io.j\[(\d+)\]\("(.*)"\);')
+    RESPONSE_PATTERN = re.compile(r'io.j\[(\d+)\]\("(.*)"\);')
 
     def __init__(self, socketIO_session, secure, base_url, **kw):
         super(_JSONP_PollingTransport, self).__init__()
@@ -218,23 +219,30 @@ class _JSONP_PollingTransport(_AbstractTransport):
             self._http_session.post,
             self._url,
             params=self._params,
-            data='d=%s' % requests.utils.quote(packet_text),
+            data='d=%s' % requests.utils.quote(json.dumps(packet_text)),
             headers={'content-type': 'application/x-www-form-urlencoded'},
             timeout=TIMEOUT_IN_SECONDS)
 
     def recv(self):
+        'Decode the JavaScript response so that we can parse it as JSON'
         response = _get_response(
             self._http_session.get,
             self._url,
             params=self._params,
             headers={'content-type': 'text/javascript; charset=UTF-8'},
             timeout=TIMEOUT_IN_SECONDS)
-        encoded_text = response.text.encode('utf-8')
-        if not encoded_text.startswith(BOUNDARY):
-            self._id, encoded_data = self.DATA_PATTERN.match(
-                encoded_text).groups()
-            yield encoded_data.decode('utf-8')
-        for packet_text in _yield_text_from_framed_data(encoded_text):
+        response_text = response.text
+        try:
+            self._id, response_text = self.RESPONSE_PATTERN.match(
+                response_text).groups()
+        except AttributeError:
+            _log.warn('[packet error] %s', response_text)
+            return
+        if not response_text.startswith(BOUNDARY):
+            yield response_text.decode('unicode_escape')
+            return
+        for packet_text in _yield_text_from_framed_data(
+                response_text, parse=lambda x: x.decode('unicode_escape')):
             yield packet_text
 
     def close(self):
@@ -264,8 +272,8 @@ def _negotiate_transport(
     ]))
 
 
-def _yield_text_from_framed_data(framed_data):
-    parts = [x.decode('utf-8') for x in framed_data.split(BOUNDARY)]
+def _yield_text_from_framed_data(framed_data, parse=lambda x: x):
+    parts = [parse(x) for x in framed_data.split(BOUNDARY)]
     for text_length, text in izip(parts[1::2], parts[2::2]):
         if text_length != str(len(text)):
             warning = 'invalid declared length=%s for packet_text=%s' % (
