@@ -1,6 +1,10 @@
 0.5
 ---
-- 
+- Rewrote library to use coroutines instead of threads to save memory
+- Improved connection resilience
+- Added support for xhr-polling thanks to Francis Bull
+- Added support for jsonp-polling thanks to Bernard Pratz
+- Added support for query params and cookies
 
 0.4
 ---
