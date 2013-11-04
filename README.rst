@@ -113,13 +113,15 @@ Open secure websockets (HTTPS / WSS) behind a proxy. ::
         secure=True,
         proxies={'https': 'https://proxy.example.com:8080'})
 
-Specify custom headers thanks to the `requests`_ library. ::
+Specify params, headers and cookies thanks to the `requests`_ library. ::
 
     from socketIO_client import SocketIO
     from base64 import b64encode
 
     SocketIO('localhost', 8000, 
-        headers={'Authorization': 'Basic ' + b64encode('username:password')})
+        params={'q': 'qqq'},
+        headers={'Authorization': 'Basic ' + b64encode('username:password')},
+        cookies={'a': 'aaa'})
 
 
 License
