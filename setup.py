@@ -24,6 +24,7 @@ setup(
     url='https://github.com/invisibleroads/socketIO-client',
     install_requires=[
         'requests',
+        'six',
         'websocket-client',
     ],
     packages=find_packages(),

@@ -2,6 +2,7 @@ import json
 import logging
 import re
 import requests
+import six
 import socket
 import time
 import websocket
@@ -11,7 +12,7 @@ from .exceptions import SocketIOError, SocketIOConnectionError, _TimeoutError
 
 
 TRANSPORTS = 'websocket', 'xhr-polling', 'jsonp-polling'
-BOUNDARY = u'\ufffd'
+BOUNDARY = six.u('\ufffd')
 TIMEOUT_IN_SECONDS = 2
 _log = logging.getLogger(__name__)
 
