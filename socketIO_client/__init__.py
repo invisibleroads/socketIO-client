@@ -250,7 +250,7 @@ class SocketIO(object):
         code, packet_id, path, data = packet
         namespace = self.get_namespace(path)
         delegate = self._get_delegate(code)
-        delegate(packet_id, data, namespace._find_event_callback)
+        delegate(packet, namespace._find_event_callback)
 
     def get_namespace(self, path=''):
         try:
@@ -274,36 +274,40 @@ class SocketIO(object):
         except KeyError:
             raise PacketError('unexpected code (%s)' % code)
 
-    def _on_disconnect(self, packet_id, data, find_event_callback):
+    def _on_disconnect(self, packet, find_event_callback):
         find_event_callback('disconnect')()
 
-    def _on_connect(self, packet_id, data, find_event_callback):
+    def _on_connect(self, packet, find_event_callback):
         find_event_callback('connect')()
 
-    def _on_heartbeat(self, packet_id, data, find_event_callback):
+    def _on_heartbeat(self, packet, find_event_callback):
         find_event_callback('heartbeat')()
 
-    def _on_message(self, packet_id, data, find_event_callback):
+    def _on_message(self, packet, find_event_callback):
+        code, packet_id, path, data = packet
         args = [data]
         if packet_id:
-            args.append(self._prepare_to_send_ack(packet_id))
+            args.append(self._prepare_to_send_ack(path, packet_id))
         find_event_callback('message')(*args)
 
-    def _on_json(self, packet_id, data, find_event_callback):
+    def _on_json(self, packet, find_event_callback):
+        code, packet_id, path, data = packet
         args = [json.loads(data)]
         if packet_id:
-            args.append(self._prepare_to_send_ack(packet_id))
+            args.append(self._prepare_to_send_ack(path, packet_id))
         find_event_callback('message')(*args)
 
-    def _on_event(self, packet_id, data, find_event_callback):
+    def _on_event(self, packet, find_event_callback):
+        code, packet_id, path, data = packet
         value_by_name = json.loads(data)
         event = value_by_name['name']
         args = value_by_name.get('args', [])
         if packet_id:
-            args.append(self._prepare_to_send_ack(packet_id))
+            args.append(self._prepare_to_send_ack(path, packet_id))
         find_event_callback(event)(*args)
 
-    def _on_ack(self, packet_id, data, find_event_callback):
+    def _on_ack(self, packet, find_event_callback):
+        code, packet_id, path, data = packet
         data_parts = data.split('+', 1)
         packet_id = data_parts[0]
         try:
@@ -313,16 +317,17 @@ class SocketIO(object):
         args = json.loads(data_parts[1]) if len(data_parts) > 1 else []
         ack_callback(*args)
 
-    def _on_error(self, packet_id, data, find_event_callback):
+    def _on_error(self, packet, find_event_callback):
+        code, packet_id, path, data = packet
         reason, advice = data.split('+', 1)
         find_event_callback('error')(reason, advice)
 
-    def _on_noop(self, packet_id, data, find_event_callback):
+    def _on_noop(self, packet, find_event_callback):
         find_event_callback('noop')()
 
-    def _prepare_to_send_ack(self, packet_id):
+    def _prepare_to_send_ack(self, path, packet_id):
         'Return function that acknowledges the server'
-        return lambda *args: self._transport.ack(packet_id, *args)
+        return lambda *args: self._transport.ack(path, packet_id, *args)
 
 
 def find_callback(args, kw=None):

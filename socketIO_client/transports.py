@@ -49,16 +49,16 @@ class _AbstractTransport(object):
         data = json.dumps(dict(name=event, args=args), ensure_ascii=False)
         self.send_packet(5, path, data, callback)
 
-    def ack(self, packet_id, *args):
+    def ack(self, path, packet_id, *args):
         packet_id = packet_id.rstrip('+')
         data = '%s+%s' % (
             packet_id,
             json.dumps(args, ensure_ascii=False),
         ) if args else packet_id
-        self.send_packet(6, data=data)
+        self.send_packet(6, path, data)
 
-    def noop(self):
-        self.send_packet(8)
+    def noop(self, path=''):
+        self.send_packet(8, path)
 
     def send_packet(self, code, path='', data='', callback=None):
         packet_id = self.set_ack_callback(callback) if callback else ''
