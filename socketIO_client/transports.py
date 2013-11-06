@@ -8,12 +8,12 @@ import time
 import websocket
 from itertools import izip
 
-from .exceptions import SocketIOError, SocketIOConnectionError, _TimeoutError
+from .exceptions import SocketIOError, ConnectionError, TimeoutError
 
 
 TRANSPORTS = 'websocket', 'xhr-polling', 'jsonp-polling'
 BOUNDARY = six.u('\ufffd')
-TIMEOUT_IN_SECONDS = 2
+TIMEOUT_IN_SECONDS = 3
 _log = logging.getLogger(__name__)
 
 
@@ -112,9 +112,9 @@ class _WebsocketTransport(_AbstractTransport):
         try:
             self._connection = websocket.create_connection(url)
         except socket.timeout as e:
-            raise SocketIOConnectionError(e)
+            raise ConnectionError(e)
         except socket.error as e:
-            raise SocketIOConnectionError(e)
+            raise ConnectionError(e)
         self._connection.settimeout(TIMEOUT_IN_SECONDS)
 
     @property
@@ -124,18 +124,26 @@ class _WebsocketTransport(_AbstractTransport):
     def send(self, packet_text):
         try:
             self._connection.send(packet_text)
-        except socket.error:
-            raise SocketIOConnectionError('could not send %s' % packet_text)
+        except websocket.WebSocketTimeoutException as e:
+            message = 'timed out while sending %s (%s)' % (packet_text, e)
+            _log.warn(message)
+            raise TimeoutError(e)
+        except socket.error as e:
+            message = 'disconnected while sending %s (%s)' % (packet_text, e)
+            _log.warn(message)
+            raise ConnectionError(message)
 
     def recv(self):
         try:
             yield self._connection.recv()
-        except socket.timeout:
-            raise _TimeoutError
-        except socket.error as e:
-            raise SocketIOConnectionError(e)
+        except websocket.WebSocketTimeoutException as e:
+            raise TimeoutError(e)
+        except websocket.SSLError as e:
+            raise ConnectionError(e)
         except websocket.WebSocketConnectionClosedException as e:
-            raise SocketIOConnectionError('connection closed (%s)' % e)
+            raise ConnectionError('connection closed (%s)' % e)
+        except socket.error as e:
+            raise ConnectionError(e)
 
     def close(self):
         self._connection.close()
@@ -288,14 +296,14 @@ def _get_response(request, *args, **kw):
     try:
         response = request(*args, **kw)
     except requests.exceptions.Timeout as e:
-        raise _TimeoutError(e)
+        raise TimeoutError(e)
     except requests.exceptions.ConnectionError as e:
-        raise SocketIOConnectionError(e)
+        raise ConnectionError(e)
     except requests.exceptions.SSLError as e:
-        raise SocketIOConnectionError('could not negotiate SSL (%s)' % e)
+        raise ConnectionError('could not negotiate SSL (%s)' % e)
     status = response.status_code
     if 200 != status:
-        raise SocketIOConnectionError('unexpected status code (%s)' % status)
+        raise ConnectionError('unexpected status code (%s)' % status)
     return response
 
 

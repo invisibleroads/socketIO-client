@@ -4,7 +4,7 @@ import requests
 import time
 from collections import namedtuple
 
-from .exceptions import SocketIOConnectionError, _TimeoutError, _PacketError
+from .exceptions import ConnectionError, TimeoutError, PacketError
 from .transports import _get_response, _negotiate_transport, TRANSPORTS
 
 
@@ -168,12 +168,12 @@ class SocketIO(object):
                         for packet in self._transport.recv_packet():
                             try:
                                 self._process_packet(packet)
-                            except _PacketError as e:
+                            except PacketError as e:
                                 _log.warn('[packet error] %s', e)
-                    except _TimeoutError:
+                    except TimeoutError:
                         pass
                     self.heartbeat_pacemaker.send(elapsed_time)
-                except SocketIOConnectionError as e:
+                except ConnectionError as e:
                     try:
                         warning = Exception('[connection error] %s' % e)
                         warning_screen.throw(warning)
@@ -210,7 +210,7 @@ class SocketIO(object):
             try:
                 self.__transport = self._get_transport()
                 break
-            except SocketIOConnectionError as e:
+            except ConnectionError as e:
                 if not self.wait_for_connection:
                     raise
                 try:
@@ -256,7 +256,7 @@ class SocketIO(object):
         try:
             return self._namespace_by_path[path]
         except KeyError:
-            raise _PacketError('unexpected namespace path (%s)' % path)
+            raise PacketError('unexpected namespace path (%s)' % path)
 
     def _get_delegate(self, code):
         try:
@@ -272,7 +272,7 @@ class SocketIO(object):
                 '8': self._on_noop,
             }[code]
         except KeyError:
-            raise _PacketError('unexpected code (%s)' % code)
+            raise PacketError('unexpected code (%s)' % code)
 
     def _on_disconnect(self, packet_id, data, find_event_callback):
         find_event_callback('disconnect')()
@@ -361,8 +361,8 @@ def _get_socketIO_session(secure, base_url, **kw):
     server_url = '%s://%s/' % ('https' if secure else 'http', base_url)
     try:
         response = _get_response(requests.get, server_url, **kw)
-    except _TimeoutError as e:
-        raise SocketIOConnectionError(e)
+    except TimeoutError as e:
+        raise ConnectionError(e)
     response_parts = response.text.split(':')
     return _SocketIOSession(
         id=response_parts[0],

@@ -2,13 +2,13 @@ class SocketIOError(Exception):
     pass
 
 
-class SocketIOConnectionError(SocketIOError):
+class ConnectionError(SocketIOError):
     pass
 
 
-class _TimeoutError(Exception):
+class TimeoutError(SocketIOError):
     pass
 
 
-class _PacketError(SocketIOError):
+class PacketError(SocketIOError):
     pass
