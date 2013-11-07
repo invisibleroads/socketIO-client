@@ -1,3 +1,8 @@
+0.5.1
+-----
+- Added error handling in the event of websocket timeout
+- Fixed sending acknowledgments in custom namespaces thanks to Travis Odom
+
 0.5
 ---
 - Rewrote library to use coroutines instead of threads to save memory

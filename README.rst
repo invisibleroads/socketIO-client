@@ -135,7 +135,7 @@ Credits
 - `Hiroki Ohtani`_ wrote websocket-client_.
 - rod_ wrote a `prototype for a Python client to a socket.io server`_ on StackOverflow.
 - `Alexandre Bourget`_ wrote gevent-socketio_, which is a socket.io server written in Python.
-- `Paul Kienzle`_, `Zac Lee`_, `Josh VanderLinden`_, `Ian Fitzpatrick`_, `Lucas Klein`_, `Rui Chicoria`_ submitted code to expand support of the socket.io protocol.
+- `Paul Kienzle`_, `Zac Lee`_, `Josh VanderLinden`_, `Ian Fitzpatrick`_, `Lucas Klein`_, `Rui Chicoria`_, `Travis Odom`_ submitted code to expand support of the socket.io protocol.
 - `Bernard Pratz`_ and `Francis Bull`_ wrote prototypes to support xhr-polling and jsonp-polling.
 - `Eric Chen`_, `Denis Zinevich`_, `Thiago Hersan`_ suggested ways to make the connection more robust.
   
@@ -163,6 +163,7 @@ Credits
 .. _Ian Fitzpatrick: https://github.com/GraphEffect
 .. _Lucas Klein: https://github.com/lukashed
 .. _Rui Chicoria: https://github.com/rchicoria
+.. _Travis Odom: https://github.com/burstaholic
 
 .. _Eric Chen: https://github.com/taiyangc
 .. _Denis Zinevich: https://github.com/dzinevich 
