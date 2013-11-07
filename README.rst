@@ -98,11 +98,11 @@ Define different namespaces on a single socket. ::
             print 'on_aaa_response', args
 
     socketIO = SocketIO('localhost', 8000)
-    chatNamespace = socketIO.define(ChatNamespace, '/chat')
-    newsNamespace = socketIO.define(NewsNamespace, '/news')
+    chat_namespace = socketIO.define(ChatNamespace, '/chat')
+    news_namespace = socketIO.define(NewsNamespace, '/news')
 
-    chatNamespace.emit('aaa')
-    newsNamespace.emit('aaa')
+    chat_namespace.emit('aaa')
+    news_namespace.emit('aaa')
     socketIO.wait(seconds=1)
 
 Open secure websockets (HTTPS / WSS) behind a proxy. ::
