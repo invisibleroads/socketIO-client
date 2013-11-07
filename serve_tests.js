@@ -57,6 +57,11 @@ var chat = io.of('/chat').on('connection', function (socket) {
   socket.on('aaa', function() {
     socket.emit('aaa_response', 'in chat');
   });
+  socket.on('ack', function(payload) {
+    socket.emit('ack_response', payload, function(payload) {
+      socket.emit('ack_callback_response', payload);
+    });
+  });
 });
 
 var news = io.of('/news').on('connection', function (socket) {

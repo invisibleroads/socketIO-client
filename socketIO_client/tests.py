@@ -138,7 +138,7 @@ class BaseMixin(object):
             'ack_callback_response': (PAYLOAD,),
         })
 
-    def test_namespaces(self):
+    def test_namespace_emit(self):
         'Behave differently in different namespaces'
         main_namespace = self.socketIO.define(Namespace)
         chat_namespace = self.socketIO.define(Namespace, '/chat')
@@ -149,6 +149,16 @@ class BaseMixin(object):
         self.assertEqual(chat_namespace.args_by_event, {})
         self.assertEqual(news_namespace.args_by_event, {
             'emit_with_payload_response': (PAYLOAD,),
+        })
+
+    def test_namespace_ack(self):
+        'Trigger server callback'
+        chat_namespace = self.socketIO.define(Namespace, '/chat')
+        chat_namespace.emit('ack', PAYLOAD)
+        self.socketIO.wait(self.wait_time_in_seconds)
+        self.assertEqual(chat_namespace.args_by_event, {
+            'ack_response': (PAYLOAD,),
+            'ack_callback_response': (PAYLOAD,),
         })
 
 
