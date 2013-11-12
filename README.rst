@@ -26,6 +26,11 @@ Activate isolated environment. ::
     VIRTUAL_ENV=$HOME/.virtualenv
     source $VIRTUAL_ENV/bin/activate
 
+For debugging information, run these commands first. ::
+
+    import logging
+    logging.basicConfig(level=logging.DEBUG)
+
 Emit. ::
 
     from socketIO_client import SocketIO
