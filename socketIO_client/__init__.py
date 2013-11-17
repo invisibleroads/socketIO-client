@@ -354,10 +354,10 @@ def _yield_warning_screen(seconds=None):
 
 
 def _yield_elapsed_time(seconds=None):
+    start_time = time.time()
     if seconds is None:
         while True:
-            yield float('inf')
-    start_time = time.time()
+            yield time.time() - start_time
     while time.time() - start_time < seconds:
         yield time.time() - start_time
 
