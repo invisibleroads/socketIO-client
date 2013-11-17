@@ -110,15 +110,13 @@ Define different namespaces on a single socket. ::
     news_namespace.emit('aaa')
     socketIO.wait(seconds=1)
 
-Open secure websockets (HTTPS / WSS) behind a proxy. ::
+Connect via SSL. ::
 
     from socketIO_client import SocketIO
 
-    SocketIO('localhost', 8000, 
-        secure=True,
-        proxies={'https': 'https://proxy.example.com:8080'})
+    SocketIO('https://localhost')
 
-Specify params, headers and cookies thanks to the `requests`_ library. ::
+Specify params, headers, cookies, proxies thanks to the `requests`_ library. ::
 
     from socketIO_client import SocketIO
     from base64 import b64encode
@@ -126,7 +124,8 @@ Specify params, headers and cookies thanks to the `requests`_ library. ::
     SocketIO('localhost', 8000, 
         params={'q': 'qqq'},
         headers={'Authorization': 'Basic ' + b64encode('username:password')},
-        cookies={'a': 'aaa'})
+        cookies={'a': 'aaa'},
+        proxies={'https': 'https://proxy.example.com:8080'})
 
 
 License

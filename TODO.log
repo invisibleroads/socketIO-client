@@ -1,0 +1,4 @@
+# UTC 11/17/2013
++ Beware of scheme included in URL [11/17/2013]
++ Add test for server ack callback in namespace [11/17/2013]
++ Set port automatically if it is not automatically specified [11/17/2013]

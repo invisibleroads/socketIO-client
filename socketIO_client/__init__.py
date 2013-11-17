@@ -3,6 +3,7 @@ import json
 import requests
 import time
 from collections import namedtuple
+from urlparse import urlparse
 
 from .exceptions import ConnectionError, TimeoutError, PacketError
 from .transports import _get_response, _negotiate_transport, TRANSPORTS
@@ -105,24 +106,26 @@ class BaseNamespace(object):
 
 
 class SocketIO(object):
+    """Create a socket.io client that connects to a socket.io server
+    at the specified host and port.
+
+    - Define the behavior of the client by specifying a custom Namespace.
+    - Prefix host with https:// to use SSL.
+    - Set wait_for_connection=True to block until we have a connection.
+    - Specify the transports you want to use.
+    - Pass query params, headers, cookies, proxies as keyword arguments.
+
+    SocketIO('localhost', 8000,
+        params={'q': 'qqq'},
+        headers={'Authorization': 'Basic ' + b64encode('username:password')},
+        cookies={'a': 'aaa'},
+        proxies={'https': 'https://proxy.example.com:8080'})
+    """
 
     def __init__(
-            self, host, port, Namespace=BaseNamespace, secure=False,
+            self, host, port=None, Namespace=BaseNamespace,
             wait_for_connection=True, transports=TRANSPORTS, **kw):
-        """
-        Create a socket.io client that connects to a socket.io server
-        at the specified host and port.
-        - Define the behavior of the client by specifying a custom Namespace.
-        - Set secure=True to use HTTPS / WSS.
-        - Set wait_for_connection=True to block until we have a connection.
-        - List the transports you want to use (%s).
-        - Pass query params, headers, cookies, proxies as keyword arguments.
-
-        SocketIO('localhost', 8000, proxies={
-            'https': 'https://proxy.example.com:8080'})
-        """ % ', '.join(TRANSPORTS)
-        self.base_url = '%s:%d/socket.io/%s' % (host, port, PROTOCOL_VERSION)
-        self.secure = secure
+        self.is_secure, self.base_url = _parse_host(host, port)
         self.wait_for_connection = wait_for_connection
         self._namespace_by_path = {}
         self.client_supported_transports = transports
@@ -222,7 +225,7 @@ class SocketIO(object):
 
     def _get_transport(self):
         socketIO_session = _get_socketIO_session(
-            self.secure, self.base_url, **self.kw)
+            self.is_secure, self.base_url, **self.kw)
         _log.debug('[transports available] %s', ' '.join(
             socketIO_session.server_supported_transports))
         # Initialize heartbeat_pacemaker
@@ -232,7 +235,7 @@ class SocketIO(object):
         # Negotiate transport
         transport = _negotiate_transport(
             self.client_supported_transports, socketIO_session,
-            self.secure, self.base_url, **self.kw)
+            self.is_secure, self.base_url, **self.kw)
         # Update namespaces
         for namespace in self._namespace_by_path.values():
             namespace._transport = transport
@@ -340,6 +343,17 @@ def find_callback(args, kw=None):
         return None, args
 
 
+def _parse_host(host, port):
+    if not host.startswith('http'):
+        host = 'http://' + host
+    url_pack = urlparse(host)
+    is_secure = url_pack.scheme == 'https'
+    port = port or url_pack.port or (443 if is_secure else 80)
+    base_url = '%s:%d%s/socket.io/%s' % (
+        url_pack.hostname, port, url_pack.path, PROTOCOL_VERSION)
+    return is_secure, base_url
+
+
 def _yield_warning_screen(seconds=None):
     last_warning = None
     for elapsed_time in _yield_elapsed_time(seconds):
@@ -362,8 +376,8 @@ def _yield_elapsed_time(seconds=None):
         yield time.time() - start_time
 
 
-def _get_socketIO_session(secure, base_url, **kw):
-    server_url = '%s://%s/' % ('https' if secure else 'http', base_url)
+def _get_socketIO_session(is_secure, base_url, **kw):
+    server_url = '%s://%s/' % ('https' if is_secure else 'http', base_url)
     try:
         response = _get_response(requests.get, server_url, **kw)
     except TimeoutError as e:

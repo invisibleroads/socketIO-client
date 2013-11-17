@@ -1,3 +1,8 @@
+0.5.2
+-----
+- Replaced secure=True with host='https://example.com'
+- Fixed sending heartbeats thanks to Travis Odom
+
 0.5.1
 -----
 - Added error handling in the event of websocket timeout

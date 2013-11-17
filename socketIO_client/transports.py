@@ -104,10 +104,10 @@ class _AbstractTransport(object):
 
 class _WebsocketTransport(_AbstractTransport):
 
-    def __init__(self, socketIO_session, secure, base_url, **kw):
+    def __init__(self, socketIO_session, is_secure, base_url, **kw):
         super(_WebsocketTransport, self).__init__()
         url = '%s://%s/websocket/%s' % (
-            'wss' if secure else 'ws',
+            'wss' if is_secure else 'ws',
             base_url, socketIO_session.id)
         try:
             self._connection = websocket.create_connection(url)
@@ -151,10 +151,10 @@ class _WebsocketTransport(_AbstractTransport):
 
 class _XHR_PollingTransport(_AbstractTransport):
 
-    def __init__(self, socketIO_session, secure, base_url, **kw):
+    def __init__(self, socketIO_session, is_secure, base_url, **kw):
         super(_XHR_PollingTransport, self).__init__()
         self._url = '%s://%s/xhr-polling/%s' % (
-            'https' if secure else 'http',
+            'https' if is_secure else 'http',
             base_url, socketIO_session.id)
         self._connected = True
         self._http_session = _prepare_http_session(kw)
@@ -203,10 +203,10 @@ class _JSONP_PollingTransport(_AbstractTransport):
 
     RESPONSE_PATTERN = re.compile(r'io.j\[(\d+)\]\("(.*)"\);')
 
-    def __init__(self, socketIO_session, secure, base_url, **kw):
+    def __init__(self, socketIO_session, is_secure, base_url, **kw):
         super(_JSONP_PollingTransport, self).__init__()
         self._url = '%s://%s/jsonp-polling/%s' % (
-            'https' if secure else 'http',
+            'https' if is_secure else 'http',
             base_url, socketIO_session.id)
         self._connected = True
         self._http_session = _prepare_http_session(kw)
@@ -264,7 +264,7 @@ class _JSONP_PollingTransport(_AbstractTransport):
 
 def _negotiate_transport(
         client_supported_transports, session,
-        secure, base_url, **kw):
+        is_secure, base_url, **kw):
     server_supported_transports = session.server_supported_transports
     for supported_transport in client_supported_transports:
         if supported_transport in server_supported_transports:
@@ -273,7 +273,7 @@ def _negotiate_transport(
                 'websocket': _WebsocketTransport,
                 'xhr-polling': _XHR_PollingTransport,
                 'jsonp-polling': _JSONP_PollingTransport,
-            }[supported_transport](session, secure, base_url, **kw)
+            }[supported_transport](session, is_secure, base_url, **kw)
     raise SocketIOError(' '.join([
         'could not negotiate a transport:',
         'client supports %s but' % ', '.join(client_supported_transports),
