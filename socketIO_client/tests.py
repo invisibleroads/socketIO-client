@@ -1,4 +1,5 @@
 import logging
+import time
 from unittest import TestCase
 
 from . import SocketIO, BaseNamespace, find_callback
@@ -109,15 +110,15 @@ class BaseMixin(object):
 
     def test_emit_with_callback_with_payload(self):
         'Emit with callback with payload'
-        self.socketIO.emit('emit_with_callback_with_payload',
-                           self.on_response)
+        self.socketIO.emit(
+            'emit_with_callback_with_payload', self.on_response)
         self.socketIO.wait_for_callbacks(seconds=self.wait_time_in_seconds)
         self.assertTrue(self.called_on_response)
 
     def test_emit_with_callback_with_multiple_payloads(self):
         'Emit with callback with multiple payloads'
-        self.socketIO.emit('emit_with_callback_with_multiple_payloads',
-                           self.on_response)
+        self.socketIO.emit(
+            'emit_with_callback_with_multiple_payloads', self.on_response)
         self.socketIO.wait_for_callbacks(seconds=self.wait_time_in_seconds)
         self.assertTrue(self.called_on_response)
 
@@ -137,6 +138,15 @@ class BaseMixin(object):
             'ack_response': (PAYLOAD,),
             'ack_callback_response': (PAYLOAD,),
         })
+
+    def test_wait_with_disconnect(self):
+        'Exit loop when the client wants to disconnect'
+        self.socketIO.define(Namespace)
+        self.socketIO.emit('wait_with_disconnect')
+        timeout_in_seconds = 5
+        start_time = time.time()
+        self.socketIO.wait(timeout_in_seconds)
+        self.assertTrue(time.time() - start_time < timeout_in_seconds)
 
     def test_namespace_emit(self):
         'Behave differently in different namespaces'
@@ -204,3 +214,6 @@ class Namespace(BaseNamespace):
         if callback:
             callback(*args)
         self.args_by_event[event] = args
+
+    def on_wait_with_disconnect_response(self):
+        self.disconnect()

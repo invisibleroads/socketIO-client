@@ -22,8 +22,11 @@ class _AbstractTransport(object):
     def __init__(self):
         self._packet_id = 0
         self._callback_by_packet_id = {}
+        self._wants_to_disconnect = False
 
     def disconnect(self, path=''):
+        if not path:
+            self._wants_to_disconnect = True
         if not self.connected:
             return
         if path:

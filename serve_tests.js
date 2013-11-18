@@ -48,6 +48,9 @@ var main = io.of('').on('connection', function(socket) {
       fn(payload);
     }
   });
+  socket.on('wait_with_disconnect', function() {
+    socket.emit('wait_with_disconnect_response');
+  });
 });
 
 var chat = io.of('/chat').on('connection', function (socket) {

@@ -39,6 +39,9 @@ class BaseNamespace(object):
         callback, args = find_callback(args, kw)
         self._transport.emit(self.path, event, args, callback)
 
+    def disconnect(self):
+        self._transport.disconnect(self.path)
+
     def on(self, event, callback):
         'Define a callback to handle a custom event emitted by the server'
         self._callback_by_event[event] = callback
@@ -161,12 +164,14 @@ class SocketIO(object):
         self._transport.emit(path, event, args, callback)
 
     def wait(self, seconds=None, for_callbacks=False):
+        """Wait in a loop and process events as defined in the namespaces.
+
+        - Omit seconds, i.e. call wait() without arguments, to wait forever.
+        """
         try:
             warning_screen = _yield_warning_screen(seconds)
             for elapsed_time in warning_screen:
                 try:
-                    if for_callbacks and not self._transport.has_ack_callback:
-                        break
                     try:
                         for packet in self._transport.recv_packet():
                             try:
@@ -175,6 +180,8 @@ class SocketIO(object):
                                 _log.warn('[packet error] %s', e)
                     except TimeoutError:
                         pass
+                    if self._stop_waiting(for_callbacks):
+                        break
                     self.heartbeat_pacemaker.send(elapsed_time)
                 except ConnectionError as e:
                     try:
@@ -185,6 +192,14 @@ class SocketIO(object):
                     self.disconnect()
         except KeyboardInterrupt:
             pass
+
+    def _stop_waiting(self, for_callbacks):
+        # Use __transport to make sure that we do not reconnect inadvertently
+        if for_callbacks and not self.__transport.has_ack_callback:
+            return True
+        if self.__transport._wants_to_disconnect:
+            return True
+        return False
 
     def wait_for_callbacks(self, seconds=None):
         self.wait(seconds, for_callbacks=True)

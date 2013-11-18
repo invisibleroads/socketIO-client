@@ -1,3 +1,8 @@
+0.5.3
+-----
+- Exit the wait loop if the client wants to disconnect
+- Set heartbeat_interval to be half of the heartbeat_timeout
+
 0.5.2
 -----
 - Replaced secure=True with host='https://example.com'
