@@ -230,7 +230,7 @@ class SocketIO(object):
             socketIO_session.server_supported_transports))
         # Initialize heartbeat_pacemaker
         self.heartbeat_pacemaker = self._make_heartbeat_pacemaker(
-            heartbeat_interval=socketIO_session.heartbeat_timeout - 2)
+            heartbeat_interval=socketIO_session.heartbeat_timeout / 2)
         self.heartbeat_pacemaker.next()
         # Negotiate transport
         transport = _negotiate_transport(

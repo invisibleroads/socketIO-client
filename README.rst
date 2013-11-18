@@ -127,6 +127,13 @@ Specify params, headers, cookies, proxies thanks to the `requests`_ library. ::
         cookies={'a': 'aaa'},
         proxies={'https': 'https://proxy.example.com:8080'})
 
+Wait forever. ::
+
+    from socketIO_client import SocketIO
+
+    socketIO = SocketIO('localhost')
+    socketIO.wait()
+
 
 License
 -------
