@@ -196,8 +196,6 @@ class SocketIO(object):
                 _log.warn('[packet error] %s', e)
 
     def _process_packet(self, packet):
-        logging.debug('xxx')
-        logging.debug(packet)
         code, packet_id, path, data = packet
         namespace = self.get_namespace(path)
         delegate = self._get_delegate(code)
