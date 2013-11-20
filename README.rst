@@ -148,7 +148,7 @@ Credits
 - `Alexandre Bourget`_ wrote gevent-socketio_, which is a socket.io server written in Python.
 - `Paul Kienzle`_, `Zac Lee`_, `Josh VanderLinden`_, `Ian Fitzpatrick`_, `Lucas Klein`_, `Rui Chicoria`_, `Travis Odom`_ submitted code to expand support of the socket.io protocol.
 - `Bernard Pratz`_ and `Francis Bull`_ wrote prototypes to support xhr-polling and jsonp-polling.
-- `Eric Chen`_, `Denis Zinevich`_, `Thiago Hersan`_ suggested ways to make the connection more robust.
+- `Eric Chen`_, `Denis Zinevich`_, `Thiago Hersan`_, `Nayef Copty`_ suggested ways to make the connection more robust.
   
 
 .. _socket.io: http://socket.io
@@ -179,3 +179,4 @@ Credits
 .. _Eric Chen: https://github.com/taiyangc
 .. _Denis Zinevich: https://github.com/dzinevich 
 .. _Thiago Hersan: https://github.com/thiagohersan
+.. _Nayef Copty: https://github.com/nayefc

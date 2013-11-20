@@ -23,6 +23,7 @@ class _AbstractTransport(object):
         self._packet_id = 0
         self._callback_by_packet_id = {}
         self._wants_to_disconnect = False
+        self._packets = []
 
     def disconnect(self, path=''):
         if not path:
@@ -71,7 +72,11 @@ class _AbstractTransport(object):
         _log.debug('[packet sent] %s', packet_text)
 
     def recv_packet(self):
-        code, packet_id, path, data = None, None, None, None
+        try:
+            while self._packets:
+                yield self._packets.pop(0)
+        except IndexError:
+            pass
         for packet_text in self.recv():
             _log.debug('[packet received] %s', packet_text)
             try:
@@ -79,6 +84,7 @@ class _AbstractTransport(object):
             except AttributeError:
                 _log.warn('[packet error] %s', packet_text)
                 continue
+            code, packet_id, path, data = None, None, None, None
             packet_count = len(packet_parts)
             if 4 == packet_count:
                 code, packet_id, path, data = packet_parts
@@ -87,6 +93,9 @@ class _AbstractTransport(object):
             elif 1 == packet_count:
                 code = packet_parts[0]
             yield code, packet_id, path, data
+
+    def _enqueue_packet(self, packet):
+        self._packets.append(packet)
 
     def set_ack_callback(self, callback):
         'Set callback to be called after server sends an acknowledgment'
@@ -162,8 +171,8 @@ class _XHR_PollingTransport(_AbstractTransport):
         self._connected = True
         self._http_session = _prepare_http_session(kw)
         # Create connection
-        for packet_text in self.recv_packet():
-            pass
+        for packet in self.recv_packet():
+            self._enqueue_packet(packet)
 
     @property
     def connected(self):
@@ -215,8 +224,8 @@ class _JSONP_PollingTransport(_AbstractTransport):
         self._http_session = _prepare_http_session(kw)
         self._id = 0
         # Create connection
-        for packet_text in self.recv_packet():
-            pass
+        for packet in self.recv_packet():
+            self._enqueue_packet(packet)
 
     @property
     def connected(self):

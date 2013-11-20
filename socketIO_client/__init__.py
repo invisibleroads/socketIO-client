@@ -148,7 +148,6 @@ class SocketIO(object):
         if path:
             self._transport.connect(path)
         namespace = Namespace(self._transport, path)
-        namespace.on_connect()
         self._namespace_by_path[path] = namespace
         return namespace
 
@@ -173,11 +172,7 @@ class SocketIO(object):
             for elapsed_time in warning_screen:
                 try:
                     try:
-                        for packet in self._transport.recv_packet():
-                            try:
-                                self._process_packet(packet)
-                            except PacketError as e:
-                                _log.warn('[packet error] %s', e)
+                        self._process_events()
                     except TimeoutError:
                         pass
                     if self._stop_waiting(for_callbacks):
@@ -192,6 +187,21 @@ class SocketIO(object):
                     self.disconnect()
         except KeyboardInterrupt:
             pass
+
+    def _process_events(self):
+        for packet in self._transport.recv_packet():
+            try:
+                self._process_packet(packet)
+            except PacketError as e:
+                _log.warn('[packet error] %s', e)
+
+    def _process_packet(self, packet):
+        logging.debug('xxx')
+        logging.debug(packet)
+        code, packet_id, path, data = packet
+        namespace = self.get_namespace(path)
+        delegate = self._get_delegate(code)
+        delegate(packet, namespace._find_event_callback)
 
     def _stop_waiting(self, for_callbacks):
         # Use __transport to make sure that we do not reconnect inadvertently
@@ -263,12 +273,6 @@ class SocketIO(object):
             if elapsed_time - heartbeat_time > heartbeat_interval:
                 heartbeat_time = elapsed_time
                 self._transport.send_heartbeat()
-
-    def _process_packet(self, packet):
-        code, packet_id, path, data = packet
-        namespace = self.get_namespace(path)
-        delegate = self._get_delegate(code)
-        delegate(packet, namespace._find_event_callback)
 
     def get_namespace(self, path=''):
         try:

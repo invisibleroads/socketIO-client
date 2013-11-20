@@ -1,6 +1,7 @@
 0.5.3
 -----
-- Exit the wait loop if the client wants to disconnect
+- Updated wait loop to exit if the client wants to disconnect
+- Fixed calling on_connect() so that it is called only once
 - Set heartbeat_interval to be half of the heartbeat_timeout
 
 0.5.2
