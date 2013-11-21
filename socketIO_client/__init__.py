@@ -260,8 +260,9 @@ class SocketIO(object):
             self.client_supported_transports, socketIO_session,
             self.is_secure, self.base_url, **self.kw)
         # Update namespaces
-        for namespace in self._namespace_by_path.values():
+        for path, namespace in self._namespace_by_path.iteritems():
             namespace._transport = transport
+            transport.connect(path)
         return transport
 
     def _make_heartbeat_pacemaker(self, heartbeat_interval):
