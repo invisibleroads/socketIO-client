@@ -172,7 +172,7 @@ class SocketIO(object):
             for elapsed_time in warning_screen:
                 try:
                     try:
-                        self._process_events()
+                        self._process_events(timeout=seconds)
                     except TimeoutError:
                         pass
                     if self._stop_waiting(for_callbacks):
@@ -188,8 +188,8 @@ class SocketIO(object):
         except KeyboardInterrupt:
             pass
 
-    def _process_events(self):
-        for packet in self._transport.recv_packet():
+    def _process_events(self, timeout=None):
+        for packet in self._transport.recv_packet(timeout=timeout):
             try:
                 self._process_packet(packet)
             except PacketError as e:

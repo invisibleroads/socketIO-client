@@ -71,13 +71,13 @@ class _AbstractTransport(object):
         self.send(packet_text)
         _log.debug('[packet sent] %s', packet_text)
 
-    def recv_packet(self):
+    def recv_packet(self, timeout=None):
         try:
             while self._packets:
                 yield self._packets.pop(0)
         except IndexError:
             pass
-        for packet_text in self.recv():
+        for packet_text in self.recv(timeout=timeout):
             _log.debug('[packet received] %s', packet_text)
             try:
                 packet_parts = packet_text.split(':', 3)
@@ -145,7 +145,9 @@ class _WebsocketTransport(_AbstractTransport):
             _log.warn(message)
             raise ConnectionError(message)
 
-    def recv(self):
+    def recv(self, timeout=None):
+        if timeout:
+            self._connection.settimeout(timeout)
         try:
             yield self._connection.recv()
         except websocket.WebSocketTimeoutException as e:
@@ -190,12 +192,12 @@ class _XHR_PollingTransport(_AbstractTransport):
             data=packet_text,
             timeout=TIMEOUT_IN_SECONDS)
 
-    def recv(self):
+    def recv(self, timeout=None):
         response = _get_response(
             self._http_session.get,
             self._url,
             params=self._params,
-            timeout=TIMEOUT_IN_SECONDS)
+            timeout=timeout or TIMEOUT_IN_SECONDS)
         response_text = response.text
         if not response_text.startswith(BOUNDARY):
             yield response_text
@@ -244,14 +246,14 @@ class _JSONP_PollingTransport(_AbstractTransport):
             headers={'content-type': 'application/x-www-form-urlencoded'},
             timeout=TIMEOUT_IN_SECONDS)
 
-    def recv(self):
+    def recv(self, timeout=None):
         'Decode the JavaScript response so that we can parse it as JSON'
         response = _get_response(
             self._http_session.get,
             self._url,
             params=self._params,
             headers={'content-type': 'text/javascript; charset=UTF-8'},
-            timeout=TIMEOUT_IN_SECONDS)
+            timeout=timeout or TIMEOUT_IN_SECONDS)
         response_text = response.text
         try:
             self._id, response_text = self.RESPONSE_PATTERN.match(
