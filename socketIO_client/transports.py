@@ -25,6 +25,9 @@ class _AbstractTransport(object):
         self._wants_to_disconnect = False
         self._packets = []
 
+    def _log(self, level, msg, *attrs):
+        _log.log(level, '[%s] %s' % (self._url, msg), *attrs)
+
     def disconnect(self, path=''):
         if not path:
             self._wants_to_disconnect = True
@@ -69,7 +72,7 @@ class _AbstractTransport(object):
         packet_parts = str(code), packet_id, path, data
         packet_text = ':'.join(packet_parts)
         self.send(packet_text)
-        _log.debug('[packet sent] %s', packet_text)
+        self._log(logging.DEBUG, '[packet sent] %s', packet_text)
 
     def recv_packet(self):
         try:
@@ -78,11 +81,11 @@ class _AbstractTransport(object):
         except IndexError:
             pass
         for packet_text in self.recv():
-            _log.debug('[packet received] %s', packet_text)
+            self._log(logging.DEBUG, '[packet received] %s', packet_text)
             try:
                 packet_parts = packet_text.split(':', 3)
             except AttributeError:
-                _log.warn('[packet error] %s', packet_text)
+                self._log(logging.WARNING, '[packet error] %s', packet_text)
                 continue
             code, packet_id, path, data = None, None, None, None
             packet_count = len(packet_parts)
@@ -121,6 +124,7 @@ class _WebsocketTransport(_AbstractTransport):
         url = '%s://%s/websocket/%s' % (
             'wss' if is_secure else 'ws',
             base_url, socketIO_session.id)
+        self._url = url
         try:
             self._connection = websocket.create_connection(url)
         except socket.timeout as e:
@@ -138,11 +142,11 @@ class _WebsocketTransport(_AbstractTransport):
             self._connection.send(packet_text)
         except websocket.WebSocketTimeoutException as e:
             message = 'timed out while sending %s (%s)' % (packet_text, e)
-            _log.warn(message)
+            self._log(logging.WARNING, message)
             raise TimeoutError(e)
         except socket.error as e:
             message = 'disconnected while sending %s (%s)' % (packet_text, e)
-            _log.warn(message)
+            self._log(logging.WARNING, message)
             raise ConnectionError(message)
 
     def recv(self):
@@ -257,7 +261,7 @@ class _JSONP_PollingTransport(_AbstractTransport):
             self._id, response_text = self.RESPONSE_PATTERN.match(
                 response_text).groups()
         except AttributeError:
-            _log.warn('[packet error] %s', response_text)
+            self._log(self.WARNING, '[packet error] %s', response_text)
             return
         if not response_text.startswith(BOUNDARY):
             yield response_text.decode('unicode_escape')
@@ -280,7 +284,8 @@ def _negotiate_transport(
     server_supported_transports = session.server_supported_transports
     for supported_transport in client_supported_transports:
         if supported_transport in server_supported_transports:
-            _log.debug('[transport selected] %s', supported_transport)
+            _log.debug('[%s] [transport selected] %s', base_url,
+                       supported_transport)
             return {
                 'websocket': _WebsocketTransport,
                 'xhr-polling': _XHR_PollingTransport,

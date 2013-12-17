@@ -28,6 +28,9 @@ class BaseNamespace(object):
         self._callback_by_event = {}
         self.initialize()
 
+    def _log(self, level, msg, *attrs):
+        _log.log(level, '%s: %s' % (self._transport._url, msg), *attrs)
+
     def initialize(self):
         'Initialize custom variables here; you can override this method'
         pass
@@ -48,19 +51,19 @@ class BaseNamespace(object):
 
     def on_connect(self):
         'Called after server connects; you can override this method'
-        _log.debug('%s [connect]', self.path)
+        self._log(logging.DEBUG, '%s [connect]', self.path)
 
     def on_disconnect(self):
         'Called after server disconnects; you can override this method'
-        _log.debug('%s [disconnect]', self.path)
+        self._log(logging.DEBUG, '%s [disconnect]', self.path)
 
     def on_heartbeat(self):
         'Called after server sends a heartbeat; you can override this method'
-        _log.debug('%s [heartbeat]', self.path)
+        self._log(logging.DEBUG, '%s [heartbeat]', self.path)
 
     def on_message(self, data):
         'Called after server sends a message; you can override this method'
-        _log.info('%s [message] %s', self.path, data)
+        self._log(logging.INFO, '%s [message] %s', self.path, data)
 
     def on_event(self, event, *args):
         """
@@ -73,27 +76,28 @@ class BaseNamespace(object):
         if callback:
             arguments.append('callback(*args)')
             callback(*args)
-        _log.info('%s [event] %s(%s)', self.path, event, ', '.join(arguments))
+        self._log(logging.INFO, '%s [event] %s(%s)', self.path, event,
+                  ', '.join(arguments))
 
     def on_error(self, reason, advice):
         'Called after server sends an error; you can override this method'
-        _log.info('%s [error] %s', self.path, advice)
+        self._log(logging.INFO, '%s [error] %s', self.path, advice)
 
     def on_noop(self):
         'Called after server sends a noop; you can override this method'
-        _log.info('%s [noop]', self.path)
+        self._log(logging.INFO, '%s [noop]', self.path)
 
     def on_open(self, *args):
-        _log.info('%s [open] %s', self.path, args)
+        self._log(logging.INFO, '%s [open] %s', self.path, args)
 
     def on_close(self, *args):
-        _log.info('%s [close] %s', self.path, args)
+        self._log(logging.INFO, '%s [close] %s', self.path, args)
 
     def on_retry(self, *args):
-        _log.info('%s [retry] %s', self.path, args)
+        self._log(logging.INFO, '%s [retry] %s', self.path, args)
 
     def on_reconnect(self, *args):
-        _log.info('%s [reconnect] %s', self.path, args)
+        self._log(logging.INFO, '%s [reconnect] %s', self.path, args)
 
     def _find_event_callback(self, event):
         # Check callbacks defined by on()
@@ -134,6 +138,10 @@ class SocketIO(object):
         self.client_supported_transports = transports
         self.kw = kw
         self.define(Namespace)
+
+    def log(self, level, msg, *attrs):
+        _log.log(level, '%s: %s' % (self.base_url, msg),
+                 *attrs)
 
     def __enter__(self):
         return self
@@ -183,7 +191,7 @@ class SocketIO(object):
                         warning = Exception('[connection error] %s' % e)
                         warning_screen.throw(warning)
                     except StopIteration:
-                        _log.warn(warning)
+                        self.log(logging.WARNING, warning)
                     self.disconnect()
         except KeyboardInterrupt:
             pass
@@ -193,7 +201,7 @@ class SocketIO(object):
             try:
                 self._process_packet(packet)
             except PacketError as e:
-                _log.warn('[packet error] %s', e)
+                self.log(logging.WARNING, '[packet error] %s', e)
 
     def _process_packet(self, packet):
         code, packet_id, path, data = packet
@@ -243,13 +251,13 @@ class SocketIO(object):
                     warning = Exception('[waiting for connection] %s' % e)
                     warning_screen.throw(warning)
                 except StopIteration:
-                    _log.warn(warning)
+                    self.log(logging.WARNING, warning)
         return self.__transport
 
     def _get_transport(self):
         socketIO_session = _get_socketIO_session(
             self.is_secure, self.base_url, **self.kw)
-        _log.debug('[transports available] %s', ' '.join(
+        self.log(logging.DEBUG, '[transports available] %s', ' '.join(
             socketIO_session.server_supported_transports))
         # Initialize heartbeat_pacemaker
         self.heartbeat_pacemaker = self._make_heartbeat_pacemaker(
