@@ -222,7 +222,12 @@ class SocketIO(object):
 
     @property
     def connected(self):
-        return self.__transport.connected
+        try:
+            transport = self.__transport
+        except AttributeError:
+            return False
+        else:
+            return transport.connected
 
     @property
     def _transport(self):
