@@ -177,7 +177,7 @@ class SocketIO(object):
                         pass
                     if self._stop_waiting(for_callbacks):
                         break
-                    self.heartbeat_pacemaker.send(elapsed_time)
+                    self.heartbeat_pacemaker.next()
                 except ConnectionError as e:
                     try:
                         warning = Exception('[connection error] %s' % e)
@@ -266,11 +266,11 @@ class SocketIO(object):
         return transport
 
     def _make_heartbeat_pacemaker(self, heartbeat_interval):
-        heartbeat_time = 0
+        heartbeat_time = time.time()
         while True:
-            elapsed_time = (yield)
-            if elapsed_time - heartbeat_time > heartbeat_interval:
-                heartbeat_time = elapsed_time
+            yield
+            if time.time() - heartbeat_time > heartbeat_interval:
+                heartbeat_time = time.time()
                 self._transport.send_heartbeat()
 
     def get_namespace(self, path=''):
