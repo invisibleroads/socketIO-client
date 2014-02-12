@@ -170,13 +170,13 @@ class SocketIO(object):
         try:
             warning_screen = _yield_warning_screen(seconds)
             for elapsed_time in warning_screen:
+                if self._stop_waiting(for_callbacks):
+                    break
                 try:
                     try:
                         self._process_events()
                     except TimeoutError:
                         pass
-                    if self._stop_waiting(for_callbacks):
-                        break
                     self.heartbeat_pacemaker.send(elapsed_time)
                 except ConnectionError as e:
                     try:
