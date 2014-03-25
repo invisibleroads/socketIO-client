@@ -274,25 +274,6 @@ class _JSONP_PollingTransport(_AbstractTransport):
         self._connected = False
 
 
-def _negotiate_transport(
-        client_supported_transports, session,
-        is_secure, base_url, **kw):
-    server_supported_transports = session.server_supported_transports
-    for supported_transport in client_supported_transports:
-        if supported_transport in server_supported_transports:
-            _log.debug('[transport selected] %s', supported_transport)
-            return {
-                'websocket': _WebsocketTransport,
-                'xhr-polling': _XHR_PollingTransport,
-                'jsonp-polling': _JSONP_PollingTransport,
-            }[supported_transport](session, is_secure, base_url, **kw)
-    raise SocketIOError(' '.join([
-        'could not negotiate a transport:',
-        'client supports %s but' % ', '.join(client_supported_transports),
-        'server supports %s' % ', '.join(server_supported_transports),
-    ]))
-
-
 def _yield_text_from_framed_data(framed_data, parse=lambda x: x):
     parts = [parse(x) for x in framed_data.split(BOUNDARY)]
     for text_length, text in izip(parts[1::2], parts[2::2]):
