@@ -8,7 +8,7 @@ import time
 import websocket
 try:
 	from itertools import izip
-except:
+except ImportError:
 	izip = zip
 
 from .exceptions import SocketIOError, ConnectionError, TimeoutError

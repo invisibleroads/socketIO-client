@@ -5,7 +5,7 @@ import time
 from collections import namedtuple
 try:
 	from urlparse import urlparse
-except:
+except ImportError:
 	from urllib.parse import urlparse
 
 from .exceptions import ConnectionError, TimeoutError, PacketError
