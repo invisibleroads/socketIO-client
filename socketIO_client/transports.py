@@ -261,7 +261,7 @@ class _JSONP_PollingTransport(_AbstractTransport):
             self._id, response_text = self.RESPONSE_PATTERN.match(
                 response_text).groups()
         except AttributeError:
-            self._log(self.WARNING, '[packet error] %s', response_text)
+            self._log(logging.WARNING, '[packet error] %s', response_text)
             return
         if not response_text.startswith(BOUNDARY):
             yield response_text.decode('unicode_escape')
