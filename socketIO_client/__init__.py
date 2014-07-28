@@ -20,6 +20,7 @@ RETRY_INTERVAL_IN_SECONDS = 1
 
 
 class BaseNamespace(object):
+
     'Define client behavior'
 
     def __init__(self, _transport, path):
@@ -109,6 +110,7 @@ class BaseNamespace(object):
 
 
 class SocketIO(object):
+
     """Create a socket.io client that connects to a socket.io server
     at the specified host and port.
 
@@ -119,6 +121,7 @@ class SocketIO(object):
     - Pass query params, headers, cookies, proxies as keyword arguments.
 
     SocketIO('localhost', 8000,
+        resource='my.io',
         params={'q': 'qqq'},
         headers={'Authorization': 'Basic ' + b64encode('username:password')},
         cookies={'a': 'aaa'},
@@ -127,8 +130,8 @@ class SocketIO(object):
 
     def __init__(
             self, host, port=None, Namespace=BaseNamespace,
-            wait_for_connection=True, transports=TRANSPORTS, **kw):
-        self.is_secure, self.base_url = _parse_host(host, port)
+            wait_for_connection=True, transports=TRANSPORTS, resource='socket.io', **kw):
+        self.is_secure, self.base_url = _parse_host(host, port, resource)
         self.wait_for_connection = wait_for_connection
         self._namespace_by_path = {}
         self.client_supported_transports = transports
@@ -361,14 +364,14 @@ def find_callback(args, kw=None):
         return None, args
 
 
-def _parse_host(host, port):
+def _parse_host(host, port, resource):
     if not host.startswith('http'):
         host = 'http://' + host
     url_pack = urlparse(host)
     is_secure = url_pack.scheme == 'https'
     port = port or url_pack.port or (443 if is_secure else 80)
-    base_url = '%s:%d%s/socket.io/%s' % (
-        url_pack.hostname, port, url_pack.path, PROTOCOL_VERSION)
+    base_url = '%s:%d%s/%s/%s' % (
+        url_pack.hostname, port, url_pack.path, resource, PROTOCOL_VERSION)
     return is_secure, base_url
 
 
