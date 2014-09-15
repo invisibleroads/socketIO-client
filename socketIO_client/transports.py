@@ -151,7 +151,10 @@ class _WebsocketTransport(_AbstractTransport):
         except websocket.WebSocketTimeoutException as e:
             raise TimeoutError(e)
         except websocket.SSLError as e:
-            raise ConnectionError(e)
+            if e.message == "The read operation timed out":
+                raise TimeoutError(e)
+            else:
+                raise ConnectionError(e)
         except websocket.WebSocketConnectionClosedException as e:
             raise ConnectionError('connection closed (%s)' % e)
         except socket.error as e:
