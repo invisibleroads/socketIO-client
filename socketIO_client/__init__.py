@@ -3,7 +3,7 @@ import json
 import requests
 import time
 from collections import namedtuple
-from urlparse import urlparse
+from urllib import parse
 
 from .exceptions import ConnectionError, TimeoutError, PacketError
 from .transports import _get_response, _negotiate_transport, TRANSPORTS
@@ -254,13 +254,13 @@ class SocketIO(object):
         # Initialize heartbeat_pacemaker
         self.heartbeat_pacemaker = self._make_heartbeat_pacemaker(
             heartbeat_interval=socketIO_session.heartbeat_timeout / 2)
-        self.heartbeat_pacemaker.next()
+        next(self.heartbeat_pacemaker)
         # Negotiate transport
         transport = _negotiate_transport(
             self.client_supported_transports, socketIO_session,
             self.is_secure, self.base_url, **self.kw)
         # Update namespaces
-        for path, namespace in self._namespace_by_path.iteritems():
+        for path, namespace in self._namespace_by_path.items():
             namespace._transport = transport
             transport.connect(path)
         return transport
@@ -364,7 +364,7 @@ def find_callback(args, kw=None):
 def _parse_host(host, port):
     if not host.startswith('http'):
         host = 'http://' + host
-    url_pack = urlparse(host)
+    url_pack = parse.urlparse(host)
     is_secure = url_pack.scheme == 'https'
     port = port or url_pack.port or (443 if is_secure else 80)
     base_url = '%s:%d%s/socket.io/%s' % (
