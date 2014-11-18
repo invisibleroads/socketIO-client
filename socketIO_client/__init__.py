@@ -3,7 +3,10 @@ import json
 import requests
 import time
 from collections import namedtuple
-from urllib import parse
+try:
+    from urllib import parse as parse_url
+except ImportError:
+    from urlparse import urlparse as parse_url
 
 from .exceptions import ConnectionError, TimeoutError, PacketError
 from .transports import _get_response, _negotiate_transport, TRANSPORTS
@@ -364,7 +367,7 @@ def find_callback(args, kw=None):
 def _parse_host(host, port):
     if not host.startswith('http'):
         host = 'http://' + host
-    url_pack = parse.urlparse(host)
+    url_pack = parse_url(host)
     is_secure = url_pack.scheme == 'https'
     port = port or url_pack.port or (443 if is_secure else 80)
     base_url = '%s:%d%s/socket.io/%s' % (
