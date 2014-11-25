@@ -3,6 +3,8 @@ import requests
 import time
 
 
+# def unwrap_payload
+# def decode_payload(payload)
 def get_packets(content):
     packets = []
     index = 0
@@ -44,9 +46,10 @@ def get_timestamp():
     return timestamp
 
 
+print '*** Connect'
 base_url = 'http://localhost:9000'
 session = requests.Session()
-# Establish engine.io connection
+print session.cookies.items()
 url = base_url + '/socket.io/'
 response = session.get(url, params={
     'EIO': 3,
@@ -54,8 +57,7 @@ response = session.get(url, params={
     't': get_timestamp(),
 })
 print response.url
-
-
+print session.cookies.items()
 packets = get_packets(response.content)
 for packet_type, packet in packets:
     print packet_type, packet
@@ -68,18 +70,137 @@ print packet_json['sid']
 assert packet_type == 0
 
 
-# Establish socket.io connection
-session.get
+""
+base_url = 'http://localhost:9000'
+url = base_url + '/socket.io/'
+response = session.get(url, params={
+    'EIO': 3,
+    'transport': 'polling',
+    't': get_timestamp(),
+    'sid': packet_json['sid'],
+})
+print response.url
+print session.cookies.items()
+packets = get_packets(response.content)
+for packet_type, packet in packets:
+    print 'engineIO_packet_type = %s' % packet_type
+    print 'socketIO_packet_type = %s' % packet[0]
+    print 'packet = %s' % packet[1:]
+# from IPython import embed; embed()
 
 
-# [REQUEST] /socket.io/?EIO=3&transport=polling&t=1416156610865-1&sid=OXdRaq1cUWs5v3TVAAAF
-# Receive socket.io event
+# def wrap_payload
+def encode_payload(packs):
+    parts = []
+    for packet_type, packet in packs:
+        content = str(packet_type) + str(packet)
+        parts.append(make_header(content) + content)
+    return ''.join(parts)
 
 
-# Send socket.io event
-# [REQUEST] /socket.io/?EIO=3&transport=polling&t=1416156610887-2&sid=OXdRaq1cUWs5v3TVAAAF
+def make_header(content):
+    length_string = str(len(content))
+    print length_string
+    header_digits = [0]
+    for index in xrange(len(length_string)):
+        header_digits.append(ord(length_string[index]) - 48)
+    header_digits.append(255)
+    return ''.join(chr(x) for x in header_digits)
 
 
-# Send socket.io ping
-# [REQUEST] /socket.io/?EIO=3&transport=polling&t=1416156635868-4&sid=OXdRaq1cUWs5v3TVAAAF
-# Receive socket.io pong
+# print '***'
+# base_url = 'http://localhost:9000'
+# url = base_url + '/socket.io/'
+# response = session.get(url, params={
+    # 'EIO': 3,
+    # 'transport': 'polling',
+    # 't': get_timestamp(),
+    # 'sid': packet_json['sid'],
+# })
+# print response.url
+# print response.content
+# packets = get_packets(response.content)
+# for packet_type, packet in packets:
+    # print packet_type, packet
+
+
+print '*** Send event'
+packets = [
+    (4, '2["my other event",{"my":"data"}]'),
+]
+payload = encode_payload(packets)
+print payload
+base_url = 'http://localhost:9000'
+url = base_url + '/socket.io/'
+print session.cookies.items()
+response = session.post(url, params={
+    'EIO': 3,
+    'transport': 'polling',
+    't': get_timestamp(),
+    'sid': packet_json['sid'],
+}, data=payload)
+print response.url
+print response.content
+
+from time import sleep
+sleep(10)
+
+
+print '*** Send event'
+packets = [
+    (4, '2["my other event",{"my":"data"}]'),
+]
+payload = encode_payload(packets)
+print payload
+base_url = 'http://localhost:9000'
+url = base_url + '/socket.io/'
+print session.cookies.items()
+response = session.post(url, params={
+    'EIO': 3,
+    'transport': 'polling',
+    't': get_timestamp(),
+    'sid': packet_json['sid'],
+}, data=payload)
+print response.url
+print response.content
+
+
+"""
+print '*** Send ping'
+packets = [
+    (2, ''),
+]
+payload = encode_payload(packets)
+print payload
+base_url = 'http://localhost:9000'
+url = base_url + '/socket.io/'
+response = session.post(url, params={
+    'EIO': 3,
+    'transport': 'polling',
+    't': get_timestamp(),
+    'sid': packet_json['sid'],
+}, data=payload)
+print response.url
+print response.content
+# packets = get_packets(response.content)
+# for packet_type, packet in packets:
+    # print packet_type, packet
+
+
+print '*** Send ping'
+packets = [
+    (2, ''),
+]
+payload = encode_payload(packets)
+print payload
+base_url = 'http://localhost:9000'
+url = base_url + '/socket.io/'
+response = session.post(url, params={
+    'EIO': 3,
+    'transport': 'polling',
+    't': get_timestamp(),
+    'sid': packet_json['sid'],
+}, data=payload)
+print response.url
+print response.content
+"""
