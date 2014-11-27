@@ -170,26 +170,23 @@ class SocketIO(object):
 
         - Omit seconds, i.e. call wait() without arguments, to wait forever.
         """
-        try:
-            warning_screen = _yield_warning_screen(seconds)
-            for elapsed_time in warning_screen:
+        warning_screen = _yield_warning_screen(seconds)
+        for elapsed_time in warning_screen:
+            try:
                 try:
-                    try:
-                        self._process_events()
-                    except TimeoutError:
-                        pass
-                    if self._stop_waiting(for_callbacks):
-                        break
-                    self.heartbeat_pacemaker.send(elapsed_time)
-                except ConnectionError as e:
-                    try:
-                        warning = Exception('[connection error] %s' % e)
-                        warning_screen.throw(warning)
-                    except StopIteration:
-                        _log.warn(warning)
-                    self.disconnect()
-        except KeyboardInterrupt:
-            pass
+                    self._process_events()
+                except TimeoutError:
+                    pass
+                if self._stop_waiting(for_callbacks):
+                    break
+                self.heartbeat_pacemaker.send(elapsed_time)
+            except ConnectionError as e:
+                try:
+                    warning = Exception('[connection error] %s' % e)
+                    warning_screen.throw(warning)
+                except StopIteration:
+                    _log.warn(warning)
+                self.disconnect()
 
     def _process_events(self):
         for packet in self._transport.recv_packet():
