@@ -1,10 +1,4 @@
-class SocketIO(object):
-
-    def __init__(self, host, port):
-        pass
-
-    def on(self, event, callback):
-        pass
+from socketIO_client import SocketIO
 
 
 def on_news(self, data):

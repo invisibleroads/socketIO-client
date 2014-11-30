@@ -46,13 +46,13 @@ def get_timestamp():
     return timestamp
 
 
-base_url = 'http://localhost:8000'
+base_url = 'http://localhost:9000'
+url = base_url + '/socket.io/'
 
 
 print '*** Connect'
 session = requests.Session()
 print session.cookies.items()
-url = base_url + '/socket.io/'
 response = session.get(url, params={
     'EIO': 3,
     'transport': 'polling',
@@ -72,7 +72,6 @@ print packet_json['sid']
 assert packet_type == 0
 
 
-url = base_url + '/socket.io/'
 response = session.get(url, params={
     'EIO': 3,
     'transport': 'polling',
@@ -113,7 +112,6 @@ def make_header(content):
 
 
 # print '***'
-# url = base_url + '/socket.io/'
 # response = session.get(url, params={
     # 'EIO': 3,
     # 'transport': 'polling',
@@ -133,7 +131,6 @@ packets = [
 ]
 payload = encode_payload(packets)
 print payload
-url = base_url + '/socket.io/'
 print session.cookies.items()
 response = session.post(url, params={
     'EIO': 3,
@@ -156,7 +153,6 @@ packets = [
 ]
 payload = encode_payload(packets)
 print payload
-url = base_url + '/socket.io/'
 print session.cookies.items()
 response = session.post(url, params={
     'EIO': 3,
@@ -170,14 +166,12 @@ print response.url
 print response.content
 
 
-"""
 print '*** Send ping'
 packets = [
     (2, ''),
 ]
 payload = encode_payload(packets)
 print payload
-url = base_url + '/socket.io/'
 response = session.post(url, params={
     'EIO': 3,
     'transport': 'polling',
@@ -188,9 +182,6 @@ response = session.post(url, params={
 })
 print response.url
 print response.content
-# packets = get_packets(response.content)
-# for packet_type, packet in packets:
-    # print packet_type, packet
 
 
 print '*** Send ping'
@@ -199,7 +190,6 @@ packets = [
 ]
 payload = encode_payload(packets)
 print payload
-url = base_url + '/socket.io/'
 response = session.post(url, params={
     'EIO': 3,
     'transport': 'polling',
@@ -210,4 +200,16 @@ response = session.post(url, params={
 })
 print response.url
 print response.content
-"""
+
+
+response = session.get(url, params={
+    'EIO': 3,
+    'transport': 'polling',
+    't': get_timestamp(),
+    'sid': packet_json['sid'],
+})
+print response.url
+print session.cookies.items()
+packets = get_packets(response.content)
+for packet_type, packet in packets:
+    print packet_type, packet
