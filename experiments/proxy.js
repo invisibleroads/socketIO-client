@@ -2,7 +2,8 @@ var proxy = require('http-proxy').createProxyServer({
   target: {host: 'localhost', port: 9000}
 });
 var server = require('http').createServer(function(req, res) {
-  console.log('[REQUEST] ' + req.url);
+  console.log('[REQUEST.%s] %s', req.method, req.url);
+  console.log(req['headers']);
   if (req.method == 'POST') {
     var body = '';
     req.on('data', function (data) {
