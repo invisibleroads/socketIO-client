@@ -1,8 +1,10 @@
+from collections import namedtuple
 import logging
 import json
+import parser
 import requests
 import time
-from collections import namedtuple
+
 try:
     from urllib import parse as parse_url
 except ImportError:
@@ -367,8 +369,7 @@ def _parse_host(host, port):
     url_pack = parse_url(host)
     is_secure = url_pack.scheme == 'https'
     port = port or url_pack.port or (443 if is_secure else 80)
-    base_url = '%s:%d%s/socket.io/%s' % (
-        url_pack.hostname, port, url_pack.path, PROTOCOL_VERSION)
+    base_url = '%s:%d%s/socket.io/%s' % (url_pack.hostname, port, url_pack.path, PROTOCOL_VERSION)
     return is_secure, base_url
 
 
@@ -395,13 +396,23 @@ def _yield_elapsed_time(seconds=None):
 
 
 def _get_socketIO_session(is_secure, base_url, **kw):
-    server_url = '%s://%s/' % ('https' if is_secure else 'http', base_url)
+    server_url = '%s://%s/?transport=polling' % ('https' if is_secure else 'http', base_url)
+    _log.debug('[session] %s', server_url)
     try:
         response = _get_response(requests.get, server_url, **kw)
     except TimeoutError as e:
         raise ConnectionError(e)
-    response_parts = response.text.split(':')
+
+    _log.debug("[response] %s", response.text);
+    decoded = parser.decode_response(response);
+    _log.debug("[decoded] %s", repr(decoded));
+
     return _SocketIOSession(
-        id=response_parts[0],
-        heartbeat_timeout=int(response_parts[1]),
-        server_supported_transports=response_parts[3].split(','))
+        id = decoded["payload"]["sid"],
+        heartbeat_timeout = int(decoded["payload"]["pingInterval"]),
+        server_supported_transports = ["xhr-polling"]);#decoded["payload"]["upgrades"]);
+
+    #return _SocketIOSession(
+    #    id=response_parts[0],
+    #    heartbeat_timeout=int(response_parts[1]),
+    #    server_supported_transports=response_parts[3].split(','))

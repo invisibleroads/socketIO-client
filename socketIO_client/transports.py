@@ -1,5 +1,6 @@
 import json
 import logging
+import parser
 import re
 import requests
 import six
@@ -79,6 +80,7 @@ class _AbstractTransport(object):
         for packet_text in self.recv():
             _log.debug('[packet received] %s', packet_text)
             try:
+                #packet = parser.decode_response(packet_text);
                 packet_parts = packet_text.split(':', 3)
             except AttributeError:
                 _log.warn('[packet error] %s', packet_text)
@@ -167,7 +169,7 @@ class _XHR_PollingTransport(_AbstractTransport):
 
     def __init__(self, socketIO_session, is_secure, base_url, **kw):
         super(_XHR_PollingTransport, self).__init__()
-        self._url = '%s://%s/xhr-polling/%s' % (
+        self._url = '%s://%s/?transport=polling&sid=%s' % (
             'https' if is_secure else 'http',
             base_url, socketIO_session.id)
         self._connected = True
@@ -198,6 +200,7 @@ class _XHR_PollingTransport(_AbstractTransport):
             self._url,
             params=self._params,
             timeout=TIMEOUT_IN_SECONDS)
+        #response_text = response.content
         response_text = response.text
         if not response_text.startswith(BOUNDARY):
             yield response_text
