@@ -1,6 +1,8 @@
 from collections import namedtuple
+import copy
 import logging
 import json
+import multiprocessing
 import parser
 import requests
 import time
@@ -16,7 +18,8 @@ from .transports import _get_response, _negotiate_transport, TRANSPORTS
 
 _SocketIOSession = namedtuple('_SocketIOSession', [
     'id',
-    'heartbeat_timeout',
+    'heartbeat_interval',
+    'connection_timeout',
     'server_supported_transports',
 ])
 _log = logging.getLogger(__name__)
@@ -42,7 +45,11 @@ class BaseNamespace(object):
 
     def emit(self, event, *args, **kw):
         callback, args = find_callback(args, kw)
-        self._transport.emit(self.path, event, args, callback)
+
+        if callback is not None:
+            _log.warn("Callback was specified but is not supported.");
+
+        self._transport.emit(self.path, event, args, None)
 
     def disconnect(self):
         self._transport.disconnect(self.path)
@@ -138,6 +145,16 @@ class SocketIO(object):
         self._namespace_by_path = {}
         self.client_supported_transports = transports
         self.kw = kw
+        # These two fields work to control the heartbeat thread.
+        self.heartbeat_terminator = None;
+        self.heartbeat_thread = None;
+        # Saved session information.
+        self.session = None;
+        # This is stores the set of paths (namespaces) that need to be
+        # reconnected to.
+        self.reconnect_paths = {};
+        # This sets of a chain of events that attempts to connect to
+        # the server at the base namespace.
         self.define(Namespace)
 
     def __enter__(self):
@@ -145,9 +162,17 @@ class SocketIO(object):
 
     def __exit__(self, *exception_pack):
         self.disconnect()
+        self._terminate_heartbeat();
 
     def __del__(self):
         self.disconnect()
+        self._terminate_heartbeat();
+
+    def _terminate_heartbeat(self):
+        if self.heartbeat_terminator is not None:
+            self.heartbeat_terminator.set();
+            #time.sleep(self.session.heartbeat_interval);
+            self.heartbeat_thread.join();
 
     def define(self, Namespace, path=''):
         if path:
@@ -167,6 +192,19 @@ class SocketIO(object):
         callback, args = find_callback(args, kw)
         self._transport.emit(path, event, args, callback)
 
+    def reconnect(self):
+        """Reconnects to a set of namespaces.
+
+        """
+        for path in self.reconnect_paths:
+            # We avoid reconnecting to the default namespace because
+            # socketIO_client connects to that already.
+            if (len(self.reconnect_paths) > 1 and path is ''):
+                continue;
+            _log.debug("Reconnecting to path: %s" % repr(path))
+            self._transport.connect(path);
+        self.reconnect_paths = {};
+
     def wait(self, seconds=None, for_callbacks=False):
         """Wait in a loop and process events as defined in the namespaces.
 
@@ -181,14 +219,28 @@ class SocketIO(object):
                     pass
                 if self._stop_waiting(for_callbacks):
                     break
-                self.heartbeat_pacemaker.send(elapsed_time)
+
+                # We will end up here in the case that we
+                # disconnected, then reconnected AND we were
+                # successful.
+                if len(self.reconnect_paths) > 0:
+                    self.reconnect();
             except ConnectionError as e:
                 try:
+                    # This is where we end up if the connection was
+                    # severed. The client will disconnect here.
+                    if len(self.reconnect_paths) is 0:
+                        self.reconnect_paths = copy.deepcopy(self._namespace_by_path);
+
+                    self._terminate_heartbeat();
+
                     warning = Exception('[connection error] %s' % e)
+                    self._transport._connected = False;
                     warning_screen.throw(warning)
                 except StopIteration:
                     _log.warn(warning)
                 self.disconnect()
+        _log.debug("[wait canceled]");
 
     def _process_events(self):
         for packet in self._transport.recv_packet():
@@ -249,31 +301,29 @@ class SocketIO(object):
         return self.__transport
 
     def _get_transport(self):
-        socketIO_session = _get_socketIO_session(
-            self.is_secure, self.base_url, **self.kw)
-        _log.debug('[transports available] %s', ' '.join(
-            socketIO_session.server_supported_transports))
-        # Initialize heartbeat_pacemaker
-        self.heartbeat_pacemaker = self._make_heartbeat_pacemaker(
-            heartbeat_interval=socketIO_session.heartbeat_timeout / 2)
-        next(self.heartbeat_pacemaker)
+        self.session = _get_socketIO_session(self.is_secure, self.base_url, **self.kw)
+        _log.debug('[transports available] %s', ' '.join(self.session.server_supported_transports))
+
         # Negotiate transport
         transport = _negotiate_transport(
-            self.client_supported_transports, socketIO_session,
+            self.client_supported_transports, self.session,
             self.is_secure, self.base_url, **self.kw)
         # Update namespaces
         for path, namespace in self._namespace_by_path.items():
             namespace._transport = transport
             transport.connect(path)
-        return transport
+            
+        transport.set_timeout(self.session.connection_timeout);
 
-    def _make_heartbeat_pacemaker(self, heartbeat_interval):
-        heartbeat_time = 0
-        while True:
-            elapsed_time = (yield)
-            if elapsed_time - heartbeat_time > heartbeat_interval:
-                heartbeat_time = elapsed_time
-                self._transport.send_heartbeat()
+        # Start the heartbeat pacemaker (PING).
+        _log.debug("[start heartbeat pacemaker]");
+        self.heartbeat_terminator = multiprocessing.Event();
+        self.heartbeat_thread = multiprocessing.Process(
+            target = _make_heartbeat_pacemaker, 
+            args = (self.heartbeat_terminator, transport, self.session.heartbeat_interval / 2));
+        self.heartbeat_thread.start();
+
+        return transport
 
     def get_namespace(self, path=''):
         try:
@@ -369,7 +419,7 @@ def _parse_host(host, port):
     url_pack = parse_url(host)
     is_secure = url_pack.scheme == 'https'
     port = port or url_pack.port or (443 if is_secure else 80)
-    base_url = '%s:%d%s/socket.io/%s' % (url_pack.hostname, port, url_pack.path, PROTOCOL_VERSION)
+    base_url = '%s:%d%s/socket.io' % (url_pack.hostname, port, url_pack.path)
     return is_secure, base_url
 
 
@@ -396,7 +446,8 @@ def _yield_elapsed_time(seconds=None):
 
 
 def _get_socketIO_session(is_secure, base_url, **kw):
-    server_url = '%s://%s/?transport=polling' % ('https' if is_secure else 'http', base_url)
+    server_url = '%s://%s/?EIO=%d&transport=polling' \
+                 % ('https' if is_secure else 'http', base_url, parser.ENGINE_PROTOCOL)
     _log.debug('[session] %s', server_url)
     try:
         response = _get_response(requests.get, server_url, **kw)
@@ -404,15 +455,28 @@ def _get_socketIO_session(is_secure, base_url, **kw):
         raise ConnectionError(e)
 
     _log.debug("[response] %s", response.text);
-    decoded = parser.decode_response(response);
-    _log.debug("[decoded] %s", repr(decoded));
+    packet = parser.decode_response(response);
+    _log.debug("[decoded] %s", repr(packet));
+
+    if packet.type is not parser.PacketType.OPEN:
+        _log.warn("Got unexpected packet during connection handshake: %d" % packet.type);
+        return None;
+
+    handshake = json.loads(packet.payload);
 
     return _SocketIOSession(
-        id = decoded["payload"]["sid"],
-        heartbeat_timeout = int(decoded["payload"]["pingInterval"]),
+        id = handshake["sid"],
+        heartbeat_interval = int(handshake["pingInterval"]) / 1000,
+        connection_timeout = int(handshake["pingTimeout"]) / 1000,
         server_supported_transports = ["xhr-polling"]);#decoded["payload"]["upgrades"]);
 
-    #return _SocketIOSession(
-    #    id=response_parts[0],
-    #    heartbeat_timeout=int(response_parts[1]),
-    #    server_supported_transports=response_parts[3].split(','))
+def _make_heartbeat_pacemaker(terminator, transport, heartbeat_interval):
+    while True:
+        if terminator.wait(heartbeat_interval):
+            break;
+        _log.debug("[hearbeat]");
+        try:
+            transport.send_heartbeat();
+        except:
+            pass;
+    _log.debug("[heartbeat terminated]");

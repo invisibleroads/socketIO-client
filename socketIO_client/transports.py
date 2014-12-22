@@ -1,6 +1,7 @@
 import json
 import logging
 import parser
+from parser import Message, MessageType, PacketType
 import re
 import requests
 import six
@@ -13,7 +14,7 @@ from .exceptions import SocketIOError, ConnectionError, TimeoutError
 
 TRANSPORTS = 'websocket', 'xhr-polling', 'jsonp-polling'
 BOUNDARY = six.u('\ufffd')
-TIMEOUT_IN_SECONDS = 3
+TIMEOUT_IN_SECONDS = 300
 _log = logging.getLogger(__name__)
 
 
@@ -24,6 +25,10 @@ class _AbstractTransport(object):
         self._callback_by_packet_id = {}
         self._wants_to_disconnect = False
         self._packets = []
+        self._timeout = TIMEOUT_IN_SECONDS;
+
+    def set_timeout(self, timeout):
+        self._timeout = timeout;
 
     def disconnect(self, path=''):
         if not path:
@@ -31,15 +36,20 @@ class _AbstractTransport(object):
         if not self.connected:
             return
         if path:
-            self.send_packet(0, path)
+            self.send_packet(PacketType.CLOSE, path)
         else:
             self.close()
 
     def connect(self, path):
-        self.send_packet(1, path)
+        if path != "":
+            _log.debug("Connecting to path: %s" % path);
+            data = Message(MessageType.CONNECT, path).encode_as_string();
+            self.send_packet(PacketType.MESSAGE, path, data);
+        else:
+            self.send_packet(PacketType.OPEN, path, data);
 
     def send_heartbeat(self):
-        self.send_packet(2)
+        self.send_packet(PacketType.PING)
 
     def message(self, path, data, callback):
         if isinstance(data, basestring):
@@ -50,8 +60,8 @@ class _AbstractTransport(object):
         self.send_packet(code, path, data, callback)
 
     def emit(self, path, event, args, callback):
-        data = json.dumps(dict(name=event, args=args), ensure_ascii=False)
-        self.send_packet(5, path, data, callback)
+        message = Message(MessageType.EVENT, [event, args], path);
+        self.send_packet(PacketType.MESSAGE, path, message.encode_as_json(), callback)
 
     def ack(self, path, packet_id, *args):
         packet_id = packet_id.rstrip('+')
@@ -59,15 +69,13 @@ class _AbstractTransport(object):
             packet_id,
             json.dumps(args, ensure_ascii=False),
         ) if args else packet_id
-        self.send_packet(6, path, data)
+        #self.send_packet(6, path, data)
 
     def noop(self, path=''):
-        self.send_packet(8, path)
+        self.send_packet(PacketType.NOOP, path)
 
     def send_packet(self, code, path='', data='', callback=None):
-        packet_id = self.set_ack_callback(callback) if callback else ''
-        packet_parts = str(code), packet_id, path, data
-        packet_text = ':'.join(packet_parts)
+        packet_text = parser.encode_packet_string(code, path, data);
         self.send(packet_text)
         _log.debug('[packet sent] %s', packet_text)
 
@@ -77,22 +85,48 @@ class _AbstractTransport(object):
                 yield self._packets.pop(0)
         except IndexError:
             pass
-        for packet_text in self.recv():
-            _log.debug('[packet received] %s', packet_text)
+        for response in self.recv():
+            _log.debug('[packet received] %s', response.text);
             try:
-                #packet = parser.decode_response(packet_text);
-                packet_parts = packet_text.split(':', 3)
+                packet = parser.decode_response(response);
             except AttributeError:
-                _log.warn('[packet error] %s', packet_text)
+                _log.warn('[packet error] %s', response.text)
                 continue
-            code, packet_id, path, data = None, None, None, None
-            packet_count = len(packet_parts)
-            if 4 == packet_count:
-                code, packet_id, path, data = packet_parts
-            elif 3 == packet_count:
-                code, packet_id, path = packet_parts
-            elif 1 == packet_count:
-                code = packet_parts[0]
+            code, packet_id, path, data = None, None, '', None
+
+            if packet.type is PacketType.OPEN:
+                code = '1';
+                continue;
+            elif packet.type is PacketType.CLOSE:
+                code = '0';
+            elif packet.type is PacketType.PING:
+                code = '2';
+            elif packet.type is PacketType.PONG:
+                code = '2';
+            elif packet.type is PacketType.UPGRADE:
+                _log.warn("Don't know how to handle upgrade packets");
+                yield code, packet_id, path, data;
+            elif packet.type is PacketType.NOOP:
+                code = '8';
+            elif packet.type is PacketType.MESSAGE:
+                if packet.payload.type is MessageType.CONNECT:
+                    code = '1';
+                elif packet.payload.type is MessageType.DISCONNECT:
+                    code = '0';
+                elif packet.payload.type is MessageType.EVENT:
+                    code = '5';
+                    data = json.dumps({"name": packet.payload.message[0], "args": []});
+                elif packet.payload.type is MessageType.ACK:
+                    code = '6';
+                elif packet.payload.type is MessageType.ERROR:
+                    code = '7';
+                else:
+                    _log.warn("Don't know how to handle message type: %d" % packet.payload.type);
+                    yield code, packet_id, path, data;
+            else:
+                _log.warn("Don't know how to handle packet type: %d" % packet.type);
+                yield code, packet_id, path, data;
+
             yield code, packet_id, path, data
 
     def _enqueue_packet(self, packet):
@@ -169,14 +203,16 @@ class _XHR_PollingTransport(_AbstractTransport):
 
     def __init__(self, socketIO_session, is_secure, base_url, **kw):
         super(_XHR_PollingTransport, self).__init__()
-        self._url = '%s://%s/?transport=polling&sid=%s' % (
+        self._url = '%s://%s/?EIO=%d&transport=polling&sid=%s' % (
             'https' if is_secure else 'http',
-            base_url, socketIO_session.id)
+            base_url, parser.ENGINE_PROTOCOL, socketIO_session.id)
         self._connected = True
         self._http_session = _prepare_http_session(kw)
+        self._waiting = False;
+
         # Create connection
-        for packet in self.recv_packet():
-            self._enqueue_packet(packet)
+        #for packet in self.recv_packet():
+        #    self._enqueue_packet(packet)
 
     @property
     def connected(self):
@@ -184,35 +220,54 @@ class _XHR_PollingTransport(_AbstractTransport):
 
     @property
     def _params(self):
-        return dict(t=int(time.time()))
+        return dict(t=int(time.time() * 1000))
 
     def send(self, packet_text):
-        _get_response(
-            self._http_session.post,
-            self._url,
-            params=self._params,
-            data=packet_text,
-            timeout=TIMEOUT_IN_SECONDS)
+        uri = self._url + "&" + '&'.join("%s=%s" % (k, v) for (k, v) in self._params.iteritems());
+        response = None;
+        try:
+            response = requests.post(uri, data=packet_text);
+        except requests.exceptions.Timeout as e:
+            message = 'timed out while sending %s (%s)' % (packet_text, e)
+            _log.warn(message)
+            raise TimeoutError(e)
+        except requests.exceptions.ConnectionError as e:
+            message = 'disconnected while sending %s (%s)' % (packet_text, e)
+            _log.warn(message)
+            raise ConnectionError(message)
+        except requests.exceptions.SSLError as e:
+            raise ConnectionError('could not negotiate SSL (%s)' % e)
+            status = response.status_code
+            if 200 != status:
+                raise ConnectionError('unexpected status code (%s)' % status)
+        return response
 
     def recv(self):
+        if self._waiting:
+            return;
+
+        self._waiting = True;
         response = _get_response(
             self._http_session.get,
             self._url,
-            params=self._params,
-            timeout=TIMEOUT_IN_SECONDS)
-        #response_text = response.content
-        response_text = response.text
-        if not response_text.startswith(BOUNDARY):
-            yield response_text
-            return
-        for packet_text in _yield_text_from_framed_data(response_text):
-            yield packet_text
+            params = self._params,
+            timeout = self._timeout)
+
+        self._waiting = False;
+        if response is None:
+            return;
+
+        response_text = response;
+        #response_text = response.text
+        #if not response_text.startswith(BOUNDARY):
+        yield response_text
+        return
+        #for packet_text in _yield_text_from_framed_data(response_text):
+        #    yield packet_text
 
     def close(self):
-        _get_response(
-            self._http_session.get,
-            self._url,
-            params=dict(self._params.items() + [('disconnect', True)]))
+        self.send_packet(41)
+        self.send_packet(1)
         self._connected = False
 
 
@@ -310,8 +365,10 @@ def _yield_text_from_framed_data(framed_data, parse=lambda x: x):
 
 
 def _get_response(request, *args, **kw):
+    response = None;
     try:
-        response = request(*args, **kw)
+        response = request(*args, **kw);
+        response.close();
     except requests.exceptions.Timeout as e:
         raise TimeoutError(e)
     except requests.exceptions.ConnectionError as e:
