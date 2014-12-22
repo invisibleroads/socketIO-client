@@ -3,7 +3,6 @@ import requests
 import time
 
 
-# def unwrap_payload
 # def decode_payload(payload)
 def get_packets(content):
     packets = []
@@ -88,6 +87,9 @@ for packet_type, packet in packets:
 # from IPython import embed; embed()
 
 
+# def wrap_payload
+# def pack_packets
+# def pack_packs
 # def wrap_payload
 def encode_payload(packs):
     parts = []
