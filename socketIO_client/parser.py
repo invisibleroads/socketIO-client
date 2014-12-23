@@ -32,6 +32,27 @@ class Packet():
     def __str__(self):
         return "PACKET{type: " + str(self.type) + ", payload: " + str(self.payload) + "}";
 
+    def encode_as_string(self, for_websocket = False):
+        data = "";
+        path = "";
+        if self.type == PacketType.MESSAGE:
+            data = self.payload.encode_as_string();
+            path = self.payload.path;
+        else:
+            data = self.payload;           
+
+        code_length = len(str(self.type));
+        data_length = len(data);
+        length = code_length + data_length;
+
+        encoded = "";
+        if for_websocket:
+            encoded = str(self.type) + str(data);
+        else:
+            encoded = str(length) + ":" + str(self.type) + str(data);
+ 
+        return encoded;
+
 class Message():
     def __init__(self, message_type, message, path = "", attachments = "", message_id = None):
         self.type = message_type;
@@ -67,15 +88,30 @@ class Message():
         
         Assumes the message payload will be dumped as a json string.
         """
+        data = json.dumps(self.message);
+        if self.id is not None:
+            data = str(self.id) + json.dumps(self.message);
+
         if self.path == "":
-            return str(self.type) + json.dumps(self.message);
-        return str(self.type) + self.path + "," + json.dumps(self.message);
+            return str(self.type) + data;
+        return str(self.type) + self.path + "," + data;
 
     def encode_as_string(self):
         """Same as the encode_as_string method except it doesn't encode things as a JSON string"""
+        data = self.message;
+        if self.id is not None:
+            data = str(self.id) + self.message;
+
         if self.path == "":
-            return str(self.type) + self.message;
-        return str(self.type) + self.path + "," + self.message;
+            return str(self.type) + data;
+        return str(self.type) + self.path + "," + data;
+
+def _is_integer(s):
+    try:
+        int(s);
+    except ValueError:
+        return False;
+    return True;
 
 def decode_message(payload):
     """ Decodes a message encoded via socket.io
@@ -112,11 +148,15 @@ def decode_message(payload):
                 i += len(path);
     
     if len(payload) > i:
-        # This is the same pecularity as above.
-        if "," in payload[i:]:
-            split_point = payload.index(",");
-            message_id = int(payload[i:split_point]);
-            i += split_point;
+        # This is another oddity. According to the socket.io-parser we
+        # need to loop over the next chars until we stop finding ints
+        # to determine if there is a message id.
+        message_id_str = "";
+        while _is_integer(payload[i]):
+            message_id_str += payload[i];
+            i += 1;
+        if message_id_str != "":
+            message_id = int(message_id_str);
 
     if len(payload) > i:
         message = payload[i:];
@@ -198,8 +238,3 @@ def encode_packet_string(code, path, data):
     """Encodes packet to be sent to socket.io server.
     """
 
-    code_length = len(str(code));
-    data_length = len(data);
-    length = code_length + data_length;
-
-    return str(length) + ":" + str(code) + str(data);

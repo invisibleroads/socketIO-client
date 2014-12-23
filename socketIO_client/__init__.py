@@ -444,7 +444,7 @@ class SocketIO(object):
         _log.debug("[event] %s (%s)" % (repr(event), repr(args)));
 
         if packet.payload.id is not None:
-            args.append(self._prepare_to_send_ack(path, packet_id))
+            args.append(self._prepare_to_send_ack(packet.payload.path, packet.payload.id))
         find_event_callback(event)(*args);
 
     def _on_ack(self, packet, find_event_callback):

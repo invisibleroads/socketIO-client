@@ -1,7 +1,7 @@
 import json
 import logging
 import parser
-from parser import Message, MessageType, PacketType
+from parser import Message, Packet, MessageType, PacketType
 import re
 import requests
 import six
@@ -75,18 +75,16 @@ class _AbstractTransport(object):
         self.send_packet(PacketType.MESSAGE, path, message.encode_as_json(), callback)
 
     def ack(self, path, packet_id, *args):
-        packet_id = packet_id.rstrip('+')
-        data = '%s+%s' % (
-            packet_id,
-            json.dumps(args, ensure_ascii=False),
-        ) if args else packet_id
-        #self.send_packet(6, path, data)
+        _log.debug("[ack] Sending ACK for packet: %d" % packet_id);
+        message = Message(MessageType.ACK, "", path, "", packet_id);
+        packet = Packet(PacketType.MESSAGE, message);
+        self.send_engineio_packet(packet)
 
     def noop(self, path=''):
         self.send_packet(PacketType.NOOP, path)
 
     def send_packet(self, code, path='', data='', callback=None):
-        packet_text = parser.encode_packet_string(code, path, data);
+        packet_text = Packet(code, data).encode_as_string();
         self.send(packet_text)
         _log.debug('[packet sent] %s', packet_text)
 
@@ -140,10 +138,18 @@ class WebsocketTransport(_AbstractTransport):
     def connected(self):
         return self._connection.connected
 
-    def send_packet(self, code, path="", data='', callback=None):
-        packet_text = Message(code, data).encode_as_string();
+    def send_message(self, message, callback = None):
+        packet_text = message.encode_as_string();
         self.send(packet_text)
         _log.debug('[packet sent] %s', packet_text)
+
+    def send_engineio_packet(self, packet, callback=None):
+        packet_text = packet.encode_as_string(for_websocket = True);
+        self.send(packet_text)
+        _log.debug('[packet sent] %s', packet_text)
+
+    def send_packet(self, code, path="", data='', callback=None):
+        self.send_message(Message(code, data), callback);
 
     def send(self, packet_text):
         try:
