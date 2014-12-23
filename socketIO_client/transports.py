@@ -51,8 +51,6 @@ class _AbstractTransport(object):
             while not responded:
                 for packet in self.recv_packet():
                     _log.debug("[connect wait] Waiting for confirmation");
-                    (code, packet_id, ignore, data, p) = packet;
-                    packet = p;
                     if (packet.type == PacketType.MESSAGE
                         and packet.payload.type == MessageType.CONNECT
                         and packet.payload.path == path):
@@ -99,41 +97,7 @@ class _AbstractTransport(object):
         except IndexError:
             pass
         for packet in self.recv():
-            code, packet_id, path, data = None, None, '', None
-
-            if packet.type is PacketType.OPEN:
-                code = '1';
-            elif packet.type is PacketType.CLOSE:
-                code = '0';
-            elif packet.type is PacketType.PING:
-                code = '2';
-            elif packet.type is PacketType.PONG:
-                code = PacketType.PONG;
-            elif packet.type is PacketType.UPGRADE:
-                _log.warn("Don't know how to handle upgrade packets");
-                yield code, packet_id, path, data, packet;
-            elif packet.type is PacketType.NOOP:
-                code = '8';
-            elif packet.type is PacketType.MESSAGE:
-                if packet.payload.type is MessageType.CONNECT:
-                    code = '1';
-                elif packet.payload.type is MessageType.DISCONNECT:
-                    code = '0';
-                elif packet.payload.type is MessageType.EVENT:
-                    code = '5';
-                    data = json.dumps({"name": packet.payload.message[0], "args": []});
-                elif packet.payload.type is MessageType.ACK:
-                    code = '6';
-                elif packet.payload.type is MessageType.ERROR:
-                    code = '7';
-                else:
-                    _log.warn("Don't know how to handle message type: %d" % packet.payload.type);
-                    yield code, packet_id, path, data, packet;
-            else:
-                _log.warn("Don't know how to handle packet type: %d" % packet.type);
-                yield code, packet_id, path, data, packet;
-
-            yield code, packet_id, path, data, packet
+            yield packet
 
     def _enqueue_packet(self, packet):
         self._packets.append(packet)
