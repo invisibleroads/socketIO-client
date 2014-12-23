@@ -4,7 +4,7 @@ import json
 
 _log = logging.getLogger(__name__)
 
-ENGINE_PROTOCOL = 3;
+ENGINEIO_PROTOCOL = 3;
 
 class PacketType(Enum):
     OPEN = 0;
@@ -25,6 +25,8 @@ class MessageType(Enum):
     BINARY_ACK = 6;
 
 class Packet():
+    """ Represents a 'packet' from the engine.io protocol.
+    """
     def __init__(self, packet_type, payload):
         self.type = packet_type;
         self.payload = payload;
@@ -33,6 +35,16 @@ class Packet():
         return "PACKET{type: " + str(self.type) + ", payload: " + str(self.payload) + "}";
 
     def encode_as_string(self, for_websocket = False):
+        """Returns the packet encoded according to the engine.io-protocol.
+
+        Reference: (https://github.com/Automattic/engine.io-protocol).
+
+        It's worth noting that websockets have their own framing and
+        encoding mechanism so if the packet is going to be transmitted
+        via websockets, we encode it slightly differently per the
+        documentation.
+
+        """
         data = "";
         path = "";
         if self.type == PacketType.MESSAGE and not isinstance(self.payload, basestring):
@@ -54,6 +66,8 @@ class Packet():
         return encoded;
 
 class Message():
+    """Represents a 'message' from the socket.io protocol.
+    """
     def __init__(self, message_type, message, path = "", attachments = "", message_id = None):
         self.type = message_type;
         if isinstance(message, basestring):
@@ -84,9 +98,8 @@ class Message():
                 "}";
 
     def encode_as_json(self):
-        """Encodes a Message to be sent to socket.io server.
-        
-        Assumes the message payload will be dumped as a json string.
+        """Encodes a JSON Message to be sent to socket.io server.
+
         """
         data = json.dumps(self.message);
         if self.id is not None:
@@ -97,7 +110,11 @@ class Message():
         return str(self.type) + self.path + "," + data;
 
     def encode_as_string(self):
-        """Same as the encode_as_string method except it doesn't encode things as a JSON string"""
+        """Encodes a Message to be to a socket.io server.
+
+        This will call encode_as_json if the message is not a string.
+
+        """
         if not isinstance(self.message, basestring):
             return self.encode_as_json();
         data = self.message;

@@ -16,7 +16,6 @@ except ImportError:
 from .exceptions import ConnectionError, TimeoutError, PacketError
 from .transports import _get_response
 
-
 _SocketIOSession = namedtuple('_SocketIOSession', [
     'id',
     'heartbeat_interval',
@@ -24,7 +23,6 @@ _SocketIOSession = namedtuple('_SocketIOSession', [
     'server_supported_transports',
 ])
 _log = logging.getLogger(__name__)
-PROTOCOL_VERSION = 1
 RETRY_INTERVAL_IN_SECONDS = 1
 
 class BaseNamespace(object):
@@ -171,6 +169,9 @@ class SocketIO(object):
         self._terminate_heartbeat();
 
     def _terminate_heartbeat(self):
+        """Terminates the heartbeat thread.
+
+        """
         if self.heartbeat_terminator is not None:
             self.heartbeat_terminator.set();
             self.heartbeat_thread.join();
@@ -365,6 +366,21 @@ class SocketIO(object):
         return self.__transport
 
     def _upgrade(self):
+        """Attempts to upgrade the connection to a websocket.
+
+        This method will execute the update process outline here:
+        https://github.com/Automattic/engine.io-protocol#transport-upgrading
+
+        To summarize, we first send a PING packet with the string
+        'probe' appended as data. This signals to the server that we
+        want to probe the ability to upgrade. If the server has this
+        functionality, it responds with a PONG packet and the 'probe'
+        string.
+
+        We then send an UPGRADE packet, restart the heartbeat thread,
+        and return.
+
+        """
         websocket = transports.WebsocketTransport(self.session, self.is_secure, self.base_url, **self.kw);
         websocket.send_packet(PacketType.PING, "", "probe");
         for packet in websocket.recv_packet():
@@ -384,6 +400,19 @@ class SocketIO(object):
                 return websocket;
 
     def _start_heartbeat(self, transport):
+        """Starts the heartbeat thread.
+        
+        The heartbeat thread ensures that our connection is never
+        severed. This effectively spawns a thread that sits in an
+        infinite loop. The thread waits
+        self.session.heartbeat_interval / 2 (gleaned from the server)
+        seconds, then sends a heartbeat packet (PING).
+
+        The thread is implemented using a multiprocessing.Event to
+        perform the wait, so it doesn't waste any cpu cycles while
+        it's waiting.
+
+        """
         _log.debug("[start heartbeat pacemaker]");
         self.heartbeat_terminator = multiprocessing.Event();
         self.heartbeat_thread = multiprocessing.Process(
@@ -458,10 +487,14 @@ class SocketIO(object):
         find_event_callback('disconnect')()
 
     def _on_event(self, packet, find_event_callback):
-        # Accoding to the documentation
-        # (https://github.com/automattic/socket.io-protocol#event),
-        # the event name is the first entry in the message array, and
-        # the arguments are the rest of the entries.
+        """This delegate is called when there is an EVENT packet.
+
+        Accoding to the documentation
+         (https://github.com/automattic/socket.io-protocol#event), the
+         event name is the first entry in the message array, and the
+         arguments are the rest of the entries.
+
+        """
         event = packet.payload.message[0];
         args = packet.payload.message[1:] if len(packet.payload.message) > 1 else [];
 
@@ -556,7 +589,7 @@ def _yield_elapsed_time(seconds=None):
 
 def _get_socketIO_session(is_secure, base_url, **kw):
     server_url = '%s://%s/?EIO=%d&transport=polling' \
-                 % ('https' if is_secure else 'http', base_url, parser.ENGINE_PROTOCOL)
+                 % ('https' if is_secure else 'http', base_url, parser.ENGINEIO_PROTOCOL)
     _log.debug('[session] %s', server_url)
     try:
         response = _get_response(requests.get, server_url, **kw)
