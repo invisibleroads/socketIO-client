@@ -29,8 +29,11 @@ class Packet():
         self.type = packet_type;
         self.payload = payload;
 
+    def __str__(self):
+        return "PACKET{type: " + str(self.type) + ", payload: " + str(self.payload) + "}";
+
 class Message():
-    def __init__(self, message_type, message, path = ""):
+    def __init__(self, message_type, message, path = "", attachments = "", message_id = None):
         self.type = message_type;
         if isinstance(message, basestring):
             try:
@@ -41,6 +44,23 @@ class Message():
             self.message = message;
 
         self.path = path;
+        self.attachments = attachments;
+        self.id = message_id;
+
+    def __str__(self):
+        if self.id is not None:
+            return "MESSAGE{" + \
+                "id: " + str(self.id) + ", " + \
+                "type: " + str(self.type) + ", " + \
+                "message: " + str(self.message) + ", " + \
+                "path: " + self.path + \
+                "}";
+        else:
+            return "MESSAGE{" + \
+                "type: " + str(self.type) + ", " + \
+                "message: " + str(self.message) + ", " + \
+                "path: " + self.path + \
+                "}";
 
     def encode_as_json(self):
         """Encodes a Message to be sent to socket.io server.
@@ -61,17 +81,78 @@ def decode_message(payload):
     """ Decodes a message encoded via socket.io
     """
 
-    message_type = int(payload[0]);
-    message = payload[1:];
+    _log.debug("[decode payload] %s" % repr(payload));
 
-    return Message(message_type, message);
+    i = 0;
+    message_type = int(payload[i]);
+    message = "";
+    path = "";
+    attachments = "";
+    message_id = None;
+
+    i += 1;
+
+    if len(payload) > i:
+        if message_type == MessageType.BINARY_EVENT or message_type == MessageType.BINARY_ACK:
+            while (payload[i] != "-"):
+                attachments += payload[i];
+                i += 1;
+
+    if len(payload) > i:
+        # This is kind of odd, but it is how socket.io-parser works (see
+        # https://github.com/Automattic/socket.io-parser/blob/master/index.js#L292
+        # @0ae9a4f).
+        if payload[i] == "/":
+            if "," in payload:
+                split_point = payload.index(",");
+                path = payload[i:split_point];
+                i += split_point;
+            else:
+                path = payload[i:];
+                i += len(path);
+    
+    if len(payload) > i:
+        # This is the same pecularity as above.
+        if "," in payload[i:]:
+            split_point = payload.index(",");
+            message_id = int(payload[i:split_point]);
+            i += split_point;
+
+    if len(payload) > i:
+        message = payload[i:];
+
+    return Message(message_type, message, path, attachments, message_id);
 
 def decode_response(response):
     """Decodes a response from requests lib.
 
     """
     # TODO(sean): Should we use the 'raw' stream instead?
-    return decode_packet(response.content);
+    if isinstance(response, basestring):
+        _log.debug("[decode response (string)] Response: %s" % str(response));
+        packet = decode_packet_string(response);
+        yield packet;
+    else:
+        content = response.content;
+        total_length = len(content);
+        processed = 0;
+        while processed < total_length:
+            _log.debug("[decode response] Content: %s" % str(content));
+            (read, packet) = decode_packet(content);
+            content = content[read:];
+            processed += read;
+            yield packet;
+            
+
+def decode_packet_string(packet):
+    packet_type = int(packet[0]);
+    payload = packet[1:];
+
+    if packet_type == PacketType.MESSAGE:
+        message = decode_message(payload);
+        payload = message;
+
+    return Packet(packet_type, payload);
 
 def decode_packet(packet):
     """Decodes a packet sent via engine.io.
@@ -108,14 +189,10 @@ def decode_packet(packet):
         if packet_type is PacketType.MESSAGE:
             message = decode_message(payload);
             payload = message;
-
-        return Packet(packet_type, payload);
+            
+        return offset + length, Packet(packet_type, payload);
     else:
         pass;
-
-    return "";
-
-    pass;
 
 def encode_packet_string(code, path, data):
     """Encodes packet to be sent to socket.io server.

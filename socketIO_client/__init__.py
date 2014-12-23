@@ -4,6 +4,7 @@ import logging
 import json
 import multiprocessing
 import parser
+from parser import Message, Packet, MessageType, PacketType
 import requests
 import time
 
@@ -13,7 +14,7 @@ except ImportError:
     from urlparse import urlparse as parse_url
 
 from .exceptions import ConnectionError, TimeoutError, PacketError
-from .transports import _get_response, _negotiate_transport, TRANSPORTS
+from .transports import _get_response
 
 
 _SocketIOSession = namedtuple('_SocketIOSession', [
@@ -139,11 +140,10 @@ class SocketIO(object):
 
     def __init__(
             self, host, port=None, Namespace=BaseNamespace,
-            wait_for_connection=True, transports=TRANSPORTS, **kw):
+            wait_for_connection=True, **kw):
         self.is_secure, self.base_url = _parse_host(host, port)
         self.wait_for_connection = wait_for_connection
         self._namespace_by_path = {}
-        self.client_supported_transports = transports
         self.kw = kw
         # These two fields work to control the heartbeat thread.
         self.heartbeat_terminator = None;
@@ -250,10 +250,15 @@ class SocketIO(object):
                 _log.warn('[packet error] %s', e)
 
     def _process_packet(self, packet):
-        code, packet_id, path, data = packet
+        code, packet_id, path, data, p = packet
         namespace = self.get_namespace(path)
-        delegate = self._get_delegate(code)
-        delegate(packet, namespace._find_event_callback)
+        delegate = None;
+        try:
+            delegate = self._get_delegate(code)
+        except:
+            pass;
+        if delegate is not None:
+            delegate(packet, namespace._find_event_callback)
 
     def _stop_waiting(self, for_callbacks):
         # Use __transport to make sure that we do not reconnect inadvertently
@@ -300,14 +305,40 @@ class SocketIO(object):
                     _log.warn(warning)
         return self.__transport
 
-    def _get_transport(self):
-        self.session = _get_socketIO_session(self.is_secure, self.base_url, **self.kw)
-        _log.debug('[transports available] %s', ' '.join(self.session.server_supported_transports))
+    def _upgrade(self):
+        websocket = transports.WebsocketTransport(self.session, self.is_secure, self.base_url, **self.kw);
+        websocket.send_packet(PacketType.PING, "", "probe");
+        for packet in websocket.recv_packet():
+            _log.debug("[websocket] Packet: %s" % str(packet));
+            (code, packet_id, path, data, p) = packet;            
+            if code == PacketType.PONG:
+                packet = p;
+                _log.debug("[PONG] %s" % repr(packet));
 
-        # Negotiate transport
-        transport = _negotiate_transport(
-            self.client_supported_transports, self.session,
-            self.is_secure, self.base_url, **self.kw)
+                self.heartbeat_terminator.set();
+
+                # Technically we would need to pause the current
+                # transport (which should be polling in this
+                # implementation), but since we haven't actually
+                # started a polling yet, we can upgrade without that.
+                _log.debug("[upgrading] Sending upgrade request");
+                websocket.send_packet(PacketType.UPGRADE);
+                self._start_heartbeat(websocket);
+                return websocket;
+
+    def _start_heartbeat(self, transport):
+        _log.debug("[start heartbeat pacemaker]");
+        self.heartbeat_terminator = multiprocessing.Event();
+        self.heartbeat_thread = multiprocessing.Process(
+            target = _make_heartbeat_pacemaker, 
+            args = (self.heartbeat_terminator, transport, self.session.heartbeat_interval / 2));
+        self.heartbeat_thread.start(); 
+
+    def _get_transport(self):
+        self.session = _get_socketIO_session(self.is_secure, self.base_url, **self.kw);
+
+        # Negotiate initial transport
+        transport = transports.XHR_PollingTransport(self.session, self.is_secure, self.base_url, **self.kw);
         # Update namespaces
         for path, namespace in self._namespace_by_path.items():
             namespace._transport = transport
@@ -316,12 +347,17 @@ class SocketIO(object):
         transport.set_timeout(self.session.connection_timeout);
 
         # Start the heartbeat pacemaker (PING).
-        _log.debug("[start heartbeat pacemaker]");
-        self.heartbeat_terminator = multiprocessing.Event();
-        self.heartbeat_thread = multiprocessing.Process(
-            target = _make_heartbeat_pacemaker, 
-            args = (self.heartbeat_terminator, transport, self.session.heartbeat_interval / 2));
-        self.heartbeat_thread.start();
+        self._start_heartbeat(transport);
+
+        # If websocket is available, upgrade to it immediately.
+        # TODO(sean): We could run this on a separate thread for
+        # maximum efficiency although that would require some
+        # synchronization to ensure buffers are flushed, etc.
+        if "websocket" in self.session.server_supported_transports:
+            try:
+                return self._upgrade();
+            except:
+                pass;
 
         return transport
 
@@ -371,10 +407,19 @@ class SocketIO(object):
         find_event_callback('message')(*args)
 
     def _on_event(self, packet, find_event_callback):
-        code, packet_id, path, data = packet
-        value_by_name = json.loads(data)
-        event = value_by_name['name']
-        args = value_by_name.get('args', [])
+        code, packet_id, path, data, p = packet
+        packet = p;
+
+
+        # Accoding to the documentation
+        # (https://github.com/automattic/socket.io-protocol#event),
+        # the event name is the first entry in the message array, and
+        # the arguments are the rest of the entries.
+        event = packet.payload.message[0];
+        args = packet.payload.message[1:] if len(packet.payload.message) > 1 else [];
+
+        _log.debug("[event] %s (%s)" % (repr(event), repr(args)));
+
         if packet_id:
             args.append(self._prepare_to_send_ack(path, packet_id))
         find_event_callback(event)(*args)
@@ -455,12 +500,11 @@ def _get_socketIO_session(is_secure, base_url, **kw):
         raise ConnectionError(e)
 
     _log.debug("[response] %s", response.text);
-    packet = parser.decode_response(response);
-    _log.debug("[decoded] %s", repr(packet));
-
-    if packet.type is not parser.PacketType.OPEN:
-        _log.warn("Got unexpected packet during connection handshake: %d" % packet.type);
-        return None;
+    for packet in parser.decode_response(response):
+        _log.debug("[decoded] %s", str(packet));
+        if packet.type is not parser.PacketType.OPEN:
+            _log.warn("Got unexpected packet during connection handshake: %d" % packet.type);
+            return None;
 
     handshake = json.loads(packet.payload);
 
@@ -468,7 +512,7 @@ def _get_socketIO_session(is_secure, base_url, **kw):
         id = handshake["sid"],
         heartbeat_interval = int(handshake["pingInterval"]) / 1000,
         connection_timeout = int(handshake["pingTimeout"]) / 1000,
-        server_supported_transports = ["xhr-polling"]);#decoded["payload"]["upgrades"]);
+        server_supported_transports = handshake["upgrades"]);
 
 def _make_heartbeat_pacemaker(terminator, transport, heartbeat_interval):
     while True:

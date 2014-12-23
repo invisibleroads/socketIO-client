@@ -45,6 +45,19 @@ class _AbstractTransport(object):
             _log.debug("Connecting to path: %s" % path);
             data = Message(MessageType.CONNECT, path).encode_as_string();
             self.send_packet(PacketType.MESSAGE, path, data);
+
+            # Wait for response.
+            responded = False;
+            while not responded:
+                for packet in self.recv_packet():
+                    _log.debug("[connect wait] Waiting for confirmation");
+                    (code, packet_id, ignore, data, p) = packet;
+                    packet = p;
+                    if (packet.type == PacketType.MESSAGE
+                        and packet.payload.type == MessageType.CONNECT
+                        and packet.payload.path == path):
+                        _log.debug("Connected to path: %s" % path);
+                        responded = True;
         else:
             self.send_packet(PacketType.OPEN, path, data);
 
@@ -85,27 +98,20 @@ class _AbstractTransport(object):
                 yield self._packets.pop(0)
         except IndexError:
             pass
-        for response in self.recv():
-            _log.debug('[packet received] %s', response.text);
-            try:
-                packet = parser.decode_response(response);
-            except AttributeError:
-                _log.warn('[packet error] %s', response.text)
-                continue
+        for packet in self.recv():
             code, packet_id, path, data = None, None, '', None
 
             if packet.type is PacketType.OPEN:
                 code = '1';
-                continue;
             elif packet.type is PacketType.CLOSE:
                 code = '0';
             elif packet.type is PacketType.PING:
                 code = '2';
             elif packet.type is PacketType.PONG:
-                code = '2';
+                code = PacketType.PONG;
             elif packet.type is PacketType.UPGRADE:
                 _log.warn("Don't know how to handle upgrade packets");
-                yield code, packet_id, path, data;
+                yield code, packet_id, path, data, packet;
             elif packet.type is PacketType.NOOP:
                 code = '8';
             elif packet.type is PacketType.MESSAGE:
@@ -122,12 +128,12 @@ class _AbstractTransport(object):
                     code = '7';
                 else:
                     _log.warn("Don't know how to handle message type: %d" % packet.payload.type);
-                    yield code, packet_id, path, data;
+                    yield code, packet_id, path, data, packet;
             else:
                 _log.warn("Don't know how to handle packet type: %d" % packet.type);
-                yield code, packet_id, path, data;
+                yield code, packet_id, path, data, packet;
 
-            yield code, packet_id, path, data
+            yield code, packet_id, path, data, packet
 
     def _enqueue_packet(self, packet):
         self._packets.append(packet)
@@ -149,15 +155,17 @@ class _AbstractTransport(object):
         return True if self._callback_by_packet_id else False
 
 
-class _WebsocketTransport(_AbstractTransport):
+class WebsocketTransport(_AbstractTransport):
 
     def __init__(self, socketIO_session, is_secure, base_url, **kw):
-        super(_WebsocketTransport, self).__init__()
-        url = '%s://%s/websocket/%s' % (
+        super(WebsocketTransport, self).__init__()
+
+        self._url = '%s://%s/?EIO=%d&transport=websocket&sid=%s' % (
             'wss' if is_secure else 'ws',
-            base_url, socketIO_session.id)
+            base_url, parser.ENGINE_PROTOCOL, socketIO_session.id)
+
         try:
-            self._connection = websocket.create_connection(url)
+            self._connection = websocket.create_connection(self._url)
         except socket.timeout as e:
             raise ConnectionError(e)
         except socket.error as e:
@@ -167,6 +175,11 @@ class _WebsocketTransport(_AbstractTransport):
     @property
     def connected(self):
         return self._connection.connected
+
+    def send_packet(self, code, path="", data='', callback=None):
+        packet_text = Message(code, data).encode_as_string();
+        self.send(packet_text)
+        _log.debug('[packet sent] %s', packet_text)
 
     def send(self, packet_text):
         try:
@@ -182,7 +195,14 @@ class _WebsocketTransport(_AbstractTransport):
 
     def recv(self):
         try:
-            yield self._connection.recv()
+            response = self._connection.recv();
+            try:
+                for packet in parser.decode_response(response):
+                    _log.debug('[websocket packet received] %s', str(packet));
+                    yield packet;
+            except AttributeError:
+                _log.warn('[packet error] %s', repr(response))
+                return;
         except websocket.WebSocketTimeoutException as e:
             raise TimeoutError(e)
         except websocket.SSLError as e:
@@ -199,20 +219,16 @@ class _WebsocketTransport(_AbstractTransport):
         self._connection.close()
 
 
-class _XHR_PollingTransport(_AbstractTransport):
+class XHR_PollingTransport(_AbstractTransport):
 
     def __init__(self, socketIO_session, is_secure, base_url, **kw):
-        super(_XHR_PollingTransport, self).__init__()
+        super(XHR_PollingTransport, self).__init__()
         self._url = '%s://%s/?EIO=%d&transport=polling&sid=%s' % (
             'https' if is_secure else 'http',
             base_url, parser.ENGINE_PROTOCOL, socketIO_session.id)
         self._connected = True
         self._http_session = _prepare_http_session(kw)
         self._waiting = False;
-
-        # Create connection
-        #for packet in self.recv_packet():
-        #    self._enqueue_packet(packet)
 
     @property
     def connected(self):
@@ -257,101 +273,14 @@ class _XHR_PollingTransport(_AbstractTransport):
         if response is None:
             return;
 
-        response_text = response;
-        #response_text = response.text
-        #if not response_text.startswith(BOUNDARY):
-        yield response_text
+        for packet in parser.decode_response(response):
+            yield packet;
         return
-        #for packet_text in _yield_text_from_framed_data(response_text):
-        #    yield packet_text
 
     def close(self):
         self.send_packet(41)
         self.send_packet(1)
         self._connected = False
-
-
-class _JSONP_PollingTransport(_AbstractTransport):
-
-    RESPONSE_PATTERN = re.compile(r'io.j\[(\d+)\]\("(.*)"\);')
-
-    def __init__(self, socketIO_session, is_secure, base_url, **kw):
-        super(_JSONP_PollingTransport, self).__init__()
-        self._url = '%s://%s/jsonp-polling/%s' % (
-            'https' if is_secure else 'http',
-            base_url, socketIO_session.id)
-        self._connected = True
-        self._http_session = _prepare_http_session(kw)
-        self._id = 0
-        # Create connection
-        for packet in self.recv_packet():
-            self._enqueue_packet(packet)
-
-    @property
-    def connected(self):
-        return self._connected
-
-    @property
-    def _params(self):
-        return dict(t=int(time.time()), i=self._id)
-
-    def send(self, packet_text):
-        _get_response(
-            self._http_session.post,
-            self._url,
-            params=self._params,
-            data='d=%s' % requests.utils.quote(json.dumps(packet_text)),
-            headers={'content-type': 'application/x-www-form-urlencoded'},
-            timeout=TIMEOUT_IN_SECONDS)
-
-    def recv(self):
-        'Decode the JavaScript response so that we can parse it as JSON'
-        response = _get_response(
-            self._http_session.get,
-            self._url,
-            params=self._params,
-            headers={'content-type': 'text/javascript; charset=UTF-8'},
-            timeout=TIMEOUT_IN_SECONDS)
-        response_text = response.text
-        try:
-            self._id, response_text = self.RESPONSE_PATTERN.match(
-                response_text).groups()
-        except AttributeError:
-            _log.warn('[packet error] %s', response_text)
-            return
-        if not response_text.startswith(BOUNDARY):
-            yield response_text.decode('unicode_escape')
-            return
-        for packet_text in _yield_text_from_framed_data(
-                response_text, parse=lambda x: x.decode('unicode_escape')):
-            yield packet_text
-
-    def close(self):
-        _get_response(
-            self._http_session.get,
-            self._url,
-            params=dict(self._params.items() + [('disconnect', True)]))
-        self._connected = False
-
-
-def _negotiate_transport(
-        client_supported_transports, session,
-        is_secure, base_url, **kw):
-    server_supported_transports = session.server_supported_transports
-    for supported_transport in client_supported_transports:
-        if supported_transport in server_supported_transports:
-            _log.debug('[transport selected] %s', supported_transport)
-            return {
-                'websocket': _WebsocketTransport,
-                'xhr-polling': _XHR_PollingTransport,
-                'jsonp-polling': _JSONP_PollingTransport,
-            }[supported_transport](session, is_secure, base_url, **kw)
-    raise SocketIOError(' '.join([
-        'could not negotiate a transport:',
-        'client supports %s but' % ', '.join(client_supported_transports),
-        'server supports %s' % ', '.join(server_supported_transports),
-    ]))
-
 
 def _yield_text_from_framed_data(framed_data, parse=lambda x: x):
     parts = [parse(x) for x in framed_data.split(BOUNDARY)]
