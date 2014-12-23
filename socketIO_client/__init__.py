@@ -178,7 +178,6 @@ class SocketIO(object):
     def _terminate_heartbeat(self):
         if self.heartbeat_terminator is not None:
             self.heartbeat_terminator.set();
-            #time.sleep(self.session.heartbeat_interval);
             self.heartbeat_thread.join();
 
     def define(self, Namespace, path=''):
@@ -239,7 +238,7 @@ class SocketIO(object):
                 try:
                     self.reconnect();
                 except ConnectionError as e:
-                    time.sleep(1);
+                    time.sleep(RETRY_INTERVAL_IN_SECONDS);
                     continue;
 
             try:

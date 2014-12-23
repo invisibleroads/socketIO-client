@@ -50,12 +50,15 @@ class _AbstractTransport(object):
             responded = False;
             while not responded:
                 for packet in self.recv_packet():
-                    _log.debug("[connect wait] Waiting for confirmation of connect to: %s" % path);
-                    if (packet.type == PacketType.MESSAGE
-                        and packet.payload.type == MessageType.CONNECT
-                        and packet.payload.path == path):
-                        _log.debug("[connect] Connected to path: %s" % path);
-                        responded = True;
+                    if not responded:
+                        _log.debug("[connect wait] Waiting for confirmation of connect to: %s" % path);
+                        if (packet.type == PacketType.MESSAGE
+                            and packet.payload.type == MessageType.CONNECT
+                            and packet.payload.path == path):
+                            _log.debug("[connect] Connected to path: %s" % path);
+                            responded = True;
+                    else:
+                        self._packets.append(packet);
         else:
             self.send_packet(PacketType.OPEN, path, data);
 
@@ -167,7 +170,7 @@ class WebsocketTransport(_AbstractTransport):
             response = self._connection.recv();
             try:
                 for packet in parser.decode_response(response):
-                    _log.debug('[websocket packet received] %s', str(packet));
+                    _log.debug('[websocket] Packet received: %s', str(packet));
                     yield packet;
             except AttributeError:
                 _log.warn('[packet error] %s', repr(response))
@@ -207,6 +210,10 @@ class XHR_PollingTransport(_AbstractTransport):
     @property
     def _params(self):
         return dict(t=int(time.time() * 1000))
+
+    def send_engineio_packet(self, packet, callback=None):
+        packet_text = packet.encode_as_string(for_websocket = False);
+        self.send(packet_text)
         
     def send(self, packet_text):
         _log.debug("[xhr] send: " + str(packet_text));
@@ -233,6 +240,11 @@ class XHR_PollingTransport(_AbstractTransport):
         if self._waiting:
             return;
 
+        # Yield any packets that were not processed before.
+        for packet in self._packets:
+            _log.debug('[xhr] Packet received: %s', str(packet));
+            yield packet;
+
         self._waiting = True;
         response = _get_response(
             self._http_session.get,
@@ -245,6 +257,7 @@ class XHR_PollingTransport(_AbstractTransport):
             return;
 
         for packet in parser.decode_response(response):
+            _log.debug('[xhr] Packet received: %s', str(packet));
             yield packet;
         return
 

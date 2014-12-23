@@ -234,8 +234,3 @@ def decode_packet(packet):
     else:
         import ipdb; ipdb.set_trace();
         pass;
-
-def encode_packet_string(code, path, data):
-    """Encodes packet to be sent to socket.io server.
-    """
-
