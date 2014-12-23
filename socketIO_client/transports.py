@@ -41,7 +41,7 @@ class _AbstractTransport(object):
             self.close()
 
     def connect(self, path):
-        if path != "":
+        if True or path != "":
             _log.debug("Connecting to path: %s" % path);
             data = Message(MessageType.CONNECT, path).encode_as_string();
             self.send_packet(PacketType.MESSAGE, path, data);
@@ -50,11 +50,11 @@ class _AbstractTransport(object):
             responded = False;
             while not responded:
                 for packet in self.recv_packet():
-                    _log.debug("[connect wait] Waiting for confirmation");
+                    _log.debug("[connect wait] Waiting for confirmation of connect to: %s" % path);
                     if (packet.type == PacketType.MESSAGE
                         and packet.payload.type == MessageType.CONNECT
                         and packet.payload.path == path):
-                        _log.debug("Connected to path: %s" % path);
+                        _log.debug("[connect] Connected to path: %s" % path);
                         responded = True;
         else:
             self.send_packet(PacketType.OPEN, path, data);
@@ -78,7 +78,7 @@ class _AbstractTransport(object):
         _log.debug("[ack] Sending ACK for packet: %d" % packet_id);
         message = Message(MessageType.ACK, "", path, "", packet_id);
         packet = Packet(PacketType.MESSAGE, message);
-        self.send_engineio_packet(packet)
+        self.send_engineio_packet(packet);
 
     def noop(self, path=''):
         self.send_packet(PacketType.NOOP, path)
@@ -86,7 +86,6 @@ class _AbstractTransport(object):
     def send_packet(self, code, path='', data='', callback=None):
         packet_text = Packet(code, data).encode_as_string();
         self.send(packet_text)
-        _log.debug('[packet sent] %s', packet_text)
 
     def recv_packet(self):
         try:
@@ -127,6 +126,7 @@ class WebsocketTransport(_AbstractTransport):
             base_url, parser.ENGINE_PROTOCOL, socketIO_session.id)
 
         try:
+            _log.debug("[websocket] Connecting");
             self._connection = websocket.create_connection(self._url)
         except socket.timeout as e:
             raise ConnectionError(e)
@@ -141,17 +141,16 @@ class WebsocketTransport(_AbstractTransport):
     def send_message(self, message, callback = None):
         packet_text = message.encode_as_string();
         self.send(packet_text)
-        _log.debug('[packet sent] %s', packet_text)
 
     def send_engineio_packet(self, packet, callback=None):
         packet_text = packet.encode_as_string(for_websocket = True);
         self.send(packet_text)
-        _log.debug('[packet sent] %s', packet_text)
 
     def send_packet(self, code, path="", data='', callback=None):
         self.send_message(Message(code, data), callback);
 
     def send(self, packet_text):
+        _log.debug("[websocket] send: " + str(packet_text));
         try:
             self._connection.send(packet_text)
         except websocket.WebSocketTimeoutException as e:
@@ -186,7 +185,8 @@ class WebsocketTransport(_AbstractTransport):
             raise ConnectionError(e)
 
     def close(self):
-        self._connection.close()
+        self._connection.close();
+        self._connected = False;
 
 
 class XHR_PollingTransport(_AbstractTransport):
@@ -207,8 +207,9 @@ class XHR_PollingTransport(_AbstractTransport):
     @property
     def _params(self):
         return dict(t=int(time.time() * 1000))
-
+        
     def send(self, packet_text):
+        _log.debug("[xhr] send: " + str(packet_text));
         uri = self._url + "&" + '&'.join("%s=%s" % (k, v) for (k, v) in self._params.iteritems());
         response = None;
         try:

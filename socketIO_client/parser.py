@@ -35,7 +35,7 @@ class Packet():
     def encode_as_string(self, for_websocket = False):
         data = "";
         path = "";
-        if self.type == PacketType.MESSAGE:
+        if self.type == PacketType.MESSAGE and not isinstance(self.payload, basestring):
             data = self.payload.encode_as_string();
             path = self.payload.path;
         else:
@@ -230,8 +230,9 @@ def decode_packet(packet):
             message = decode_message(payload);
             payload = message;
             
-        return offset + length, Packet(packet_type, payload);
+        return offset + length - 1, Packet(packet_type, payload);
     else:
+        import ipdb; ipdb.set_trace();
         pass;
 
 def encode_packet_string(code, path, data):

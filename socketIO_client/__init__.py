@@ -145,19 +145,26 @@ class SocketIO(object):
         self.wait_for_connection = wait_for_connection
         self._namespace_by_path = {}
         self.kw = kw
+
+        self.__transport = None;
+
         # These two fields work to control the heartbeat thread.
         self.heartbeat_terminator = None;
         self.heartbeat_thread = None;
+
         # Saved session information.
         self.session = None;
+
         # This is stores the set of paths (namespaces) that need to be
         # reconnected to.
         self.reconnect_paths = {};
+
         # This sets of a chain of events that attempts to connect to
         # the server at the base namespace.
         self.define(Namespace)
 
     def __enter__(self):
+        _log.debug("[enter]");
         return self
 
     def __exit__(self, *exception_pack):
@@ -193,9 +200,19 @@ class SocketIO(object):
         self._transport.emit(path, event, args, callback)
 
     def reconnect(self):
-        """Reconnects to a set of namespaces.
+        """Reconnects the client.
+
+        Reconnects to the server and connects to the previously
+        connected set of namespaces.
 
         """
+        _log.debug("  [reconnect attempt]");
+
+        # Reconnect to the server.
+        if self.__transport is not None:
+            self.__transport.close();
+        self.__transport = self._get_transport();
+
         for path in self.reconnect_paths:
             # We avoid reconnecting to the default namespace because
             # socketIO_client connects to that already.
@@ -203,6 +220,10 @@ class SocketIO(object):
                 continue;
             _log.debug("Reconnecting to path: %s" % repr(path))
             self._transport.connect(path);
+        # Restore paths.
+        self._namespace_by_path = copy.copy(self.reconnect_paths);
+        for namespace in self._namespace_by_path:
+            self._namespace_by_path[namespace]._transport = self.__transport;
         self.reconnect_paths = {};
 
     def wait(self, seconds=None, for_callbacks=False):
@@ -212,6 +233,15 @@ class SocketIO(object):
         """
         warning_screen = _yield_warning_screen(seconds)
         for elapsed_time in warning_screen:
+            # We will end up here in the case that we
+            # disconnected.
+            if len(self.reconnect_paths) > 0:
+                try:
+                    self.reconnect();
+                except ConnectionError as e:
+                    time.sleep(1);
+                    continue;
+
             try:
                 try:
                     self._process_events()
@@ -220,26 +250,23 @@ class SocketIO(object):
                 if self._stop_waiting(for_callbacks):
                     break
 
-                # We will end up here in the case that we
-                # disconnected, then reconnected AND we were
-                # successful.
-                if len(self.reconnect_paths) > 0:
-                    self.reconnect();
             except ConnectionError as e:
                 try:
                     # This is where we end up if the connection was
                     # severed. The client will disconnect here.
                     if len(self.reconnect_paths) is 0:
-                        self.reconnect_paths = copy.deepcopy(self._namespace_by_path);
+                        self.reconnect_paths = copy.copy(self._namespace_by_path);
 
-                    self._terminate_heartbeat();
+                        self._terminate_heartbeat();
+
+                        for namespace in self.reconnect_paths:
+                            self.disconnect(namespace);
 
                     warning = Exception('[connection error] %s' % e)
-                    self._transport._connected = False;
                     warning_screen.throw(warning)
                 except StopIteration:
                     _log.warn(warning)
-                self.disconnect()
+
         _log.debug("[wait canceled]");
 
     def _process_events(self):
@@ -317,18 +344,19 @@ class SocketIO(object):
 
     @property
     def connected(self):
-        return self.__transport.connected
+        return self.__transport.connected if self.__transport is not None else False;
 
     @property
     def _transport(self):
         try:
-            if self.connected:
+            if self.__transport is not None and self.connected:
                 return self.__transport
         except AttributeError:
             pass
         warning_screen = _yield_warning_screen(seconds=None)
         for elapsed_time in warning_screen:
             try:
+                _log.debug("[create transport]");
                 self.__transport = self._get_transport()
                 break
             except ConnectionError as e:
@@ -349,7 +377,7 @@ class SocketIO(object):
             if packet.type == PacketType.PONG:
                 _log.debug("[PONG] %s" % repr(packet));
 
-                self.heartbeat_terminator.set();
+                self._terminate_heartbeat();
 
                 # Technically we would need to pause the current
                 # transport (which should be polling in this
@@ -391,6 +419,7 @@ class SocketIO(object):
             try:
                 return self._upgrade();
             except:
+                _log.warn("[websocket] Failed to upgrade to websocket")
                 pass;
 
         return transport
