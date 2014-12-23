@@ -3,8 +3,6 @@ import time
 from unittest import TestCase
 
 from . import SocketIO, BaseNamespace, find_callback
-from .transports import TIMEOUT_IN_SECONDS
-
 
 HOST = 'localhost'
 PORT = 8000
@@ -42,39 +40,6 @@ class BaseMixin(object):
         self.assertTrue(namespace.called_on_disconnect)
         self.assertFalse(self.socketIO.connected)
 
-    def test_message(self):
-        'Message'
-        namespace = self.socketIO.define(Namespace)
-        self.socketIO.message()
-        self.socketIO.wait(self.wait_time_in_seconds)
-        self.assertEqual(namespace.response, 'message_response')
-
-    def test_message_with_data(self):
-        'Message with data'
-        namespace = self.socketIO.define(Namespace)
-        self.socketIO.message(DATA)
-        self.socketIO.wait(self.wait_time_in_seconds)
-        self.assertEqual(namespace.response, DATA)
-
-    def test_message_with_payload(self):
-        'Message with payload'
-        namespace = self.socketIO.define(Namespace)
-        self.socketIO.message(PAYLOAD)
-        self.socketIO.wait(self.wait_time_in_seconds)
-        self.assertEqual(namespace.response, PAYLOAD)
-
-    def test_message_with_callback(self):
-        'Message with callback'
-        self.socketIO.message(callback=self.on_response)
-        self.socketIO.wait_for_callbacks(seconds=self.wait_time_in_seconds)
-        self.assertTrue(self.called_on_response)
-
-    def test_message_with_callback_with_data(self):
-        'Message with callback with data'
-        self.socketIO.message(DATA, self.on_response)
-        self.socketIO.wait_for_callbacks(seconds=self.wait_time_in_seconds)
-        self.assertTrue(self.called_on_response)
-
     def test_emit(self):
         'Emit'
         namespace = self.socketIO.define(Namespace)
@@ -104,22 +69,22 @@ class BaseMixin(object):
 
     def test_emit_with_callback(self):
         'Emit with callback'
-        self.socketIO.emit('emit_with_callback', self.on_response)
-        self.socketIO.wait_for_callbacks(seconds=self.wait_time_in_seconds)
+        self.socketIO.emit('emit_with_callback', callback = self.on_response)
+        self.socketIO.wait_for_callbacks(seconds = self.wait_time_in_seconds)
         self.assertTrue(self.called_on_response)
 
     def test_emit_with_callback_with_payload(self):
         'Emit with callback with payload'
         self.socketIO.emit(
             'emit_with_callback_with_payload', self.on_response)
-        self.socketIO.wait_for_callbacks(seconds=self.wait_time_in_seconds)
+        self.socketIO.wait_for_callbacks(seconds = self.wait_time_in_seconds)
         self.assertTrue(self.called_on_response)
 
     def test_emit_with_callback_with_multiple_payloads(self):
         'Emit with callback with multiple payloads'
         self.socketIO.emit(
             'emit_with_callback_with_multiple_payloads', self.on_response)
-        self.socketIO.wait_for_callbacks(seconds=self.wait_time_in_seconds)
+        self.socketIO.wait_for_callbacks(seconds = self.wait_time_in_seconds)
         self.assertTrue(self.called_on_response)
 
     def test_emit_with_event(self):
@@ -171,30 +136,27 @@ class BaseMixin(object):
             'ack_callback_response': (PAYLOAD,),
         })
 
-
-class Test_WebsocketTransport(TestCase, BaseMixin):
+class Test_WebsocketTransport(BaseMixin, TestCase):
 
     def setUp(self):
         super(Test_WebsocketTransport, self).setUp()
-        self.socketIO = SocketIO(HOST, PORT, transports=['websocket'])
+        self.socketIO = SocketIO(HOST, PORT)
         self.wait_time_in_seconds = 0.1
 
 
-class Test_XHR_PollingTransport(TestCase, BaseMixin):
+class Test_XHR_PollingTransport(BaseMixin, TestCase):
 
     def setUp(self):
         super(Test_XHR_PollingTransport, self).setUp()
-        self.socketIO = SocketIO(HOST, PORT, transports=['xhr-polling'])
-        self.wait_time_in_seconds = TIMEOUT_IN_SECONDS + 1
-
+        self.socketIO = SocketIO(HOST, PORT)
+        self.wait_time_in_seconds = 1
 
 class Test_JSONP_PollingTransport(TestCase, BaseMixin):
 
     def setUp(self):
         super(Test_JSONP_PollingTransport, self).setUp()
-        self.socketIO = SocketIO(HOST, PORT, transports=['jsonp-polling'])
-        self.wait_time_in_seconds = TIMEOUT_IN_SECONDS + 1
-
+        self.socketIO = SocketIO(HOST, PORT, transports = ['jsonp-polling'])
+        self.wait_time_in_seconds = 1;
 
 class Namespace(BaseNamespace):
 
