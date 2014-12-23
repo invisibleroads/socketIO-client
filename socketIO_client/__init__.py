@@ -410,7 +410,6 @@ class SocketIO(object):
         code, packet_id, path, data, p = packet
         packet = p;
 
-
         # Accoding to the documentation
         # (https://github.com/automattic/socket.io-protocol#event),
         # the event name is the first entry in the message array, and
@@ -420,9 +419,12 @@ class SocketIO(object):
 
         _log.debug("[event] %s (%s)" % (repr(event), repr(args)));
 
-        if packet_id:
+        if packet.payload.id is not None:
             args.append(self._prepare_to_send_ack(path, packet_id))
-        find_event_callback(event)(*args)
+        try:
+            self._namespace_by_path[packet.payload.path]._find_event_callback(event)(*args);
+        except KeyError:
+            _log.error("Could not handle event for unknown path: %s" % packet.payload.path);
 
     def _on_ack(self, packet, find_event_callback):
         code, packet_id, path, data = packet
