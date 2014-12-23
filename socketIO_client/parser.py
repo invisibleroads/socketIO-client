@@ -98,6 +98,8 @@ class Message():
 
     def encode_as_string(self):
         """Same as the encode_as_string method except it doesn't encode things as a JSON string"""
+        if not isinstance(self.message, basestring):
+            return self.encode_as_json();
         data = self.message;
         if self.id is not None:
             data = str(self.id) + self.message;
