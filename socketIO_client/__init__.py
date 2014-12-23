@@ -27,7 +27,6 @@ _log = logging.getLogger(__name__)
 PROTOCOL_VERSION = 1
 RETRY_INTERVAL_IN_SECONDS = 1
 
-
 class BaseNamespace(object):
     'Define client behavior'
 
@@ -46,11 +45,7 @@ class BaseNamespace(object):
 
     def emit(self, event, *args, **kw):
         callback, args = find_callback(args, kw)
-
-        if callback is not None:
-            _log.warn("Callback was specified but is not supported.");
-
-        self._transport.emit(self.path, event, args, None)
+        self._transport.emit(self.path, event, args, callback)
 
     def disconnect(self):
         self._transport.disconnect(self.path)
@@ -231,7 +226,7 @@ class SocketIO(object):
         - Omit seconds, i.e. call wait() without arguments, to wait forever.
         """
         warning_screen = _yield_warning_screen(seconds)
-        for elapsed_time in warning_screen:
+        for elapsed_time in warning_screen:            
             # We will end up here in the case that we
             # disconnected.
             if len(self.reconnect_paths) > 0:
@@ -266,6 +261,7 @@ class SocketIO(object):
                 except StopIteration:
                     _log.warn(warning)
 
+        self._terminate_heartbeat();
         _log.debug("[wait canceled]");
 
     def _process_events(self):
@@ -476,13 +472,30 @@ class SocketIO(object):
         find_event_callback(event)(*args);
 
     def _on_ack(self, packet, find_event_callback):
-        event = packet.payload.message[0];
-        args = packet.payload.message[1:] if len(packet.payload.message) > 1 else [];
+        """Handles ACK from server.
+
+        There are two types of ACKs. The first is when this client
+        requests that the server responds with an ACK upon execution
+        of a remote function (specified in the server via
+        socketio.on()).
+
+        The second type is when the server requests that this client
+        acknowledges that a local function has been executed.
+
+        Both are handled the same way from the client's standpoint,
+        but in latter case the server will actually send along the
+        event name and the args, but they are currently ignored.
+
+        """
+
+        #event = packet.payload.message[0];
         packet_id = packet.payload.id;
         try:
-            ack_callback = self._transport.get_ack_callback(packet_id)
+            ack_callback = self._transport.get_ack_callback(str(packet_id))
         except KeyError:
+            _log.warn("Could not find callback function for packet id: %d" % packet_id);
             return
+        args = packet.payload.message[1:] if len(packet.payload.message) > 1 else [];
         ack_callback(*args)
 
     def _on_error(self, packet, find_event_callback):

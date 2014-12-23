@@ -65,28 +65,30 @@ class _AbstractTransport(object):
     def send_heartbeat(self):
         self.send_packet(PacketType.PING)
 
-    def message(self, path, data, callback):
-        if isinstance(data, basestring):
-            code = 3
-        else:
-            code = 4
-            data = json.dumps(data, ensure_ascii=False)
-        self.send_packet(code, path, data, callback)
-
     def emit(self, path, event, args, callback):
-        message = Message(MessageType.EVENT, [event, args], path);
-        self.send_packet(PacketType.MESSAGE, path, message.encode_as_json(), callback)
+        message_id = self.set_ack_callback(callback) if callback else None;
+        message = "";
+        if len(args) > 0:
+            data = list(args);
+            data.insert(0, event);
+            message = Message(MessageType.EVENT, data, path, message_id = message_id);
+        else:
+            message = Message(MessageType.EVENT, [event], path, message_id = message_id);
+        self.send_packet(PacketType.MESSAGE, path, message.encode_as_json())
 
     def ack(self, path, packet_id, *args):
         _log.debug("[ack] Sending ACK for packet: %d" % packet_id);
-        message = Message(MessageType.ACK, "", path, "", packet_id);
+        data = "";
+        if len(args) > 0:
+            data = args;
+        message = Message(MessageType.ACK, data, path, "", packet_id);
         packet = Packet(PacketType.MESSAGE, message);
         self.send_engineio_packet(packet);
 
     def noop(self, path=''):
         self.send_packet(PacketType.NOOP, path)
 
-    def send_packet(self, code, path='', data='', callback=None):
+    def send_packet(self, code, path='', data=''):
         packet_text = Packet(code, data).encode_as_string();
         self.send(packet_text)
 
@@ -105,11 +107,13 @@ class _AbstractTransport(object):
     def set_ack_callback(self, callback):
         'Set callback to be called after server sends an acknowledgment'
         self._packet_id += 1
+        _log.debug("Setting ACK for packet id: %d (%s) [%s]" % (self._packet_id, str(callback), str(self)));
         self._callback_by_packet_id[str(self._packet_id)] = callback
-        return '%s+' % self._packet_id
+        return self._packet_id
 
     def get_ack_callback(self, packet_id):
         'Get callback to be called after server sends an acknowledgment'
+        _log.debug("Searching for ACK for packet id: %s [%s]" % (packet_id, str(self)));
         callback = self._callback_by_packet_id[packet_id]
         del self._callback_by_packet_id[packet_id]
         return callback
@@ -141,16 +145,16 @@ class WebsocketTransport(_AbstractTransport):
     def connected(self):
         return self._connection.connected
 
-    def send_message(self, message, callback = None):
+    def send_message(self, message):
         packet_text = message.encode_as_string();
         self.send(packet_text)
 
-    def send_engineio_packet(self, packet, callback=None):
+    def send_engineio_packet(self, packet):
         packet_text = packet.encode_as_string(for_websocket = True);
         self.send(packet_text)
 
-    def send_packet(self, code, path="", data='', callback=None):
-        self.send_message(Message(code, data), callback);
+    def send_packet(self, code, path="", data=''):
+        self.send_message(Message(code, data));
 
     def send(self, packet_text):
         _log.debug("[websocket] send: " + str(packet_text));
@@ -211,7 +215,7 @@ class XHR_PollingTransport(_AbstractTransport):
     def _params(self):
         return dict(t=int(time.time() * 1000))
 
-    def send_engineio_packet(self, packet, callback=None):
+    def send_engineio_packet(self, packet):
         packet_text = packet.encode_as_string(for_websocket = False);
         self.send(packet_text)
         
