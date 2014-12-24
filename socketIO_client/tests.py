@@ -1,4 +1,5 @@
 import logging
+from subprocess import check_call
 import time
 from unittest import TestCase
 
@@ -15,6 +16,9 @@ class BaseMixin(object):
 
     def setUp(self):
         self.called_on_response = False
+        
+        # Start the server if it's not already started.
+        check_call("./start-test-server.sh");        
 
     def tearDown(self):
         del self.socketIO
@@ -26,6 +30,65 @@ class BaseMixin(object):
             else:
                 self.assertEqual(arg, DATA)
         self.called_on_response = True
+
+    def test_server_dies_during_define(self):
+        'Server dies in the middle of a send'
+        self.socketIO.wait(self.wait_time_in_seconds);
+        self.assertTrue(self.socketIO.connected);
+
+        check_call("./kill-test-server.sh");
+
+        news_namespace = self.socketIO.define(Namespace, '/news');
+        self.assertFalse(self.socketIO.connected);
+
+        check_call("./start-test-server.sh");
+
+        main_namespace = self.socketIO.define(Namespace);
+        chat_namespace = self.socketIO.define(Namespace, '/chat');
+        news_namespace = self.socketIO.define(Namespace, '/news');
+        news_namespace.emit('emit_with_payload', PAYLOAD);
+
+        self.socketIO.wait(self.wait_time_in_seconds);
+        self.assertEqual(main_namespace.args_by_event, {});
+        self.assertEqual(chat_namespace.args_by_event, {});
+        self.assertEqual(news_namespace.args_by_event, {
+            'emit_with_payload_response': (PAYLOAD,),
+        });
+
+    def test_server_dies_during_emit_and_re_emit(self):
+        'Server dies in the middle of a send'
+        namespace = self.socketIO.define(Namespace);
+
+        self.socketIO.wait(self.wait_time_in_seconds);
+        self.assertTrue(self.socketIO.connected);
+
+        check_call("./kill-test-server.sh");
+
+        self.socketIO.emit("emit");
+        self.assertFalse(self.socketIO.connected);
+        check_call("./start-test-server.sh");
+
+        #self.socketIO.emit("emit");
+        self.socketIO.wait(self.wait_time_in_seconds);
+        self.assertEqual(namespace.args_by_event, {
+            'emit_response': (),
+        });
+
+    def test_server_restart(self):
+        'Server restart'
+        self.assertTrue(self.socketIO.connected);
+
+        check_call("./kill-test-server.sh");
+        time.sleep(2);
+        self.socketIO.wait(self.wait_time_in_seconds)
+
+        self.assertFalse(self.socketIO.connected);
+
+        check_call("./start-test-server.sh");
+        time.sleep(2);
+        self.socketIO.wait(self.wait_time_in_seconds);
+
+        self.assertTrue(self.socketIO.connected);
 
     def test_disconnect(self):
         'Disconnect'
@@ -143,21 +206,20 @@ class Test_WebsocketTransport(BaseMixin, TestCase):
         self.socketIO = SocketIO(HOST, PORT)
         self.wait_time_in_seconds = 0.1
 
-
 class Test_XHR_PollingTransport(BaseMixin, TestCase):
 
     def setUp(self):
         super(Test_XHR_PollingTransport, self).setUp()
         self.socketIO = SocketIO(HOST, PORT)
         self.wait_time_in_seconds = 1
-
+"""
 class Test_JSONP_PollingTransport(TestCase, BaseMixin):
 
     def setUp(self):
         super(Test_JSONP_PollingTransport, self).setUp()
         self.socketIO = SocketIO(HOST, PORT, transports = ['jsonp-polling'])
         self.wait_time_in_seconds = 1;
-
+"""
 class Namespace(BaseNamespace):
 
     def initialize(self):
