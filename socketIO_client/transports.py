@@ -130,7 +130,7 @@ class WebsocketTransport(_AbstractTransport):
 
         self._url = '%s://%s/?EIO=%d&transport=websocket&sid=%s' % (
             'wss' if is_secure else 'ws',
-            base_url, parser.ENGINE_PROTOCOL, socketIO_session.id)
+            base_url, parser.ENGINEIO_PROTOCOL, socketIO_session.id)
 
         try:
             _log.debug("[websocket] Connecting");
@@ -159,11 +159,16 @@ class WebsocketTransport(_AbstractTransport):
     def send(self, packet_text):
         _log.debug("[websocket] send: " + str(packet_text));
         try:
-            self._connection.send(packet_text)
+            self._connection.ping();
+            self._connection.send(packet_text);
         except websocket.WebSocketTimeoutException as e:
             message = 'timed out while sending %s (%s)' % (packet_text, e)
             _log.warn(message)
             raise TimeoutError(e)
+        except websocket.WebSocketConnectionClosedException as e:
+            message = 'disconnected while sending %s (%s)' % (packet_text, e);
+            _log.warn(message);
+            raise ConnectionError(message);
         except socket.error as e:
             message = 'disconnected while sending %s (%s)' % (packet_text, e)
             _log.warn(message)
@@ -202,7 +207,7 @@ class XHR_PollingTransport(_AbstractTransport):
         super(XHR_PollingTransport, self).__init__()
         self._url = '%s://%s/?EIO=%d&transport=polling&sid=%s' % (
             'https' if is_secure else 'http',
-            base_url, parser.ENGINE_PROTOCOL, socketIO_session.id)
+            base_url, parser.ENGINEIO_PROTOCOL, socketIO_session.id)
         self._connected = True
         self._http_session = _prepare_http_session(kw)
         self._waiting = False;
