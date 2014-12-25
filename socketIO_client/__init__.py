@@ -24,6 +24,7 @@ _SocketIOSession = namedtuple('_SocketIOSession', [
 ])
 _log = logging.getLogger(__name__)
 RETRY_INTERVAL_IN_SECONDS = 1
+MAX_UPGRADE_RETRIES = 3;
 
 class BaseNamespace(object):
     'Define client behavior'
@@ -75,15 +76,15 @@ class BaseNamespace(object):
 
     def on_noop(self):
         'Called after server sends a noop; you can override this method'
-        _log.info('%s [noop]', self.path)
+        _log.debug('%s [noop]', self.path)
 
     def on_ping(self):
         'Called after server sends a ping; you can override this method'
-        _log.info('%s [ping]', self.path)
+        _log.debug('%s [ping]', self.path)
 
     def on_pong(self):
         'Called after server sends a pong; you can override this method'
-        _log.info('%s [pong]', self.path)
+        _log.debug('%s [pong]', self.path)
 
     def on_open(self, *args):
         _log.info('%s [open] %s', self.path, args)
@@ -434,16 +435,15 @@ class SocketIO(object):
             if packet.type == PacketType.PONG:
                 _log.debug("[PONG] %s" % repr(packet));
 
-                self._terminate_heartbeat();
-
                 # Technically we would need to pause the current
                 # transport (which should be polling in this
                 # implementation), but since we haven't actually
                 # started a polling yet, we can upgrade without that.
                 _log.debug("[upgrading] Sending upgrade request");
                 websocket.send_packet(PacketType.UPGRADE);
-                self._start_heartbeat(websocket);
                 return websocket;
+            else:
+                self._process_packet(packet)
 
     def _terminate_heartbeat(self):
         """Terminates the heartbeat thread.
@@ -484,26 +484,33 @@ class SocketIO(object):
 
         # Negotiate initial transport
         transport = transports.XHR_PollingTransport(self.session, self.is_secure, self.base_url, **self.kw);
-        # Update namespaces
-        for path, namespace in self._namespace_by_path.items():
-            namespace._transport = transport
-            transport.connect(path)
-            
         transport.set_timeout(self.session.connection_timeout);
-
-        # Start the heartbeat pacemaker (PING).
-        self._start_heartbeat(transport);
 
         # If websocket is available, upgrade to it immediately.
         # TODO(sean): We could run this on a separate thread for
         # maximum efficiency although that would require some
         # synchronization to ensure buffers are flushed, etc.
+        num_retries = 0;
         if "websocket" in self.session.server_supported_transports:
-            try:
-                return self._upgrade();
-            except:
-                _log.warn("[websocket] Failed to upgrade to websocket")
-                pass;
+            while num_retries < MAX_UPGRADE_RETRIES:
+                try:
+                    transport = self._upgrade();
+                    break;
+                except:
+                    pass;
+                time.sleep(1);
+                num_retries += 1;
+
+            if num_retries == MAX_UPGRADE_RETRIES:
+                _log.warn("[websocket] Failed to upgrade to websocket");
+
+        # Update namespaces
+        for path, namespace in self._namespace_by_path.items():
+            namespace._transport = transport
+            transport.connect(path)
+
+        # Start the heartbeat pacemaker (PING).
+        self._start_heartbeat(transport);
 
         return transport
 
@@ -669,6 +676,7 @@ def _get_socketIO_session(is_secure, base_url, **kw):
             return None;
 
     handshake = json.loads(packet.payload);
+    _log.info("socket.io client connected to: %s" % base_url);
 
     return _SocketIOSession(
         id = handshake["sid"],
