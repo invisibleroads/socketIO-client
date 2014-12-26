@@ -138,11 +138,16 @@ class SocketIO(object):
     """
 
     def __init__(
-            self, host, port=None, Namespace=BaseNamespace,
-            wait_for_connection=True, **kw):
+            self, host, 
+            port = None, 
+            Namespace = BaseNamespace,
+            wait_for_connection = True, 
+            force_websockets_if_available = True,
+            **kw):
         self.is_secure, self.base_url = _parse_host(host, port)
         self.wait_for_connection = wait_for_connection
         self._namespace_by_path = {}
+        self.force_websockets_if_available = force_websockets_if_available;
         self.kw = kw
 
         self.__transport = None;
@@ -161,6 +166,7 @@ class SocketIO(object):
         # This sets of a chain of events that attempts to connect to
         # the server at the base namespace.
         self.define(Namespace)
+        self._transport.connect("");
 
         # Events that fail to emit due to connection errors will be
         # placed in this 'queue' and re-sent automatically upon
@@ -497,7 +503,7 @@ class SocketIO(object):
         # synchronization to ensure buffers are flushed, etc.
         num_retries = 0;
         if "websocket" in self.session.server_supported_transports:
-            while num_retries < MAX_UPGRADE_RETRIES:
+            while num_retries < MAX_UPGRADE_RETRIES or self.force_websockets_if_available:
                 try:
                     transport = self._upgrade();
                     break;

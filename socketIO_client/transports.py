@@ -61,6 +61,7 @@ class _AbstractTransport(object):
                         self._packets.append(packet);
         else:
             self.send_packet(PacketType.OPEN, path, data);
+            self.recv().next();
 
     def send_heartbeat(self):
         self.send_packet(PacketType.PING)
