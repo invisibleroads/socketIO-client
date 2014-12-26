@@ -133,12 +133,13 @@ class WebsocketTransport(_AbstractTransport):
             base_url, parser.ENGINEIO_PROTOCOL, socketIO_session.id)
 
         try:
-            _log.debug("[websocket] Connecting");
-            self._connection = websocket.create_connection(self._url)
+            _log.debug("[websocket] Connecting to: %s" % self._url);
+            self._connection = websocket.create_connection(self._url);
         except socket.timeout as e:
             raise ConnectionError(e)
         except socket.error as e:
             raise ConnectionError(e)
+
         self._connection.settimeout(TIMEOUT_IN_SECONDS)
 
     @property

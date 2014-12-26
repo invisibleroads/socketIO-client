@@ -161,7 +161,6 @@ class SocketIO(object):
         # This sets of a chain of events that attempts to connect to
         # the server at the base namespace.
         self.define(Namespace)
-        self._transport.connect("");
 
         # Events that fail to emit due to connection errors will be
         # placed in this 'queue' and re-sent automatically upon
@@ -430,6 +429,7 @@ class SocketIO(object):
         """
         websocket = transports.WebsocketTransport(self.session, self.is_secure, self.base_url, **self.kw);
         websocket.send_packet(PacketType.PING, "", "probe");
+
         for packet in websocket.recv_packet():
             _log.debug("[websocket] Packet: %s" % str(packet));
             if packet.type == PacketType.PONG:
@@ -486,6 +486,11 @@ class SocketIO(object):
         transport = transports.XHR_PollingTransport(self.session, self.is_secure, self.base_url, **self.kw);
         transport.set_timeout(self.session.connection_timeout);
 
+        # Wait for the response that we connected.
+        packet = None;
+        while packet == None or packet.type != PacketType.MESSAGE or packet.payload.type != MessageType.CONNECT:
+            packet = transport.recv().next();
+
         # If websocket is available, upgrade to it immediately.
         # TODO(sean): We could run this on a separate thread for
         # maximum efficiency although that would require some
@@ -496,7 +501,7 @@ class SocketIO(object):
                 try:
                     transport = self._upgrade();
                     break;
-                except:
+                except Exception, e:
                     pass;
                 time.sleep(1);
                 num_retries += 1;
@@ -504,7 +509,7 @@ class SocketIO(object):
             if num_retries == MAX_UPGRADE_RETRIES:
                 _log.warn("[websocket] Failed to upgrade to websocket");
 
-        # Update namespaces
+        # Update namespaces        
         for path, namespace in self._namespace_by_path.items():
             namespace._transport = transport
             transport.connect(path)
