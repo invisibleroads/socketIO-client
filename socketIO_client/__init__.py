@@ -29,6 +29,7 @@ class BaseNamespace(object):
     def __init__(self, _transport, path):
         self._transport = _transport
         self.path = path
+        self.was_connected = False
         self._callback_by_event = {}
         self.initialize()
 
@@ -109,6 +110,15 @@ class BaseNamespace(object):
             return self._callback_by_event[event]
         except KeyError:
             pass
+
+        # Convert connect to reconnect if we have seen connect
+        # already.
+        if event == 'connect':
+            if self.was_connected == False:
+                self.was_connected = True
+            else:
+                event = 'reconnect'
+
         # Check callbacks defined explicitly or use on_event()
         return getattr(
             self,
