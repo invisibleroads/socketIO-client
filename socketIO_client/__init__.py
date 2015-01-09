@@ -4,7 +4,7 @@ import requests
 import time
 from collections import namedtuple
 try:
-    from urllib import parse as parse_url
+    from urllib.parse import urlparse as parse_url
 except ImportError:
     from urlparse import urlparse as parse_url
 
