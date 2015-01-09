@@ -121,7 +121,8 @@ Specify params, headers, cookies, proxies thanks to the `requests`_ library. ::
     from socketIO_client import SocketIO
     from base64 import b64encode
 
-    SocketIO('localhost', 8000, 
+    SocketIO('localhost', 8000,
+        resource='my.io',
         params={'q': 'qqq'},
         headers={'Authorization': 'Basic ' + b64encode('username:password')},
         cookies={'a': 'aaa'},
@@ -149,7 +150,7 @@ Credits
 - `Paul Kienzle`_, `Zac Lee`_, `Josh VanderLinden`_, `Ian Fitzpatrick`_, `Lucas Klein`_, `Rui Chicoria`_, `Travis Odom`_ submitted code to expand support of the socket.io protocol.
 - `Bernard Pratz`_ and `Francis Bull`_ wrote prototypes to support xhr-polling and jsonp-polling.
 - `Eric Chen`_, `Denis Zinevich`_, `Thiago Hersan`_, `Nayef Copty`_ suggested ways to make the connection more robust.
-  
+
 
 .. _socket.io: http://socket.io
 .. _requests: http://python-requests.org
@@ -175,8 +176,8 @@ Credits
 .. _Lucas Klein: https://github.com/lukashed
 .. _Rui Chicoria: https://github.com/rchicoria
 .. _Travis Odom: https://github.com/burstaholic
-
 .. _Eric Chen: https://github.com/taiyangc
-.. _Denis Zinevich: https://github.com/dzinevich 
+.. _Denis Zinevich: https://github.com/dzinevich
 .. _Thiago Hersan: https://github.com/thiagohersan
 .. _Nayef Copty: https://github.com/nayefc
+.. _Patrick Huber: https://github.com/stackmagic

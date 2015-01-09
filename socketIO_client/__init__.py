@@ -3,7 +3,10 @@ import json
 import requests
 import time
 from collections import namedtuple
-from urlparse import urlparse
+try:
+    from urllib import parse as parse_url
+except ImportError:
+    from urlparse import urlparse as parse_url
 
 from .exceptions import ConnectionError, TimeoutError, PacketError
 from .transports import _get_response, _negotiate_transport, TRANSPORTS
@@ -20,6 +23,7 @@ RETRY_INTERVAL_IN_SECONDS = 1
 
 
 class BaseNamespace(object):
+
     'Define client behavior'
 
     def __init__(self, _transport, path):
@@ -109,6 +113,7 @@ class BaseNamespace(object):
 
 
 class SocketIO(object):
+
     """Create a socket.io client that connects to a socket.io server
     at the specified host and port.
 
@@ -119,6 +124,7 @@ class SocketIO(object):
     - Pass query params, headers, cookies, proxies as keyword arguments.
 
     SocketIO('localhost', 8000,
+        resource='my.io',
         params={'q': 'qqq'},
         headers={'Authorization': 'Basic ' + b64encode('username:password')},
         cookies={'a': 'aaa'},
@@ -127,8 +133,8 @@ class SocketIO(object):
 
     def __init__(
             self, host, port=None, Namespace=BaseNamespace,
-            wait_for_connection=True, transports=TRANSPORTS, **kw):
-        self.is_secure, self.base_url = _parse_host(host, port)
+            wait_for_connection=True, transports=TRANSPORTS, resource='socket.io', **kw):
+        self.is_secure, self.base_url = _parse_host(host, port, resource)
         self.wait_for_connection = wait_for_connection
         self._namespace_by_path = {}
         self.client_supported_transports = transports
@@ -167,16 +173,16 @@ class SocketIO(object):
 
         - Omit seconds, i.e. call wait() without arguments, to wait forever.
         """
-        try:
-            warning_screen = _yield_warning_screen(seconds)
-            for elapsed_time in warning_screen:
+        warning_screen = _yield_warning_screen(seconds)
+        for elapsed_time in warning_screen:
+            try:
+                if self._stop_waiting(for_callbacks):
+                    break
                 try:
                     try:
                         self._process_events()
                     except TimeoutError:
                         pass
-                    if self._stop_waiting(for_callbacks):
-                        break
                     self.heartbeat_pacemaker.send(elapsed_time)
                 except ConnectionError as e:
                     try:
@@ -185,8 +191,8 @@ class SocketIO(object):
                     except StopIteration:
                         _log.warn(warning)
                     self.disconnect()
-        except KeyboardInterrupt:
-            pass
+            except KeyboardInterrupt:
+                pass
 
     def _process_events(self):
         for packet in self._transport.recv_packet():
@@ -254,13 +260,13 @@ class SocketIO(object):
         # Initialize heartbeat_pacemaker
         self.heartbeat_pacemaker = self._make_heartbeat_pacemaker(
             heartbeat_interval=socketIO_session.heartbeat_timeout / 2)
-        self.heartbeat_pacemaker.next()
+        next(self.heartbeat_pacemaker)
         # Negotiate transport
         transport = _negotiate_transport(
             self.client_supported_transports, socketIO_session,
             self.is_secure, self.base_url, **self.kw)
         # Update namespaces
-        for path, namespace in self._namespace_by_path.iteritems():
+        for path, namespace in self._namespace_by_path.items():
             namespace._transport = transport
             transport.connect(path)
         return transport
@@ -361,14 +367,14 @@ def find_callback(args, kw=None):
         return None, args
 
 
-def _parse_host(host, port):
+def _parse_host(host, port, resource):
     if not host.startswith('http'):
         host = 'http://' + host
-    url_pack = urlparse(host)
+    url_pack = parse_url(host)
     is_secure = url_pack.scheme == 'https'
     port = port or url_pack.port or (443 if is_secure else 80)
-    base_url = '%s:%d%s/socket.io/%s' % (
-        url_pack.hostname, port, url_pack.path, PROTOCOL_VERSION)
+    base_url = '%s:%d%s/%s/%s' % (
+        url_pack.hostname, port, url_pack.path, resource, PROTOCOL_VERSION)
     return is_secure, base_url
 
 
