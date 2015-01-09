@@ -68,7 +68,7 @@ class _AbstractTransport(object):
 
     def send_packet(self, code, path='', data='', callback=None):
         packet_id = self.set_ack_callback(callback) if callback else ''
-        packet_parts = str(code), packet_id, path, data
+        packet_parts = str(code), packet_id, path, unicode(data).encode('utf-8')
         packet_text = ':'.join(packet_parts)
         self.send(packet_text)
         self._log(logging.DEBUG, '[packet sent] %s', packet_text)
