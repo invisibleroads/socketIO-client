@@ -3,7 +3,10 @@ import json
 import requests
 import time
 from collections import namedtuple
-from urlparse import urlparse
+try:
+    from urllib import parse as parse_url
+except ImportError:
+    from urlparse import urlparse as parse_url
 
 from .exceptions import ConnectionError, TimeoutError, PacketError
 from .transports import _get_response, _negotiate_transport, TRANSPORTS
@@ -167,9 +170,9 @@ class SocketIO(object):
 
         - Omit seconds, i.e. call wait() without arguments, to wait forever.
         """
-        try:
-            warning_screen = _yield_warning_screen(seconds)
-            for elapsed_time in warning_screen:
+        warning_screen = _yield_warning_screen(seconds)
+        for elapsed_time in warning_screen:
+            try:
                 if self._stop_waiting(for_callbacks):
                     break
                 try:
@@ -185,8 +188,8 @@ class SocketIO(object):
                     except StopIteration:
                         _log.warn(warning)
                     self.disconnect()
-        except KeyboardInterrupt:
-            pass
+            except KeyboardInterrupt:
+                pass
 
     def _process_events(self):
         for packet in self._transport.recv_packet():
@@ -254,13 +257,13 @@ class SocketIO(object):
         # Initialize heartbeat_pacemaker
         self.heartbeat_pacemaker = self._make_heartbeat_pacemaker(
             heartbeat_interval=socketIO_session.heartbeat_timeout / 2)
-        self.heartbeat_pacemaker.next()
+        next(self.heartbeat_pacemaker)
         # Negotiate transport
         transport = _negotiate_transport(
             self.client_supported_transports, socketIO_session,
             self.is_secure, self.base_url, **self.kw)
         # Update namespaces
-        for path, namespace in self._namespace_by_path.iteritems():
+        for path, namespace in self._namespace_by_path.items():
             namespace._transport = transport
             transport.connect(path)
         return transport
@@ -364,7 +367,7 @@ def find_callback(args, kw=None):
 def _parse_host(host, port):
     if not host.startswith('http'):
         host = 'http://' + host
-    url_pack = urlparse(host)
+    url_pack = parse_url(host)
     is_secure = url_pack.scheme == 'https'
     port = port or url_pack.port or (443 if is_secure else 80)
     base_url = '%s:%d%s/socket.io/%s' % (

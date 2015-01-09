@@ -6,7 +6,6 @@ import six
 import socket
 import time
 import websocket
-from itertools import izip
 
 from .exceptions import SocketIOError, ConnectionError, TimeoutError
 
@@ -151,7 +150,10 @@ class _WebsocketTransport(_AbstractTransport):
         except websocket.WebSocketTimeoutException as e:
             raise TimeoutError(e)
         except websocket.SSLError as e:
-            raise ConnectionError(e)
+            if 'timed out' in e.message:
+                raise TimeoutError(e)
+            else:
+                raise ConnectionError(e)
         except websocket.WebSocketConnectionClosedException as e:
             raise ConnectionError('connection closed (%s)' % e)
         except socket.error as e:
@@ -295,7 +297,7 @@ def _negotiate_transport(
 
 def _yield_text_from_framed_data(framed_data, parse=lambda x: x):
     parts = [parse(x) for x in framed_data.split(BOUNDARY)]
-    for text_length, text in izip(parts[1::2], parts[2::2]):
+    for text_length, text in zip(parts[1::2], parts[2::2]):
         if text_length != str(len(text)):
             warning = 'invalid declared length=%s for packet_text=%s' % (
                 text_length, text)
