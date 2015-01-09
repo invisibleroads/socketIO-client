@@ -175,24 +175,21 @@ class SocketIO(object):
         """
         warning_screen = _yield_warning_screen(seconds)
         for elapsed_time in warning_screen:
+            if self._stop_waiting(for_callbacks):
+                break
             try:
-                if self._stop_waiting(for_callbacks):
-                    break
                 try:
-                    try:
-                        self._process_events()
-                    except TimeoutError:
-                        pass
-                    self.heartbeat_pacemaker.send(elapsed_time)
-                except ConnectionError as e:
-                    try:
-                        warning = Exception('[connection error] %s' % e)
-                        warning_screen.throw(warning)
-                    except StopIteration:
-                        _log.warn(warning)
-                    self.disconnect()
-            except KeyboardInterrupt:
-                pass
+                    self._process_events()
+                except TimeoutError:
+                    pass
+                self.heartbeat_pacemaker.send(elapsed_time)
+            except ConnectionError as e:
+                try:
+                    warning = Exception('[connection error] %s' % e)
+                    warning_screen.throw(warning)
+                except StopIteration:
+                    _log.warn(warning)
+                self.disconnect()
 
     def _process_events(self):
         for packet in self._transport.recv_packet():
