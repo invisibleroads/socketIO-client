@@ -11,8 +11,8 @@ class EngineIO(object):
 
     def __init__(self, host, port):
         url = 'http://%s:%s/%s/' % (host, port, self._path)
-        session = requests.Session()
-        response = session.get(url, params={
+        self.session = requests.Session()
+        response = self.session.get(url, params={
             'EIO': self._engine_io_protocol,
             'transport': 'polling',
             't': self._get_timestamp(),
@@ -21,12 +21,13 @@ class EngineIO(object):
         packet_type, packet = packs[0]
         assert packet_type == 0
         packet_json = json.loads(packet)
+        self._session_id = packet_json['sid']
         print(packet_json)
-        response = session.get(url, params={
+        response = self.session.get(url, params={
             'EIO': self._engine_io_protocol,
             'transport': 'polling',
             't': self._get_timestamp(),
-            'sid': packet_json['sid'],
+            'sid': self._session_id,
         })
         packs = _decode_content(response.content)
         for packet_type, packet in packs:
@@ -39,6 +40,17 @@ class EngineIO(object):
         self._request_index += 1
         return timestamp
 
+    def _message(self, packet):
+        packet_type = 4
+        response = self.session.post(self.url, params={
+            'EIO': self._engine_io_protocol,
+            'transport': 'polling',
+            't': self._get_timestamp(),
+            'sid': self._session_id,
+        }, data=_encode_content([(packet_type, packet)]), headers={
+            'content-type': 'application/octet-stream',
+        })
+
 
 class SocketIO(EngineIO):
 
@@ -50,6 +62,11 @@ class SocketIO(EngineIO):
 
     def on(self, event, callback):
         pass
+
+    def emit(self, event):
+        packet_type = 2
+        packet = json.dumps([event])
+        self._message(str(packet_type) + packet)
 
 
 def _decode_content(content):
@@ -81,3 +98,7 @@ def _read_packet(content, index, packet_length):
         index += 1
     packet = content[index:index + packet_length]
     return index + packet_length, packet
+
+
+def _encode_content(packs):
+    pass

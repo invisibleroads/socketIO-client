@@ -1,2 +1,12 @@
-# US/Pacific 11/19/2013
-Include graingert's pull request on travis.yml
+Check that SSL websocket connections work properly
+Use continuous integration with TravisCI
+Do not connect to blank namespace if overriding default namespace exists #40
+Upgrade to socket.io 1.2 #41
+Write a unit test to make sure that the client can disconnect properly #42
+Check that setting stream=True makes sure that we receive all server events #45
+Revive heartbeat as separate process thanks to sarietta
+Credit everyone who took the time to submit an issue or pull request
+Support Python 3
+    Use urllib.parse.urlparse
+Merge sarietta's pull request
+Add __version__
