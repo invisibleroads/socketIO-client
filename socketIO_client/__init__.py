@@ -2,10 +2,10 @@ from collections import namedtuple
 import copy
 import logging
 import json
-import multiprocessing
 import parser
 from parser import Message, Packet, MessageType, PacketType
 import requests
+import threading
 import time
 
 try:
@@ -479,10 +479,11 @@ class SocketIO(object):
             self._terminate_heartbeat();
 
         _log.debug("[start heartbeat pacemaker]");
-        self.heartbeat_terminator = multiprocessing.Event();
-        self.heartbeat_thread = multiprocessing.Process(
+        self.heartbeat_terminator = threading.Event();
+        self.heartbeat_thread = threading.Thread(
             target = _make_heartbeat_pacemaker, 
             args = (self.heartbeat_terminator, transport, self.session.heartbeat_interval / 2));
+        self.heartbeat_thread.daemon = True;
         self.heartbeat_thread.start(); 
 
     def _get_transport(self):
