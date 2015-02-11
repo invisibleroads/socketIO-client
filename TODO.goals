@@ -1,12 +1,22 @@
-Check that SSL websocket connections work properly
-Use continuous integration with TravisCI
-Do not connect to blank namespace if overriding default namespace exists #40
-Upgrade to socket.io 1.2 #41
-Write a unit test to make sure that the client can disconnect properly #42
 Check that setting stream=True makes sure that we receive all server events #45
-Revive heartbeat as separate process thanks to sarietta
-Credit everyone who took the time to submit an issue or pull request
-Support Python 3
+Use HTTP headers for Websocket connection #44
+Do not connect to blank namespace if overriding default namespace exists #40
+Pass wait timeout to underlying transports #34
+Make heartbeat time independent from elapsed time #38
+    Check that heartbeats are sent even with short wait time #64
+    Revive heartbeat as separate process thanks to sarietta
+Restore namespace as separate process #50
+Check that we have the correct version of websocket #62
+Fall back to next transport #48
+Check that SSL websocket connections work properly #54
+Write a unit test to make sure that the client can disconnect properly #42 #46
+Make sure that on_reconnect works #61
+Check that the library reconnects despite server restart #63 #53
+Upgrade to socket.io 1.2 #41 #52
+    Merge sarietta's pull request
+Implement rooms #65
+Run under Python 3 #51
     Use urllib.parse.urlparse
-Merge sarietta's pull request
+Use continuous integration with TravisCI
+Credit everyone who took the time to submit an issue or pull request
 Add __version__
