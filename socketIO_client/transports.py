@@ -127,8 +127,11 @@ class _WebsocketTransport(_AbstractTransport):
             'wss' if is_secure else 'ws',
             base_url, socketIO_session.id)
         self._url = url
+        http_session = _prepare_http_session(kw)
+        req = http_session.prepare_request(requests.Request('GET', url))
+        headers = ['%s: %s' % item for item in req.headers.iteritems()]
         try:
-            self._connection = websocket.create_connection(url)
+            self._connection = websocket.create_connection(url, header=headers)
         except socket.timeout as e:
             raise ConnectionError(e)
         except socket.error as e:
