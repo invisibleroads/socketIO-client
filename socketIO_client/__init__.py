@@ -238,19 +238,19 @@ class SocketIO(object):
 
     def wait(self, seconds=None, for_callbacks=False):
         """Wait in a loop and process events as defined in the namespaces.
-
-        - Omit seconds, i.e. call wait() without arguments, to wait forever.
+        Omit seconds, i.e. call wait() without arguments, to wait forever.
         """
         warning_screen = _yield_warning_screen(seconds)
+        timeout = min(self._heartbeat_interval, seconds)
         for elapsed_time in warning_screen:
             if self._stop_waiting(for_callbacks):
                 break
             try:
                 try:
-                    self._process_events(timeout=seconds)
+                    self._process_events(timeout)
                 except TimeoutError:
                     pass
-                self.heartbeat_pacemaker.next()
+                next(self.heartbeat_pacemaker)
             except ConnectionError as e:
                 try:
                     warning = Exception('[connection error] %s' % e)
@@ -330,8 +330,9 @@ class SocketIO(object):
         self.log(logging.DEBUG, '[transports available] %s', ' '.join(
             socketIO_session.server_supported_transports))
         # Initialize heartbeat_pacemaker
+        self._heartbeat_interval = socketIO_session.heartbeat_timeout / 2
         self.heartbeat_pacemaker = self._make_heartbeat_pacemaker(
-            heartbeat_interval=socketIO_session.heartbeat_timeout / 2)
+            heartbeat_interval=self._heartbeat_interval)
         next(self.heartbeat_pacemaker)
         # Negotiate transport
         transport = _negotiate_transport(
