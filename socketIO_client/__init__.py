@@ -247,7 +247,7 @@ class SocketIO(object):
                 break
             try:
                 try:
-                    self._process_events()
+                    self._process_events(timeout=seconds)
                 except TimeoutError:
                     pass
                 self.heartbeat_pacemaker.next()
@@ -259,8 +259,8 @@ class SocketIO(object):
                     self.log(logging.WARNING, warning)
                 self.disconnect()
 
-    def _process_events(self):
-        for packet in self._transport.recv_packet():
+    def _process_events(self, timeout=None):
+        for packet in self._transport.recv_packet(timeout):
             try:
                 self._process_packet(packet)
             except PacketError as e:
