@@ -1,17 +1,14 @@
-Do not connect to blank namespace if overriding default namespace exists #40
-Pass wait timeout to underlying transports #34
-Check that we have the correct version of websocket #62
 Fall back to next transport #48
-Release 0.5.4
 
-Make heartbeat time independent from elapsed time #38
-    Check that heartbeats are sent even with short wait time #64
-    Revive heartbeat as separate process thanks to sarietta
-Restore namespace as separate process #50
-Check that SSL websocket connections work properly #54
 Write a unit test to make sure that the client can disconnect properly #42 #46
 Make sure that on_reconnect works #61
 Check that the library reconnects despite server restart #63 #53
+Check that SSL websocket connections work properly #54
+Release 0.5.4
+
+Revive heartbeat as separate process thanks to sarietta
+    Check that heartbeats are sent even with short wait time #64
+Restore namespace as separate process #50
 Upgrade to socket.io 1.2 #41 #52
     Merge sarietta's pull request
 Implement rooms #65
