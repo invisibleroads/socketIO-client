@@ -4,10 +4,17 @@ import re
 import requests
 import six
 import socket
+import sys
 import time
 import websocket
 
 from .exceptions import SocketIOError, ConnectionError, TimeoutError
+
+
+if not hasattr(websocket, 'create_connection'):
+    sys.exit("""Incompatible websocket implementation
+- Please make sure that you have websocket-client installed
+- Please remove other websocket implementations""")
 
 
 TRANSPORTS = 'websocket', 'xhr-polling', 'jsonp-polling'
