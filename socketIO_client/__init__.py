@@ -286,14 +286,13 @@ class SocketIO(object):
         self.wait(seconds, for_callbacks=True)
 
     def disconnect(self, path=''):
-        if self.connected:
-            self._transport.disconnect(path)
-            try:
-                namespace = self._namespace_by_path[path]
-                namespace.on_disconnect()
-            except KeyError:
-                pass
-        del self._namespace_by_path[path]
+        self._transport.disconnect(path)
+        try:
+            namespace = self._namespace_by_path[path]
+            namespace.on_disconnect()
+            del self._namespace_by_path[path]
+        except KeyError:
+            pass
 
     @property
     def connected(self):
