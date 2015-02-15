@@ -197,17 +197,16 @@ class SocketIO(object):
             self, host, port=None, Namespace=None,
             wait_for_connection=True, transports=TRANSPORTS,
             resource='socket.io', **kw):
-        self.is_secure, self.base_url = _parse_host(host, port, resource)
+        self.is_secure, self._base_url = _parse_host(host, port, resource)
         self.wait_for_connection = wait_for_connection
         self._namespace_by_path = {}
-        self.client_supported_transports = transports
-        self.kw = kw
+        self._client_supported_transports = transports
+        self._kw = kw
         if Namespace:
             self.define(Namespace)
 
-    def log(self, level, msg, *attrs):
-        _log.log(level, '%s: %s' % (self.base_url, msg),
-                 *attrs)
+    def _log(self, level, msg, *attrs):
+        _log.log(level, '%s: %s' % (self._base_url, msg), *attrs)
 
     def __enter__(self):
         return self
@@ -240,7 +239,8 @@ class SocketIO(object):
 
     def wait(self, seconds=None, for_callbacks=False):
         """Wait in a loop and process events as defined in the namespaces.
-        Omit seconds, i.e. call wait() without arguments, to wait forever.
+
+        - Omit seconds, i.e. call wait() without arguments, to wait forever.
         """
         warning_screen = _yield_warning_screen(seconds)
         timeout = min(self._heartbeat_interval, seconds)
@@ -252,13 +252,13 @@ class SocketIO(object):
                     self._process_events(timeout)
                 except TimeoutError:
                     pass
-                next(self.heartbeat_pacemaker)
+                next(self._heartbeat_pacemaker)
             except ConnectionError as e:
                 try:
                     warning = Exception('[connection error] %s' % e)
                     warning_screen.throw(warning)
                 except StopIteration:
-                    self.log(logging.WARNING, warning)
+                    self._log(logging.WARNING, warning)
                 self.disconnect()
 
     def _process_events(self, timeout=None):
@@ -266,7 +266,7 @@ class SocketIO(object):
             try:
                 self._process_packet(packet)
             except PacketError as e:
-                self.log(logging.WARNING, '[packet error] %s', e)
+                self._log(logging.WARNING, '[packet error] %s', e)
 
     def _process_packet(self, packet):
         code, packet_id, path, data = packet
@@ -314,7 +314,7 @@ class SocketIO(object):
         for elapsed_time in warning_screen:
             try:
                 socketIO_session = _get_socketIO_session(
-                    self.is_secure, self.base_url, **self.kw)
+                    self.is_secure, self._base_url, **self._kw)
                 break
             except ConnectionError as e:
                 if not self.wait_for_connection:
@@ -323,11 +323,11 @@ class SocketIO(object):
                 try:
                     warning_screen.throw(warning)
                 except StopIteration:
-                    self.log(logging.WARNING, warning)
+                    self._log(logging.WARNING, warning)
         supported_transports = self._get_supported_transports(socketIO_session)
-        self.heartbeat_pacemaker = self._make_heartbeat_pacemaker(
+        self._heartbeat_pacemaker = self._make_heartbeat_pacemaker(
             heartbeat_timeout=socketIO_session.heartbeat_timeout)
-        next(self.heartbeat_pacemaker)
+        next(self._heartbeat_pacemaker)
         for elapsed_time in warning_screen:
             try:
                 self.__transport = self._get_transport(
@@ -344,30 +344,28 @@ class SocketIO(object):
         return self.__transport
 
     def _get_supported_transports(self, session):
-        self.log(
-            logging.DEBUG,
-            '[transports available] %s',
+        self._log( logging.DEBUG, '[transports available] %s',
             ' '.join(session.server_supported_transports))
-        supported_transports = list(set(
-            session.server_supported_transports,
-        ).intersection(self.client_supported_transports))
+        supported_transports = [
+            x for x in self._client_supported_transports if
+            x in session.server_supported_transports]
         if not supported_transports:
             raise SocketIOError(' '.join([
                 'could not negotiate a transport:',
                 'client supports %s but' % ', '.join(
-                    self.client_supported_transports),
+                    self._client_supported_transports),
                 'server supports %s' % ', '.join(
                     session.server_supported_transports),
             ]))
         return supported_transports
 
     def _get_transport(self, session, transport_name):
-        self.log(logging.DEBUG, '[trying transport] %s', transport_name)
+        self._log(logging.DEBUG, '[trying transport] %s', transport_name)
         return {
             'websocket': _WebsocketTransport,
             'xhr-polling': _XHR_PollingTransport,
             'jsonp-polling': _JSONP_PollingTransport,
-        }[transport_name](session, self.is_secure, self.base_url, **self.kw)
+        }[transport_name](session, self.is_secure, self._base_url, **self._kw)
 
     def _make_heartbeat_pacemaker(self, heartbeat_timeout):
         self._heartbeat_interval = heartbeat_timeout / 2
