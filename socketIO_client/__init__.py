@@ -34,9 +34,6 @@ class BaseNamespace(object):
         self._callback_by_event = {}
         self.initialize()
 
-    def _log(self, level, msg, *attrs):
-        _log.log(level, '%s: %s' % (self._transport._url, msg), *attrs)
-
     def initialize(self):
         'Initialize custom variables here; you can override this method'
         pass
@@ -57,19 +54,19 @@ class BaseNamespace(object):
 
     def on_connect(self):
         'Called after server connects; you can override this method'
-        self._log(logging.DEBUG, '%s [connect]', self.path)
+        pass
 
     def on_disconnect(self):
         'Called after server disconnects; you can override this method'
-        self._log(logging.DEBUG, '%s [disconnect]', self.path)
+        pass
 
     def on_heartbeat(self):
         'Called after server sends a heartbeat; you can override this method'
-        self._log(logging.DEBUG, '%s [heartbeat]', self.path)
+        pass
 
     def on_message(self, data):
         'Called after server sends a message; you can override this method'
-        self._log(logging.INFO, '%s [message] %s', self.path, data)
+        pass
 
     def on_event(self, event, *args):
         """
@@ -78,32 +75,28 @@ class BaseNamespace(object):
         such as one defined by namespace.on('my_event', my_function).
         """
         callback, args = find_callback(args)
-        arguments = [repr(_) for _ in args]
         if callback:
-            arguments.append('callback(*args)')
             callback(*args)
-        self._log(logging.INFO, '%s [event] %s(%s)', self.path, event,
-                  ', '.join(arguments))
 
     def on_error(self, reason, advice):
         'Called after server sends an error; you can override this method'
-        self._log(logging.INFO, '%s [error] %s', self.path, advice)
+        pass
 
     def on_noop(self):
         'Called after server sends a noop; you can override this method'
-        self._log(logging.INFO, '%s [noop]', self.path)
+        pass
 
     def on_open(self, *args):
-        self._log(logging.INFO, '%s [open] %s', self.path, args)
+        pass
 
     def on_close(self, *args):
-        self._log(logging.INFO, '%s [close] %s', self.path, args)
+        pass
 
     def on_retry(self, *args):
-        self._log(logging.INFO, '%s [retry] %s', self.path, args)
+        pass
 
     def on_reconnect(self, *args):
-        self._log(logging.INFO, '%s [reconnect] %s', self.path, args)
+        pass
 
     def _find_event_callback(self, event):
         # Check callbacks defined by on()
@@ -111,20 +104,72 @@ class BaseNamespace(object):
             return self._callback_by_event[event]
         except KeyError:
             pass
-
-        # Convert connect to reconnect if we have seen connect
-        # already.
+        # Convert connect to reconnect if we have seen connect already
         if event == 'connect':
-            if self.was_connected == False:
+            if not self.was_connected:
                 self.was_connected = True
             else:
                 event = 'reconnect'
-
         # Check callbacks defined explicitly or use on_event()
         return getattr(
             self,
             'on_' + event.replace(' ', '_'),
             lambda *args: self.on_event(event, *args))
+
+
+class LoggingNamespace(BaseNamespace):
+
+    def _log(self, level, msg, *attrs):
+        _log.log(level, '%s: %s' % (self._transport._url, msg), *attrs)
+
+    def on_connect(self):
+        self._log(logging.DEBUG, '%s [connect]', self.path)
+        super(LoggingNamespace, self).on_connect()
+
+    def on_disconnect(self):
+        self._log(logging.DEBUG, '%s [disconnect]', self.path)
+        super(LoggingNamespace, self).on_disconnect()
+
+    def on_heartbeat(self):
+        self._log(logging.DEBUG, '%s [heartbeat]', self.path)
+        super(LoggingNamespace, self).on_heartbeat()
+
+    def on_message(self, data):
+        self._log(logging.INFO, '%s [message] %s', self.path, data)
+        super(LoggingNamespace, self).on_message(data)
+
+    def on_event(self, event, *args):
+        callback, args = find_callback(args)
+        arguments = [repr(_) for _ in args]
+        if callback:
+            arguments.append('callback(*args)')
+        self._log(logging.INFO, '%s [event] %s(%s)', self.path, event,
+                  ', '.join(arguments))
+        super(LoggingNamespace, self).on_event(event, *args)
+
+    def on_error(self, reason, advice):
+        self._log(logging.INFO, '%s [error] %s', self.path, advice)
+        super(LoggingNamespace, self).on_error(reason, advice)
+
+    def on_noop(self):
+        self._log(logging.INFO, '%s [noop]', self.path)
+        super(LoggingNamespace, self).on_noop()
+
+    def on_open(self, *args):
+        self._log(logging.INFO, '%s [open] %s', self.path, args)
+        super(LoggingNamespace, self).on_open(*args)
+
+    def on_close(self, *args):
+        self._log(logging.INFO, '%s [close] %s', self.path, args)
+        super(LoggingNamespace, self).on_close(*args)
+
+    def on_retry(self, *args):
+        self._log(logging.INFO, '%s [retry] %s', self.path, args)
+        super(LoggingNamespace, self).on_retry(*args)
+
+    def on_reconnect(self, *args):
+        self._log(logging.INFO, '%s [reconnect] %s', self.path, args)
+        super(LoggingNamespace, self).on_reconnect(*args)
 
 
 class SocketIO(object):
@@ -147,14 +192,16 @@ class SocketIO(object):
     """
 
     def __init__(
-            self, host, port=None, Namespace=BaseNamespace,
-            wait_for_connection=True, transports=TRANSPORTS, resource='socket.io', **kw):
+            self, host, port=None, Namespace=None,
+            wait_for_connection=True, transports=TRANSPORTS,
+            resource='socket.io', **kw):
         self.is_secure, self.base_url = _parse_host(host, port, resource)
         self.wait_for_connection = wait_for_connection
         self._namespace_by_path = {}
         self.client_supported_transports = transports
         self.kw = kw
-        self.define(Namespace)
+        if Namespace:
+            self.define(Namespace)
 
     def log(self, level, msg, *attrs):
         _log.log(level, '%s: %s' % (self.base_url, msg),
@@ -177,6 +224,8 @@ class SocketIO(object):
         return namespace
 
     def on(self, event, callback, path=''):
+        if path not in self._namespace_by_path:
+            self.define(BaseNamespace, path)
         return self.get_namespace(path).on(event, callback)
 
     def message(self, data='', callback=None, path=''):
@@ -237,10 +286,12 @@ class SocketIO(object):
     def disconnect(self, path=''):
         if self.connected:
             self._transport.disconnect(path)
-            namespace = self._namespace_by_path[path]
-            namespace.on_disconnect()
-        if path:
-            del self._namespace_by_path[path]
+            try:
+                namespace = self._namespace_by_path[path]
+                namespace.on_disconnect()
+            except KeyError:
+                pass
+        del self._namespace_by_path[path]
 
     @property
     def connected(self):

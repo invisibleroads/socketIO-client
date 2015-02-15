@@ -2,7 +2,7 @@ import logging
 import time
 from unittest import TestCase
 
-from . import SocketIO, BaseNamespace, find_callback
+from . import SocketIO, LoggingNamespace, find_callback
 from .transports import TIMEOUT_IN_SECONDS
 
 
@@ -31,6 +31,7 @@ class BaseMixin(object):
 
     def test_disconnect(self):
         'Disconnect'
+        self.socketIO.define(LoggingNamespace)
         self.assertTrue(self.socketIO.connected)
         self.socketIO.disconnect()
         self.assertFalse(self.socketIO.connected)
@@ -65,12 +66,14 @@ class BaseMixin(object):
 
     def test_message_with_callback(self):
         'Message with callback'
+        self.socketIO.define(LoggingNamespace)
         self.socketIO.message(callback=self.on_response)
         self.socketIO.wait_for_callbacks(seconds=self.wait_time_in_seconds)
         self.assertTrue(self.called_on_response)
 
     def test_message_with_callback_with_data(self):
         'Message with callback with data'
+        self.socketIO.define(LoggingNamespace)
         self.socketIO.message(DATA, self.on_response)
         self.socketIO.wait_for_callbacks(seconds=self.wait_time_in_seconds)
         self.assertTrue(self.called_on_response)
@@ -104,12 +107,14 @@ class BaseMixin(object):
 
     def test_emit_with_callback(self):
         'Emit with callback'
+        self.socketIO.define(LoggingNamespace)
         self.socketIO.emit('emit_with_callback', self.on_response)
         self.socketIO.wait_for_callbacks(seconds=self.wait_time_in_seconds)
         self.assertTrue(self.called_on_response)
 
     def test_emit_with_callback_with_payload(self):
         'Emit with callback with payload'
+        self.socketIO.define(LoggingNamespace)
         self.socketIO.emit(
             'emit_with_callback_with_payload', self.on_response)
         self.socketIO.wait_for_callbacks(seconds=self.wait_time_in_seconds)
@@ -117,6 +122,7 @@ class BaseMixin(object):
 
     def test_emit_with_callback_with_multiple_payloads(self):
         'Emit with callback with multiple payloads'
+        self.socketIO.define(LoggingNamespace)
         self.socketIO.emit(
             'emit_with_callback_with_multiple_payloads', self.on_response)
         self.socketIO.wait_for_callbacks(seconds=self.wait_time_in_seconds)
@@ -205,7 +211,7 @@ class Test_JSONP_PollingTransport(TestCase, BaseMixin):
         self.wait_time_in_seconds = TIMEOUT_IN_SECONDS + 1
 
 
-class Namespace(BaseNamespace):
+class Namespace(LoggingNamespace):
 
     def initialize(self):
         self.response = None
