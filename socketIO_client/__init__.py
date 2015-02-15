@@ -12,6 +12,7 @@ from .exceptions import ConnectionError, TimeoutError, PacketError
 from .transports import _get_response, _negotiate_transport, TRANSPORTS
 
 
+__version__ = '0.5.4'
 _SocketIOSession = namedtuple('_SocketIOSession', [
     'id',
     'heartbeat_timeout',

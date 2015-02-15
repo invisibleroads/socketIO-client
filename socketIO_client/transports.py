@@ -204,7 +204,8 @@ class _XHR_PollingTransport(_AbstractTransport):
             self._http_session.get,
             self._url,
             params=self._params,
-            timeout=TIMEOUT_IN_SECONDS)
+            timeout=TIMEOUT_IN_SECONDS,
+            stream=True)
         response_text = response.text
         if not response_text.startswith(BOUNDARY):
             yield response_text
