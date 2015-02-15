@@ -1,10 +1,9 @@
-+ Add __version__
-Check that setting stream=True makes sure that we receive all server events #45
 Use HTTP headers for Websocket connection #44
 Do not connect to blank namespace if overriding default namespace exists #40
 Pass wait timeout to underlying transports #34
 Check that we have the correct version of websocket #62
 Fall back to next transport #48
+Release 0.5.4
 
 Make heartbeat time independent from elapsed time #38
     Check that heartbeats are sent even with short wait time #64
@@ -21,3 +20,4 @@ Run under Python 3 #51
     Use urllib.parse.urlparse
 Use continuous integration with TravisCI
 Credit everyone who took the time to submit an issue or pull request
+Release 0.6.1
