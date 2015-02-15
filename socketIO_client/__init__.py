@@ -312,7 +312,6 @@ class SocketIO(object):
         except AttributeError:
             pass
         warning_screen = _yield_warning_screen(seconds=None)
-
         for elapsed_time in warning_screen:
             try:
                 socketIO_session = _get_socketIO_session(
@@ -327,16 +326,10 @@ class SocketIO(object):
                 except StopIteration:
                     self.log(logging.WARNING, warning)
         supported_transports = self._get_supported_transports(socketIO_session)
-
-        self._heartbeat_interval = socketIO_session.heartbeat_timeout / 2
         self.heartbeat_pacemaker = self._make_heartbeat_pacemaker(
-            heartbeat_interval=self._heartbeat_interval)
+            heartbeat_timeout=socketIO_session.heartbeat_timeout)
         next(self.heartbeat_pacemaker)
-
         for elapsed_time in warning_screen:
-            self.log(
-                logging.DEBUG,
-                '[trying transport] %s', supported_transports[0])
             try:
                 self.__transport = self._get_transport(
                     socketIO_session, supported_transports[0])
@@ -346,7 +339,6 @@ class SocketIO(object):
                     supported_transports.pop(0)
                 except IndexError:
                     raise
-
         for path, namespace in self._namespace_by_path.items():
             namespace._transport = self.__transport
             self.__transport.connect(path)
@@ -371,17 +363,19 @@ class SocketIO(object):
         return supported_transports
 
     def _get_transport(self, session, transport_name):
+        self.log(logging.DEBUG, '[trying transport] %s', transport_name)
         return {
             'websocket': _WebsocketTransport,
             'xhr-polling': _XHR_PollingTransport,
             'jsonp-polling': _JSONP_PollingTransport,
         }[transport_name](session, self.is_secure, self.base_url, **self.kw)
 
-    def _make_heartbeat_pacemaker(self, heartbeat_interval):
+    def _make_heartbeat_pacemaker(self, heartbeat_timeout):
+        self._heartbeat_interval = heartbeat_timeout / 2
         heartbeat_time = time.time()
         while True:
             yield
-            if time.time() - heartbeat_time > heartbeat_interval:
+            if time.time() - heartbeat_time > self._heartbeat_interval:
                 heartbeat_time = time.time()
                 self._transport.send_heartbeat()
 
