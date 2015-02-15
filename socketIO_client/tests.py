@@ -177,15 +177,6 @@ class BaseMixin(object):
             'ack_callback_response': (PAYLOAD,),
         })
 
-    """
-    def test_rapid_fire(self):
-        'Capture all server events'
-        namespace = self.socketIO.define(Namespace)
-        self.socketIO.emit('rapid_fire')
-        self.socketIO.wait(30)
-        self.assertEqual(namespace.messages, range(100000))
-    """
-
 
 class Test_WebsocketTransport(TestCase, BaseMixin):
 
@@ -217,7 +208,6 @@ class Namespace(LoggingNamespace):
         self.response = None
         self.args_by_event = {}
         self.called_on_disconnect = False
-        self.messages = []
 
     def on_disconnect(self):
         self.called_on_disconnect = True
@@ -233,6 +223,3 @@ class Namespace(LoggingNamespace):
 
     def on_wait_with_disconnect_response(self):
         self.disconnect()
-
-    def on_rapid_fire(self, x):
-        self.messages.append(x)

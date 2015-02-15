@@ -51,13 +51,6 @@ var main = io.of('').on('connection', function(socket) {
   socket.on('wait_with_disconnect', function() {
     socket.emit('wait_with_disconnect_response');
   });
-  /*
-  socket.on('rapid_fire', function() {
-    for (var i = 0; i < 100000; i++) {
-      socket.emit('rapid_fire', i);
-    }
-  });
-  */
 });
 
 var chat = io.of('/chat').on('connection', function (socket) {
