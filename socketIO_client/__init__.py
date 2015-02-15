@@ -32,7 +32,7 @@ class BaseNamespace(object):
     def __init__(self, _transport, path):
         self._transport = _transport
         self.path = path
-        self.was_connected = False
+        self._was_connected = False
         self._callback_by_event = {}
         self.initialize()
 
@@ -108,8 +108,8 @@ class BaseNamespace(object):
             pass
         # Convert connect to reconnect if we have seen connect already
         if event == 'connect':
-            if not self.was_connected:
-                self.was_connected = True
+            if not self._was_connected:
+                self._was_connected = True
             else:
                 event = 'reconnect'
         # Check callbacks defined explicitly or use on_event()
@@ -259,7 +259,11 @@ class SocketIO(object):
                     warning_screen.throw(warning)
                 except StopIteration:
                     self._log(logging.WARNING, warning)
-                self.disconnect()
+                try:
+                    namespace = self._namespace_by_path['']
+                    namespace.on_disconnect()
+                except KeyError:
+                    pass
 
     def _process_events(self, timeout=None):
         for packet in self._transport.recv_packet(timeout):
@@ -310,12 +314,35 @@ class SocketIO(object):
                 return self.__transport
         except AttributeError:
             pass
+        socketIO_session = self._get_socketIO_session()
+        supported_transports = self._get_supported_transports(socketIO_session)
+        self._heartbeat_pacemaker = self._make_heartbeat_pacemaker(
+            heartbeat_timeout=socketIO_session.heartbeat_timeout)
+        next(self._heartbeat_pacemaker)
         warning_screen = _yield_warning_screen(seconds=None)
         for elapsed_time in warning_screen:
             try:
-                socketIO_session = _get_socketIO_session(
-                    self.is_secure, self._base_url, **self._kw)
+                self._transport_name = supported_transports.pop(0)
+            except IndexError:
+                raise ConnectionError('Could not negotiate a transport')
+            try:
+                self.__transport = self._get_transport(
+                    socketIO_session, self._transport_name)
                 break
+            except ConnectionError:
+                pass
+        for path, namespace in self._namespace_by_path.items():
+            namespace._transport = self.__transport
+            if path:
+                self.__transport.connect(path)
+        return self.__transport
+
+    def _get_socketIO_session(self):
+        warning_screen = _yield_warning_screen(seconds=None)
+        for elapsed_time in warning_screen:
+            try:
+                return _get_socketIO_session(
+                    self.is_secure, self._base_url, **self._kw)
             except ConnectionError as e:
                 if not self.wait_for_connection:
                     raise
@@ -324,27 +351,10 @@ class SocketIO(object):
                     warning_screen.throw(warning)
                 except StopIteration:
                     self._log(logging.WARNING, warning)
-        supported_transports = self._get_supported_transports(socketIO_session)
-        self._heartbeat_pacemaker = self._make_heartbeat_pacemaker(
-            heartbeat_timeout=socketIO_session.heartbeat_timeout)
-        next(self._heartbeat_pacemaker)
-        for elapsed_time in warning_screen:
-            try:
-                self.__transport = self._get_transport(
-                    socketIO_session, supported_transports[0])
-                break
-            except ConnectionError as e:
-                try:
-                    supported_transports.pop(0)
-                except IndexError:
-                    raise
-        for path, namespace in self._namespace_by_path.items():
-            namespace._transport = self.__transport
-            self.__transport.connect(path)
-        return self.__transport
 
     def _get_supported_transports(self, session):
-        self._log( logging.DEBUG, '[transports available] %s',
+        self._log(
+            logging.DEBUG, '[transports available] %s',
             ' '.join(session.server_supported_transports))
         supported_transports = [
             x for x in self._client_supported_transports if
@@ -360,7 +370,7 @@ class SocketIO(object):
         return supported_transports
 
     def _get_transport(self, session, transport_name):
-        self._log(logging.DEBUG, '[trying transport] %s', transport_name)
+        self._log(logging.DEBUG, '[transport chosen] %s', transport_name)
         return {
             'websocket': _WebsocketTransport,
             'xhr-polling': _XHR_PollingTransport,
