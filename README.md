@@ -26,9 +26,9 @@ Activate isolated environment.
     VIRTUAL_ENV=$HOME/.virtualenv
     source $VIRTUAL_ENV/bin/activate
 
-Launch the your socket.io server.
+Launch your socket.io server.
 
-    node serve_tests.js
+    node serve-tests.js
 
 For debugging information, run these commands first.
 
