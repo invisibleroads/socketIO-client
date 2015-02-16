@@ -9,7 +9,7 @@ CHANGES = open(os.path.join(here, 'CHANGES.rst')).read()
 
 setup(
     name='socketIO-client',
-    version='0.5.4',
+    version='0.5.5',
     description='A socket.io client library',
     long_description=README + '\n\n' + CHANGES,
     license='MIT',
