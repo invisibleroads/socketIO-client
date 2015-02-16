@@ -289,7 +289,10 @@ class SocketIO(object):
         self.wait(seconds, for_callbacks=True)
 
     def disconnect(self, path=''):
-        self._transport.disconnect(path)
+        try:
+            self._transport.disconnect(path)
+        except ReferenceError:
+            pass
         try:
             namespace = self._namespace_by_path[path]
             namespace.on_disconnect()

@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/invisibleroads/socketIO-client.svg?branch=master)](https://travis-ci.org/invisibleroads/socketIO-client)
+
 socketIO-client
 ===============
 Here is a [socket.io](http://socket.io) client library for Python.  You can use it to write test code for your socket.io server.
