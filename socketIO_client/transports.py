@@ -24,9 +24,11 @@ TIMEOUT_IN_SECONDS = 3
 _log = logging.getLogger(__name__)
 escape_unicode = lambda x: codecs.getdecoder('unicode_escape')(x)[0]
 try:
-    encode_unicode = lambda x: unicode(x).encode('utf-8')
+    unicode
 except NameError:
     encode_unicode = lambda x: x
+else:
+    encode_unicode = lambda x: unicode(x).encode('utf-8')
 
 
 class _AbstractTransport(object):
@@ -57,7 +59,7 @@ class _AbstractTransport(object):
         self.send_packet(2)
 
     def message(self, path, data, callback):
-        if isinstance(data, basestring):
+        if isinstance(data, six.string_types):
             code = 3
         else:
             code = 4
