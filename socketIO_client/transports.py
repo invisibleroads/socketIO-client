@@ -22,7 +22,7 @@ TRANSPORTS = 'websocket', 'xhr-polling', 'jsonp-polling'
 BOUNDARY = six.u('\ufffd')
 TIMEOUT_IN_SECONDS = 3
 _log = logging.getLogger(__name__)
-escape_unicode = codecs.getdecoder('unicode_escape')
+escape_unicode = lambda x: codecs.getdecoder('unicode_escape')(x)[0]
 try:
     encode_unicode = lambda x: unicode(x).encode('utf-8')
 except NameError:
