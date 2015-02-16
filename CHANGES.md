@@ -1,3 +1,9 @@
+0.5.4
+-----
+- Fixed reconnection in the event of server restart
+- Fixed calling on_reconnect() so that it is actually called
+- Set default Namespace=None
+
 0.5.3
 -----
 - Updated wait loop to exit if the client wants to disconnect
@@ -42,7 +48,5 @@
 
 0.1
 ---
-- Wrapped code from StackOverflow_
+- Wrapped code from [StackOverflow](http://stackoverflow.com/questions/6692908/formatting-messages-to-send-to-socket-io-node-js-server-from-python-client)
 - Added exception handling to destructor in case of connection failure
-
-.. _StackOverflow: http://stackoverflow.com/questions/6692908/formatting-messages-to-send-to-socket-io-node-js-server-from-python-client

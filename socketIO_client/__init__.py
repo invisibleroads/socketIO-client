@@ -9,7 +9,7 @@ except ImportError:
     from urlparse import urlparse as parse_url
 
 from .exceptions import (
-    ConnectionError, TimeoutError, PacketError, SocketIOError)
+    SocketIOError, ConnectionError, TimeoutError, PacketError)
 from .transports import (
     _get_response, TRANSPORTS,
     _WebsocketTransport, _XHR_PollingTransport, _JSONP_PollingTransport)
@@ -182,11 +182,10 @@ class SocketIO(object):
     - Define the behavior of the client by specifying a custom Namespace.
     - Prefix host with https:// to use SSL.
     - Set wait_for_connection=True to block until we have a connection.
-    - Specify the transports you want to use.
+    - Specify desired transports=['websocket', 'xhr-polling'].
     - Pass query params, headers, cookies, proxies as keyword arguments.
 
     SocketIO('localhost', 8000,
-        resource='my.io',
         params={'q': 'qqq'},
         headers={'Authorization': 'Basic ' + b64encode('username:password')},
         cookies={'a': 'aaa'},
@@ -390,7 +389,7 @@ class SocketIO(object):
         try:
             return self._namespace_by_path[path]
         except KeyError:
-            raise PacketError('unexpected namespace path (%s)' % path)
+            raise PacketError('unhandled namespace path (%s)' % path)
 
     def _get_delegate(self, code):
         try:
