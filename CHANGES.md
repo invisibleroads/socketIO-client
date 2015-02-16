@@ -3,6 +3,7 @@
 - Fixed reconnection in the event of server restart
 - Fixed calling on_reconnect() so that it is actually called
 - Set default Namespace=None
+- Added support for Python 3.4
 
 0.5.3
 -----
