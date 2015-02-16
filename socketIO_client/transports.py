@@ -288,7 +288,7 @@ class _JSONP_PollingTransport(_AbstractTransport):
             yield escape_unicode(response_text)
             return
         for packet_text in _yield_text_from_framed_data(
-                response_text, parse=lambda x: escape_unicode(x)):
+                response_text, escape_unicode):
             yield packet_text
 
     def close(self):
