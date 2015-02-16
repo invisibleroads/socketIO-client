@@ -1,4 +1,4 @@
-0.5.4
+0.5.5
 -----
 - Fixed reconnection in the event of server restart
 - Fixed calling on_reconnect() so that it is actually called
