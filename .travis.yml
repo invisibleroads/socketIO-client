@@ -11,9 +11,10 @@ before_install:
   - sudo apt-get install nodejs
 install:
   - npm install -G socket.io@0.9
-  - pip install -U --use-mirrors requests
-  - pip install -U --use-mirrors six
-  - pip install -U --use-mirrors websocket-client
+  - pip install -U requests
+  - pip install -U six
+  - pip install -U websocket-client
+  - pip install -U coverage
 before_script:
   - node serve-tests.js &
   - sleep 3

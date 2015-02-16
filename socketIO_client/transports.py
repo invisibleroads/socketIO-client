@@ -1,3 +1,4 @@
+import codecs
 import json
 import logging
 import re
@@ -8,7 +9,7 @@ import sys
 import time
 import websocket
 
-from .exceptions import SocketIOError, ConnectionError, TimeoutError
+from .exceptions import ConnectionError, TimeoutError
 
 
 if not hasattr(websocket, 'create_connection'):
@@ -21,6 +22,11 @@ TRANSPORTS = 'websocket', 'xhr-polling', 'jsonp-polling'
 BOUNDARY = six.u('\ufffd')
 TIMEOUT_IN_SECONDS = 3
 _log = logging.getLogger(__name__)
+escape_unicode = codecs.getdecoder('unicode_escape')
+try:
+    encode_unicode = lambda x: unicode(x).encode('utf-8')
+except NameError:
+    encode_unicode = lambda x: x
 
 
 class _AbstractTransport(object):
@@ -75,10 +81,7 @@ class _AbstractTransport(object):
 
     def send_packet(self, code, path='', data='', callback=None):
         packet_id = self.set_ack_callback(callback) if callback else ''
-        try:
-            packet_parts = str(code), packet_id, path, unicode(data).encode('utf-8')
-        except NameError: # fix for p3k
-            packet_parts = str(code), packet_id, path, data
+        packet_parts = str(code), packet_id, path, encode_unicode(data)
         packet_text = ':'.join(packet_parts)
         self.send(packet_text)
         self._log(logging.DEBUG, '[packet sent] %s', packet_text)
@@ -90,7 +93,7 @@ class _AbstractTransport(object):
         except IndexError:
             pass
         for packet_text in self.recv(timeout=timeout):
-            _log.debug('[packet received] %s', packet_text)
+            self._log(logging.DEBUG, '[packet received] %s', packet_text)
             try:
                 packet_parts = packet_text.split(':', 3)
             except AttributeError:
@@ -136,7 +139,7 @@ class _WebsocketTransport(_AbstractTransport):
         self._url = url
         http_session = _prepare_http_session(kw)
         req = http_session.prepare_request(requests.Request('GET', url))
-        headers = ['%s: %s' % item for item in req.headers.iteritems()]
+        headers = ['%s: %s' % item for item in req.headers.items()]
         try:
             self._connection = websocket.create_connection(url, header=headers)
         except socket.timeout as e:
@@ -229,7 +232,7 @@ class _XHR_PollingTransport(_AbstractTransport):
         _get_response(
             self._http_session.get,
             self._url,
-            params=dict(self._params.items() + [('disconnect', True)]))
+            params=dict(list(self._params.items()) + [('disconnect', True)]))
         self._connected = False
 
 
@@ -282,17 +285,17 @@ class _JSONP_PollingTransport(_AbstractTransport):
             self._log(logging.WARNING, '[packet error] %s', response_text)
             return
         if not response_text.startswith(BOUNDARY):
-            yield response_text.decode('unicode_escape')
+            yield escape_unicode(response_text)
             return
         for packet_text in _yield_text_from_framed_data(
-                response_text, parse=lambda x: x.decode('unicode_escape')):
+                response_text, parse=lambda x: escape_unicode(x)):
             yield packet_text
 
     def close(self):
         _get_response(
             self._http_session.get,
             self._url,
-            params=dict(self._params.items() + [('disconnect', True)]))
+            params=dict(list(self._params.items()) + [('disconnect', True)]))
         self._connected = False
 
 

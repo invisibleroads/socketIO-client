@@ -1,6 +1,5 @@
 import os
 from setuptools import setup, find_packages
-from socketIO_client import __version__
 
 
 here = os.path.abspath(os.path.dirname(__file__))
@@ -10,7 +9,7 @@ CHANGES = open(os.path.join(here, 'CHANGES.md')).read()
 
 setup(
     name='socketIO-client',
-    version=__version__,
+    version='0.5.4',
     description='A socket.io client library',
     long_description=README + '\n\n' + CHANGES,
     license='MIT',
@@ -28,6 +27,10 @@ setup(
         'six',
         'websocket-client',
     ],
+    tests_require=[
+        'nose',
+        'coverage',
+    ],
     packages=find_packages(),
     include_package_data=True,
-    zip_safe=True)
+    zip_safe=False)
