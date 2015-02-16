@@ -15,6 +15,6 @@ install:
   - pip install -U --use-mirrors six
   - pip install -U --use-mirrors websocket-client
 before_script:
-  - node serve-tests.js
-  - sleep 1
+  - node serve-tests.js &
+  - sleep 3
 script: nosetests
