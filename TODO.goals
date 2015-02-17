@@ -1,10 +1,8 @@
-Revive heartbeat as separate process thanks to sarietta
-    Check that heartbeats are sent even with short wait time #64
-Restore namespace as separate process #50
-Upgrade to socket.io 1.2 #41 #52
+Release 0.6.1 #41 #52
+    + Update serve-tests.js
+    + Integrate serve-tests.js changes from sarietta
+    = Put tests in index.html
+    Update tests
     Merge sarietta's pull request
+    Revive heartbeat as separate process
 Implement rooms #65
-Run under Python 3 #51
-Use continuous integration with TravisCI
-Credit everyone who took the time to submit an issue or pull request
-Release 0.6.1
