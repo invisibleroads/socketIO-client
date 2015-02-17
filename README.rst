@@ -30,10 +30,14 @@ Activate isolated environment. ::
     VIRTUAL_ENV=$HOME/.virtualenv
     source $VIRTUAL_ENV/bin/activate
 
-Launch a socket.io server. ::
+Launch your server. ::
 
+    # Get package folder
     PACKAGE_FOLDER=`python -c "import os, socketIO_client; print(os.path.dirname(socketIO_client.__file__))"`
-    node $PACKAGE_FOLDER/tests/serve.js
+    # Start socket.io server
+    DEBUG=* node $PACKAGE_FOLDER/tests/serve.js
+    # Start proxy server in a separate terminal on the same machine
+    DEBUG=* node $PACKAGE_FOLDER/tests/proxy.js
 
 For debugging information, run these commands first. ::
 
