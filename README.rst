@@ -1,4 +1,4 @@
-.. image:: https://travis-ci.org/invisibleroads/socketIO-client.svg?branch=v0.5.4
+.. image:: https://travis-ci.org/invisibleroads/socketIO-client.svg?branch=v0.6.1
     :target: https://travis-ci.org/invisibleroads/socketIO-client
 
 
@@ -30,9 +30,10 @@ Activate isolated environment. ::
     VIRTUAL_ENV=$HOME/.virtualenv
     source $VIRTUAL_ENV/bin/activate
 
-Launch your socket.io server. ::
+Launch a socket.io server. ::
 
-    node serve-tests.js
+    PACKAGE_FOLDER=`python -c "import os, socketIO_client; print(os.path.dirname(socketIO_client.__file__))"`
+    node $PACKAGE_FOLDER/tests/serve.js
 
 For debugging information, run these commands first. ::
 

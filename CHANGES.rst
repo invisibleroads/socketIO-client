@@ -1,3 +1,7 @@
+0.6.1
+-----
+- Upgraded to socket.io protocol 1.x thanks to Sean Arietta and Joe Palmer
+
 0.5.5
 -----
 - Fixed reconnection in the event of server restart
