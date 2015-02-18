@@ -2,6 +2,8 @@ import json
 import requests
 import time
 
+from .exceptions import PacketError
+
 
 __version__ = '0.6.1'
 TRANSPORTS = []
@@ -54,40 +56,51 @@ class EngineIO(object):
             engineIO_packet_data)
         # Launch callbacks
         namespace = self.get_namespace()
-        delegate = {
-            0: self._on_open,
-            1: self._on_close,
-            2: self._on_ping,
-            3: self._on_pong,
-            4: self._on_message,
-            5: self._on_upgrade,
-            6: self._on_noop,
-        }[engineIO_packet_type]
+        try:
+            delegate = {
+                0: self._on_open,
+                1: self._on_close,
+                2: self._on_ping,
+                3: self._on_pong,
+                4: self._on_message,
+                5: self._on_upgrade,
+                6: self._on_noop,
+            }[engineIO_packet_type]
+        except KeyError:
+            raise PacketError(
+                'unexpected engine.io packet type (%s)' % engineIO_packet_type)
         delegate(engineIO_packet_data_parsed, namespace._find_packet_callback)
         return engineIO_packet_data
 
+    def define(self, Namespace):
+        self._namespace = namespace = Namespace(self)
+        return namespace
+
     def get_namespace(self):
+        try:
+            return self._namespace
+        except AttributeError:
+            raise PacketError('undefined engine.io namespace')
+
+    def _on_open(self, data_parsed, find_packet_callback):
         pass
 
-    def _on_open(self):
+    def _on_close(self, data_parsed, find_packet_callback):
         pass
 
-    def _on_close(self):
+    def _on_ping(self, data_parsed, find_packet_callback):
         pass
 
-    def _on_ping(self):
+    def _on_pong(self, data_parsed, find_packet_callback):
         pass
 
-    def _on_pong(self):
+    def _on_message(self, data_parsed, find_packet_callback):
         pass
 
-    def _on_message(self):
+    def _on_upgrade(self, data_parsed, find_packet_callback):
         pass
 
-    def _on_upgrade(self):
-        pass
-
-    def _on_noop(self):
+    def _on_noop(self, data_parsed, find_packet_callback):
         pass
 
     def _get_timestamp(self):
@@ -161,7 +174,16 @@ class SocketIO(EngineIO):
             resource, **kw)
 
     def define(self, Namespace, path=''):
-        pass
+        if path:
+            self._connect(path)
+        self._namespace_by_path[path] = namespace = Namespace(self, path)
+        return namespace
+
+    def get_namespace(self, path=''):
+        try:
+            return self._namespace_by_path[path]
+        except KeyError:
+            raise PacketError('undefined socket.io namespace (%s)' % path)
 
     def emit(self, event, *args, **kw):
         socketIO_packet_type = 2
@@ -180,38 +202,41 @@ class SocketIO(EngineIO):
             socketIO_packet_data)
         # Launch callbacks
         namespace = self.get_namespace()
-        delegate = {
-            0: self._on_connect,
-            1: self._on_disconnect,
-            2: self._on_event,
-            3: self._on_ack,
-            4: self._on_error,
-            5: self._on_binary_event,
-            6: self._on_binary_ack,
-        }[socketIO_packet_type]
-        delegate(
-            socketIO_packet_data_parsed, namespace._find_packet_callback)
+        try:
+            delegate = {
+                0: self._on_connect,
+                1: self._on_disconnect,
+                2: self._on_event,
+                3: self._on_ack,
+                4: self._on_error,
+                5: self._on_binary_event,
+                6: self._on_binary_ack,
+            }[socketIO_packet_type]
+        except KeyError:
+            raise PacketError(
+                'unexpected socket.io packet type (%s)' % socketIO_packet_type)
+        delegate(socketIO_packet_data_parsed, namespace._find_packet_callback)
         return socketIO_packet_data
 
-    def _on_connect(self):
+    def _on_connect(self, data_parsed, find_packet_callback):
         pass
 
-    def _on_disconnect(self):
+    def _on_disconnect(self, data_parsed, find_packet_callback):
         pass
 
-    def _on_event(self):
+    def _on_event(self, data_parsed, find_packet_callback):
         pass
 
-    def _on_ack(self):
+    def _on_ack(self, data_parsed, find_packet_callback):
         pass
 
-    def _on_error(self):
+    def _on_error(self, data_parsed, find_packet_callback):
         pass
 
-    def _on_binary_event(self):
+    def _on_binary_event(self, data_parsed, find_packet_callback):
         pass
 
-    def _on_binary_ack(self):
+    def _on_binary_ack(self, data_parsed, find_packet_callback):
         pass
 
 
@@ -220,6 +245,10 @@ class BaseNamespace(object):
 
 
 class LoggingNamespace(BaseNamespace):
+    pass
+
+
+def find_callback(args, kw=None):
     pass
 
 
@@ -277,5 +306,9 @@ def _make_packet_header(packet_string):
     return ''.join(chr(x) for x in header_digits)
 
 
-def find_callback(args, kw=None):
+def _parse_engineIO_data():
+    pass
+
+
+def _parse_socketIO_data():
     pass
