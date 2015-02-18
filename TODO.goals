@@ -1,6 +1,14 @@
 Release 0.6.1 #41 #52
+    Implement define
+    Implement wait
+    Implement on
+
+    Get pong
+    Change print statements into logging statements
+    Clean up
+
     Put tests in index.html
     Update tests
-    Merge sarietta's pull request
     Revive heartbeat as separate process
+    Merge sarietta's pull request
 Implement rooms #65
