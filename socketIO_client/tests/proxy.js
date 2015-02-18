@@ -23,8 +23,11 @@ var server = require('http').createServer(function(req, res) {
 function print_body(header, body) {
   var text = String(body);
   console.log(header + text);
+  if (text.charCodeAt(0) != 0) return;
   for (var i = 0; i < text.length; i++) {
-    console.log('body[%s] = %s = %s', i, text[i], text.charCodeAt(i));
+    var character_code = text.charCodeAt(i);
+    console.log('body[%s] = %s = %s', i, text[i], character_code);
+    if (character_code == 65533) break;
   }
 }
 server.listen(8000);
