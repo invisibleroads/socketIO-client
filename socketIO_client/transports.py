@@ -7,7 +7,7 @@ import six
 import socket
 import sys
 import time
-import websocket
+import websocket._exceptions
 
 from .exceptions import ConnectionError, TimeoutError
 
@@ -147,6 +147,8 @@ class _WebsocketTransport(_AbstractTransport):
         except socket.timeout as e:
             raise ConnectionError(e)
         except socket.error as e:
+            raise ConnectionError(e)
+        except websocket._exceptions.WebSocketException as e:
             raise ConnectionError(e)
         self._connection.settimeout(TIMEOUT_IN_SECONDS)
 
