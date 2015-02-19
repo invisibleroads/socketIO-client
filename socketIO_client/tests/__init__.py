@@ -35,6 +35,7 @@ class Namespace(LoggingSocketIONamespace):
         self.args_by_event = {}
 
     def on_event(self, event, *args):
+        print 'xxx *** xxx'
         callback, args = find_callback(args)
         if callback:
             callback(*args)

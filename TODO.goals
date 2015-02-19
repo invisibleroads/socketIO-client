@@ -1,6 +1,4 @@
 Release 0.6.1 #41 #52
-    Implement define
-    Implement wait
     Implement on
 
     Get pong
@@ -9,6 +7,5 @@ Release 0.6.1 #41 #52
 
     Put tests in index.html
     Update tests
-    Revive heartbeat as separate process
     Merge sarietta's pull request
 Implement rooms #65
