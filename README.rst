@@ -1,4 +1,4 @@
-.. image:: https://travis-ci.org/invisibleroads/socketIO-client.svg?branch=v0.6.1
+.. image:: https://travis-ci.org/invisibleroads/socketIO-client.svg?branch=0.6.1
     :target: https://travis-ci.org/invisibleroads/socketIO-client
 
 

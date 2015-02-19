@@ -1,7 +1,7 @@
 import logging
 from unittest import TestCase
 
-from .. import SocketIO, LoggingNamespace, find_callback
+from .. import SocketIO, LoggingSocketIONamespace, find_callback
 
 
 HOST = 'localhost'
@@ -29,7 +29,7 @@ class Test_XHR_PollingTransport(TestCase, BaseMixin):
         self.wait_time_in_seconds = 1
 
 
-class Namespace(LoggingNamespace):
+class Namespace(LoggingSocketIONamespace):
 
     def initialize(self):
         self.args_by_event = {}

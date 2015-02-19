@@ -1,4 +1,5 @@
 import json
+import logging
 import requests
 import time
 
@@ -6,6 +7,7 @@ from .exceptions import PacketError
 
 
 __version__ = '0.6.1'
+_log = logging.getLogger(__name__)
 TRANSPORTS = []
 
 
@@ -31,7 +33,6 @@ class EngineIO(object):
         print response.url
 
         engineIO_packets = _decode_content(response.content)
-        print engineIO_packets
         engineIO_packet_type, engineIO_packet_data = engineIO_packets[0]
         assert engineIO_packet_type == 0
         engineIO_packet_json = json.loads(engineIO_packet_data)
@@ -40,6 +41,9 @@ class EngineIO(object):
         # engineIO_packet_json['pingTimeout']
         # engineIO_packet_json['upgrades']
         self._session_id = engineIO_packet_json['sid']
+
+        if Namespace:
+            self.define(Namespace)
 
     def wait(self):
         while True:
@@ -168,6 +172,7 @@ class SocketIO(EngineIO):
             host, port=None, Namespace=None,
             wait_for_connection=True, transports=TRANSPORTS,
             resource='socket.io', **kw):
+        self._namespace_by_path = {}
         super(SocketIO, self).__init__(
             host, port, Namespace,
             wait_for_connection, transports,
@@ -219,10 +224,10 @@ class SocketIO(EngineIO):
         return socketIO_packet_data
 
     def _on_connect(self, data_parsed, find_packet_callback):
-        pass
+        find_packet_callback('connect')()
 
     def _on_disconnect(self, data_parsed, find_packet_callback):
-        pass
+        find_packet_callback('disconnect')()
 
     def _on_event(self, data_parsed, find_packet_callback):
         pass
@@ -240,20 +245,121 @@ class SocketIO(EngineIO):
         pass
 
 
-class BaseNamespace(object):
-    pass
+class EngineIONamespace(object):
+    'Define engine.io client behavior'
+
+    def __init__(self, io):
+        self._io = io
+        self._callback_by_event = {}
+        self.initialize()
+
+    def initialize(self):
+        'Initialize custom variables here; you can override this method'
+        pass
+
+    def on_event(self, event, *args):
+        """
+        Called after server sends an event; you can override this method.
+        Called only if a custom event handler does not exist,
+        such as one defined by namespace.on('my_event', my_function).
+        """
+        callback, args = find_callback(args)
+        if callback:
+            callback(*args)
+
+    def _find_packet_callback(self, event):
+        # Check callbacks defined by on()
+        try:
+            return self._callback_by_event[event]
+        except KeyError:
+            pass
+        # Check callbacks defined explicitly or use on_event()
+        return getattr(
+            self, 'on_' + event.replace(' ', '_'),
+            lambda *args: self.on_event(event, *args))
 
 
-class LoggingNamespace(BaseNamespace):
-    pass
+class SocketIONamespace(EngineIONamespace):
+    'Define socket.io client behavior'
+
+    def __init__(self, io, path):
+        self.path = path
+        super(SocketIONamespace, self).__init__(io)
+
+    def on_connect(self):
+        'Called after server connects; you can override this method'
+
+    def on_reconnect(self):
+        'Called after server reconnects; you can override this method'
+
+    def on_disconnect(self):
+        'Called after server disconnects; you can override this method'
+
+    def _find_packet_callback(self, event):
+        # Interpret events
+        if event == 'connect':
+            if not hasattr(self, '_was_connected'):
+                self._was_connected = True
+            else:
+                event = 'reconnect'
+        return super(SocketIONamespace, self)._find_packet_callback(event)
+
+
+class LoggingMixin(object):
+
+    def _log(self, level, msg, *attrs):
+        _log.log(level, '%s: %s' % (self._io._url, msg), *attrs)
+
+
+class LoggingEngineIONamespace(EngineIONamespace, LoggingMixin):
+
+    def on_event(self, event, *args):
+        callback, args = find_callback(args)
+        arguments = [repr(_) for _ in args]
+        if callback:
+            arguments.append('callback(*args)')
+        self._log(
+            logging.INFO, '[event] %s(%s)',
+            event, ', '.join(arguments))
+        super(LoggingEngineIONamespace, self).on_event(event, *args)
+
+
+class LoggingSocketIONamespace(SocketIONamespace, LoggingMixin):
+
+    def on_event(self, event, *args):
+        callback, args = find_callback(args)
+        arguments = [repr(_) for _ in args]
+        if callback:
+            arguments.append('callback(*args)')
+        self._log(
+            logging.INFO, '%s [event] %s(%s)', self.path,
+            event, ', '.join(arguments))
+        super(LoggingSocketIONamespace, self).on_event(event, *args)
+
+    def on_connect(self):
+        self._log(logging.DEBUG, '%s [connect]', self.path)
+        super(LoggingSocketIONamespace, self).on_connect()
+
+    def on_reconnect(self):
+        self._log(logging.DEBUG, '%s [reconnect]', self.path)
+        super(LoggingSocketIONamespace, self).on_reconnect()
+
+    def on_disconnect(self):
+        self._log(logging.DEBUG, '%s [disconnect]', self.path)
+        super(LoggingSocketIONamespace, self).on_disconnect()
 
 
 def find_callback(args, kw=None):
-    pass
+    'Return callback whether passed as a last argument or as a keyword'
+    if args and callable(args[-1]):
+        return args[-1], args[:-1]
+    try:
+        return kw['callback'], args
+    except (KeyError, TypeError):
+        return None, args
 
 
 def _decode_content(content):
-    print content
     packets = []
     content_index = 0
     content_length = len(content)
@@ -306,9 +412,9 @@ def _make_packet_header(packet_string):
     return ''.join(chr(x) for x in header_digits)
 
 
-def _parse_engineIO_data():
-    pass
+def _parse_engineIO_data(data):
+    return data
 
 
-def _parse_socketIO_data():
-    pass
+def _parse_socketIO_data(data):
+    return data
