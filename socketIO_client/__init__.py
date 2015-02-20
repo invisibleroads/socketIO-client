@@ -5,6 +5,7 @@ import threading
 import time
 from collections import namedtuple
 
+from .compat import get_byte, get_character, get_unicode
 from .exceptions import PacketError, TimeoutError
 from .transports import _get_response
 
@@ -145,7 +146,7 @@ class EngineIO(object):
         engineIO_packets = _decode_content(response.content)
         engineIO_packet_type, engineIO_packet_data = engineIO_packets[0]
         assert engineIO_packet_type == 0
-        value_by_name = json.loads(engineIO_packet_data)
+        value_by_name = json.loads(get_unicode(engineIO_packet_data))
         print(value_by_name)
         # value_by_name['upgrades']
         self._ping_interval = value_by_name['pingInterval'] / float(1000)
@@ -254,7 +255,7 @@ class EngineIO(object):
         print('message()')
         engineIO_packets = _decode_content(response.content)
         for engineIO_packet_type, engineIO_packet_data in engineIO_packets:
-            socketIO_packet_type = int(engineIO_packet_data[0])
+            socketIO_packet_type = int(get_character(engineIO_packet_data, 0))
             socketIO_packet_data = engineIO_packet_data[1:]
             print('engineIO_packet_type = %s' % engineIO_packet_type)
             print('socketIO_packet_type = %s' % socketIO_packet_type)
@@ -276,7 +277,7 @@ class EngineIO(object):
         print('ping()')
         engineIO_packets = _decode_content(response.content)
         for engineIO_packet_type, engineIO_packet_data in engineIO_packets:
-            socketIO_packet_type = int(engineIO_packet_data[0])
+            socketIO_packet_type = int(get_character(engineIO_packet_data, 0))
             socketIO_packet_data = engineIO_packet_data[1:]
             print('engineIO_packet_type = %s' % engineIO_packet_type)
             print('socketIO_packet_type = %s' % socketIO_packet_type)
@@ -337,7 +338,7 @@ class SocketIO(EngineIO):
         engineIO_packet_data = super(SocketIO, self)._process_packet(packet)
         if engineIO_packet_data is None:
             return
-        socketIO_packet_type = int(engineIO_packet_data[0])
+        socketIO_packet_type = int(get_character(engineIO_packet_data, 0))
         socketIO_packet_data = engineIO_packet_data[1:]
         print('socketIO_packet_type = %s' % socketIO_packet_type)
         socketIO_packet_data_parsed = _parse_socketIO_data(
@@ -447,7 +448,7 @@ def _decode_content(content):
             break
         content_index, packet_string = _read_packet_string(
             content, content_index, packet_length)
-        packet_type = int(packet_string[0])
+        packet_type = int(get_character(packet_string, 0))
         packet_data = packet_string[1:]
         packets.append((packet_type, packet_data))
     return packets
@@ -462,18 +463,20 @@ def _encode_content(packets):
 
 
 def _read_packet_length(content, content_index):
-    while ord(content[content_index]) != 0:
+    while get_byte(content, content_index) != 0:
         content_index += 1
     content_index += 1
     packet_length_string = ''
-    while ord(content[content_index]) != 255:
-        packet_length_string += str(ord(content[content_index]))
+    byte = get_byte(content, content_index)
+    while byte != 255:
+        packet_length_string += str(byte)
         content_index += 1
+        byte = get_byte(content, content_index)
     return content_index, int(packet_length_string)
 
 
 def _read_packet_string(content, content_index, packet_length):
-    while ord(content[content_index]) == 255:
+    while get_byte(content, content_index) == 255:
         content_index += 1
     packet_string = content[content_index:content_index + packet_length]
     return content_index + packet_length, packet_string
@@ -482,17 +485,18 @@ def _read_packet_string(content, content_index, packet_length):
 def _make_packet_header(packet_string):
     length_string = str(len(packet_string))
     header_digits = [0]
-    for i in xrange(len(length_string)):
+    for i in range(len(length_string)):
         header_digits.append(ord(length_string[i]) - 48)
     header_digits.append(255)
     return ''.join(chr(x) for x in header_digits)
 
 
 def _parse_engineIO_data(data):
-    return EngineIOData(data=data)
+    return EngineIOData(data=get_unicode(data))
 
 
 def _parse_socketIO_data(data):
+    data = get_unicode(data)
     if data.startswith('/'):
         try:
             path, data = data.split(',', 1)
