@@ -14,7 +14,7 @@ install:
   - pip install -U websocket-client
   - pip install -U coverage
 before_script:
-  - DEBUG=* node tests/serve.js &
-  - DEBUG=* node tests/proxy.js &
+  - DEBUG=* node socketIO_client/tests/serve.js &
+  - DEBUG=* node socketIO_client/tests/proxy.js &
   - sleep 3
 script: nosetests
