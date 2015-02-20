@@ -43,9 +43,9 @@ io.on('connection', function(socket) {
   socket.on('emit_with_event', function(payload) {
     socket.emit('emit_with_event_response', payload);
   });
-  socket.on('ack', function(payload) {
-    socket.emit('ack_response', payload, function(payload) {
-      socket.emit('ack_callback_response', payload);
+  socket.on('trigger_server_expects_callback', function(payload) {
+    socket.emit('server_expects_callback', payload, function(payload) {
+      socket.emit('server_received_callback', payload);
     });
   });
   socket.on('aaa', function() {
@@ -66,9 +66,9 @@ io.of('/chat').on('connection', function(socket) {
   socket.on('aaa', function() {
     socket.emit('aaa_response', 'in chat');
   });
-  socket.on('ack', function(payload) {
-    socket.emit('ack_response', payload, function(payload) {
-      socket.emit('ack_callback_response', payload);
+  socket.on('trigger_server_expects_callback', function(payload) {
+    socket.emit('server_expects_callback', payload, function(payload) {
+      socket.emit('server_received_callback', payload);
     });
   });
 });

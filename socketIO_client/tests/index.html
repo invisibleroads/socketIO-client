@@ -1,4 +1,25 @@
 <script src="/socket.io/socket.io.js"></script>
 <script>
 var socket = io('http://localhost');
+var chat = io('/chat');
+var news = io('/news');
+
+socket.on('server_expects_callback', function(payload, fn) {fn(payload)});
+socket.emit('trigger_server_expects_callback', 'whee');
+socket.emit('emit');
+socket.emit('emit_with_payload');
+socket.emit('emit_with_multiple_payloads', 'aaa', 'bbb');
+socket.emit('emit_with_callback', function() {console.log('whee')});
+socket.emit('emit_with_callback_with_payload', function(x) {console.log('whee ' + x)});
+socket.emit('emit_with_callback_with_multiple_payloads', function(x, y) {console.log('whee ' + x + ' ' + y)});
+socket.emit('emit_with_event');
+socket.emit('aaa');
+
+chat.on('server_expects_callback', function(payload, fn) {fn(payload)});
+chat.emit('trigger_server_expects_callback', 'whee');
+chat.emit('emit_with_payload');
+chat.emit('aaa');
+
+news.emit('emit_with_payload');
+news.emit('aaa');
 </script>

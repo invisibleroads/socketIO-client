@@ -1,6 +1,4 @@
 Release 0.6.1 #41 #52
-    Implement on
-
     Send pong
     Change print statements into logging statements
     Clean up
