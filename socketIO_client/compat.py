@@ -1,4 +1,8 @@
 import six
+try:
+    from urllib.parse import urlparse as parse_url
+except ImportError:
+    from urlparse import urlparse as parse_url
 
 
 def get_byte(x, index):
