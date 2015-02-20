@@ -57,7 +57,7 @@ Emit with callback. ::
     from socketIO_client import SocketIO, LoggingNamespace
 
     def on_bbb_response(*args):
-        print 'on_bbb_response', args
+        print('on_bbb_response', args)
 
     with SocketIO('localhost', 8000, LoggingNamespace) as socketIO:
         socketIO.emit('bbb', {'xxx': 'yyy'}, on_bbb_response)
@@ -68,7 +68,7 @@ Define events. ::
     from socketIO_client import SocketIO, LoggingNamespace
 
     def on_aaa_response(*args):
-        print 'on_aaa_response', args
+        print('on_aaa_response', args)
 
     socketIO = SocketIO('localhost', 8000, LoggingNamespace)
     socketIO.on('aaa_response', on_aaa_response)
@@ -82,7 +82,7 @@ Define events in a namespace. ::
     class Namespace(BaseNamespace):
 
         def on_aaa_response(self, *args):
-            print 'on_aaa_response', args
+            print('on_aaa_response', args)
             self.emit('bbb')
 
     socketIO = SocketIO('localhost', 8000, Namespace)
@@ -96,7 +96,7 @@ Define standard events. ::
     class Namespace(BaseNamespace):
 
         def on_connect(self):
-            print '[Connected]'
+            print('[Connected]')
 
     socketIO = SocketIO('localhost', 8000, Namespace)
     socketIO.wait(seconds=1)
@@ -108,12 +108,12 @@ Define different namespaces on a single socket. ::
     class ChatNamespace(BaseNamespace):
 
         def on_aaa_response(self, *args):
-            print 'on_aaa_response', args
+            print('on_aaa_response', args)
 
     class NewsNamespace(BaseNamespace):
 
         def on_aaa_response(self, *args):
-            print 'on_aaa_response', args
+            print('on_aaa_response', args)
 
     socketIO = SocketIO('localhost', 8000)
     chat_namespace = socketIO.define(ChatNamespace, '/chat')

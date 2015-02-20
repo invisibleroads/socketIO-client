@@ -133,14 +133,14 @@ class EngineIO(object):
             resource='engine.io', **kw):
         self._url = 'http://%s:%s/%s/' % (host, port, resource)
         self._http_session = requests.Session()
-        print self._url
+        print(self._url)
 
         response = self._http_session.get(self._url, params={
             'EIO': self._engineIO_protocol,
             'transport': 'polling',
             't': self._get_timestamp(),
         })
-        print response.url
+        print(response.url)
 
         engineIO_packets = _decode_content(response.content)
         engineIO_packet_type, engineIO_packet_data = engineIO_packets[0]
@@ -190,7 +190,7 @@ class EngineIO(object):
 
     def _process_packet(self, packet):
         engineIO_packet_type, engineIO_packet_data = packet
-        print 'engineIO_packet_type = %s' % engineIO_packet_type
+        print('engineIO_packet_type = %s' % engineIO_packet_type)
         engineIO_packet_data_parsed = _parse_engineIO_data(
             engineIO_packet_data)
         # Launch callbacks
@@ -251,14 +251,14 @@ class EngineIO(object):
         ]), headers={
             'content-type': 'application/octet-stream',
         })
-        print 'message()'
+        print('message()')
         engineIO_packets = _decode_content(response.content)
         for engineIO_packet_type, engineIO_packet_data in engineIO_packets:
             socketIO_packet_type = int(engineIO_packet_data[0])
             socketIO_packet_data = engineIO_packet_data[1:]
-            print 'engineIO_packet_type = %s' % engineIO_packet_type
-            print 'socketIO_packet_type = %s' % socketIO_packet_type
-            print 'socketIO_packet_data = %s' % socketIO_packet_data
+            print('engineIO_packet_type = %s' % engineIO_packet_type)
+            print('socketIO_packet_type = %s' % socketIO_packet_type)
+            print('socketIO_packet_data = %s' % socketIO_packet_data)
 
     def _ping(self):
         engineIO_packet_type = 2
@@ -273,14 +273,14 @@ class EngineIO(object):
         ]), headers={
             'content-type': 'application/octet-stream',
         })
-        print 'ping()'
+        print('ping()')
         engineIO_packets = _decode_content(response.content)
         for engineIO_packet_type, engineIO_packet_data in engineIO_packets:
             socketIO_packet_type = int(engineIO_packet_data[0])
             socketIO_packet_data = engineIO_packet_data[1:]
-            print 'engineIO_packet_type = %s' % engineIO_packet_type
-            print 'socketIO_packet_type = %s' % socketIO_packet_type
-            print 'socketIO_packet_data = %s' % socketIO_packet_data
+            print('engineIO_packet_type = %s' % engineIO_packet_type)
+            print('socketIO_packet_type = %s' % socketIO_packet_type)
+            print('socketIO_packet_data = %s' % socketIO_packet_data)
 
     def _recv_packet(self):
         response = _get_response(
@@ -339,7 +339,7 @@ class SocketIO(EngineIO):
             return
         socketIO_packet_type = int(engineIO_packet_data[0])
         socketIO_packet_data = engineIO_packet_data[1:]
-        print 'socketIO_packet_type = %s' % socketIO_packet_type
+        print('socketIO_packet_type = %s' % socketIO_packet_type)
         socketIO_packet_data_parsed = _parse_socketIO_data(
             socketIO_packet_data)
         # Launch callbacks
