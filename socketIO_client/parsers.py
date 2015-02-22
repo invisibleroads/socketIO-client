@@ -53,8 +53,17 @@ def decode_engineIO_content(content):
         yield engineIO_packet_type, engineIO_packet_data
 
 
-def parse_socketIO_data(data):
-    data = decode_string(data)
+def format_socketIO_packet_data(path=None, ack_id=None, args=None):
+    socketIO_packet_data = json.dumps(args, ensure_ascii=False) if args else ''
+    if ack_id is not None:
+        socketIO_packet_data = str(ack_id) + socketIO_packet_data
+    if path:
+        socketIO_packet_data = path + ',' + socketIO_packet_data
+    return socketIO_packet_data
+
+
+def parse_socketIO_packet_data(socketIO_packet_data):
+    data = decode_string(socketIO_packet_data)
     if data.startswith('/'):
         try:
             path, data = data.split(',', 1)
@@ -76,13 +85,17 @@ def parse_socketIO_data(data):
     return SocketIOData(path=path, ack_id=ack_id, args=args)
 
 
-def format_socketIO_data(path=None, ack_id=None, args=None):
-    socketIO_packet_data = json.dumps(args, ensure_ascii=False) if args else ''
-    if ack_id is not None:
-        socketIO_packet_data = str(ack_id) + socketIO_packet_data
-    if path:
-        socketIO_packet_data = path + ',' + socketIO_packet_data
-    return socketIO_packet_data
+def get_namespace_path(socketIO_packet_data):
+    if '/' != get_character(socketIO_packet_data, 0):
+        return ''
+    # Loop incrementally in case there is binary data
+    parts = []
+    for i in range(len(socketIO_packet_data)):
+        character = get_character(socketIO_packet_data, i)
+        if ',' == character:
+            break
+        parts.append(character)
+    return ''.join(parts)
 
 
 def _make_packet_header(packet_string):

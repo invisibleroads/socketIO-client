@@ -7,7 +7,7 @@ before_install:
   - sudo apt-get update
   - sudo apt-get install nodejs
 install:
-  - npm install -G socket.io@1.3.1
+  - npm install -G socket.io
   - npm install -G http-proxy
   - pip install -U requests
   - pip install -U six

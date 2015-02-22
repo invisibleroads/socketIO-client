@@ -30,7 +30,7 @@ Activate isolated environment. ::
     VIRTUAL_ENV=$HOME/.virtualenv
     source $VIRTUAL_ENV/bin/activate
 
-Launch your server. ::
+Launch your socket.io server. ::
 
     # Get package folder
     PACKAGE_FOLDER=`python -c "import os, socketIO_client; print(os.path.dirname(socketIO_client.__file__))"`

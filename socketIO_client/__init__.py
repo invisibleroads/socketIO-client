@@ -4,7 +4,8 @@ from .logs import LoggingMixin
 from .namespaces import EngineIONamespace, SocketIONamespace, find_callback
 from .parsers import (
     parse_host, parse_engineIO_session,
-    parse_socketIO_data, format_socketIO_data)
+    format_socketIO_packet_data, parse_socketIO_packet_data,
+    get_namespace_path)
 from .symmetries import get_character
 from .transports import XHR_PollingTransport, prepare_http_session, TRANSPORTS
 
@@ -69,17 +70,22 @@ class EngineIO(LoggingMixin):
         return parse_engineIO_session(engineIO_packet_data)
 
     def _negotiate_transport(self):
-        self.__transport = self._get_transport('xhr-polling')
+        transport_name = 'xhr-polling'
+        self.__transport = self._get_transport(transport_name)
+        self._transport_name = transport_name
 
     def _reset_heartbeat(self):
         try:
             self._heartbeat_thread.stop()
         except AttributeError:
             pass
+        ping_interval = self._engineIO_session.ping_interval
         self._heartbeat_thread = HeartbeatThread(
-            send_heartbeat=self.__transport._ping,
-            relax_interval_in_seconds=self._engineIO_session.ping_interval,
-            hurry_interval_in_seconds=1)
+            send_heartbeat=self._ping,
+            relax_interval_in_seconds=ping_interval,
+            hurry_interval_in_seconds=1 if self._transport_name in [
+                'xhr-polling',
+            ] else ping_interval)
         self._heartbeat_thread.start()
 
     def _connect_namespaces(self):
@@ -197,7 +203,6 @@ class EngineIO(LoggingMixin):
 
     def _process_packet(self, packet):
         engineIO_packet_type, engineIO_packet_data = packet
-        print('engineIO_packet_type = %s' % engineIO_packet_type)
         # Launch callbacks
         namespace = self.get_namespace()
         try:
@@ -310,7 +315,7 @@ class SocketIO(EngineIO):
 
     def connect(self, path):
         socketIO_packet_type = 0
-        socketIO_packet_data = format_socketIO_data(path)
+        socketIO_packet_data = format_socketIO_packet_data(path)
         self._message(str(socketIO_packet_type) + socketIO_packet_data)
 
     def disconnect(self, path=''):
@@ -318,7 +323,7 @@ class SocketIO(EngineIO):
             return
         if path:
             socketIO_packet_type = 1
-            socketIO_packet_data = format_socketIO_data(path)
+            socketIO_packet_data = format_socketIO_packet_data(path)
             self._message(str(socketIO_packet_type) + socketIO_packet_data)
         else:
             self._close()
@@ -333,7 +338,7 @@ class SocketIO(EngineIO):
         callback, args = find_callback(args, kw)
         ack_id = self._set_ack_callback(callback) if callback else None
         socketIO_packet_type = 2
-        socketIO_packet_data = format_socketIO_data(path, ack_id, args)
+        socketIO_packet_data = format_socketIO_packet_data(path, ack_id, args)
         self._message(str(socketIO_packet_type) + socketIO_packet_data)
 
     def send(self, data='', callback=None):
@@ -344,7 +349,7 @@ class SocketIO(EngineIO):
 
     def _ack(self, path, ack_id, *args):
         socketIO_packet_type = 3
-        socketIO_packet_data = format_socketIO_data(path, ack_id, args)
+        socketIO_packet_data = format_socketIO_packet_data(path, ack_id, args)
         self._message(str(socketIO_packet_type) + socketIO_packet_data)
 
     # React
@@ -366,9 +371,9 @@ class SocketIO(EngineIO):
             return
         socketIO_packet_type = int(get_character(engineIO_packet_data, 0))
         socketIO_packet_data = engineIO_packet_data[1:]
-        print('socketIO_packet_type = %s' % socketIO_packet_type)
         # Launch callbacks
-        namespace = self.get_namespace()
+        path = get_namespace_path(socketIO_packet_data)
+        namespace = self.get_namespace(path)
         try:
             delegate = {
                 0: self._on_connect,
@@ -392,7 +397,7 @@ class SocketIO(EngineIO):
         find_packet_callback('disconnect')()
 
     def _on_event(self, data, find_packet_callback):
-        data_parsed = parse_socketIO_data(data)
+        data_parsed = parse_socketIO_packet_data(data)
         args = data_parsed.args
         try:
             event = args.pop(0)
@@ -404,7 +409,7 @@ class SocketIO(EngineIO):
         find_packet_callback(event)(*args)
 
     def _on_ack(self, data, find_packet_callback):
-        data_parsed = parse_socketIO_data(data)
+        data_parsed = parse_socketIO_packet_data(data)
         try:
             ack_callback = self._get_ack_callback(data_parsed.ack_id)
         except KeyError:
