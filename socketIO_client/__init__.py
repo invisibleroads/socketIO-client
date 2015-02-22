@@ -1,7 +1,9 @@
 from .exceptions import ConnectionError, TimeoutError, PacketError
 from .heartbeats import HeartbeatThread
 from .logs import LoggingMixin
-from .namespaces import EngineIONamespace, SocketIONamespace, find_callback
+from .namespaces import (
+    EngineIONamespace, SocketIONamespace, LoggingSocketIONamespace,
+    find_callback)
 from .parsers import (
     parse_host, parse_engineIO_session,
     format_socketIO_packet_data, parse_socketIO_packet_data,
@@ -12,6 +14,8 @@ from .transports import XHR_PollingTransport, prepare_http_session, TRANSPORTS
 
 __all__ = 'SocketIO', 'SocketIONamespace'
 __version__ = '0.6.1'
+BaseNamespace = SocketIONamespace
+LoggingNamespace = LoggingSocketIONamespace
 
 
 class EngineIO(LoggingMixin):
@@ -34,24 +38,23 @@ class EngineIO(LoggingMixin):
     @property
     def connected(self):
         try:
-            transport = self.__transport
+            return self._connected
         except AttributeError:
             return False
-        else:
-            return transport.connected
 
     @property
     def _transport(self):
         try:
             if self.connected:
-                return self.__transport
+                return self._transport_instance
         except AttributeError:
             pass
         self._engineIO_session = self._get_engineIO_session()
         self._negotiate_transport()
-        self._reset_heartbeat()
         self._connect_namespaces()
-        return self.__transport
+        self._connected = True
+        self._reset_heartbeat()
+        return self._transport_instance
 
     def _get_engineIO_session(self):
         warning_screen = self._yield_warning_screen()
@@ -61,6 +64,7 @@ class EngineIO(LoggingMixin):
             try:
                 engineIO_packet_type, engineIO_packet_data = next(
                     transport.recv_packet())
+                break
             except (TimeoutError, ConnectionError) as e:
                 if not self._wait_for_connection:
                     raise
@@ -71,7 +75,7 @@ class EngineIO(LoggingMixin):
 
     def _negotiate_transport(self):
         transport_name = 'xhr-polling'
-        self.__transport = self._get_transport(transport_name)
+        self._transport_instance = self._get_transport(transport_name)
         self._transport_name = transport_name
 
     def _reset_heartbeat(self):
@@ -143,6 +147,7 @@ class EngineIO(LoggingMixin):
             return
         engineIO_packet_type = 1
         self._transport.send_packet(engineIO_packet_type, '')
+        self._connected = False
 
     def _ping(self, engineIO_packet_data=''):
         engineIO_packet_type = 2
@@ -278,7 +283,7 @@ class SocketIO(EngineIO):
 
     def _connect_namespaces(self):
         for path, namespace in self._namespace_by_path.items():
-            namespace._transport = self.__transport
+            namespace._transport = self._transport_instance
             if path:
                 self.connect(path)
 
@@ -294,7 +299,7 @@ class SocketIO(EngineIO):
 
     def define(self, Namespace, path=''):
         if path:
-            self._connect(path)
+            self.connect(path)
         self._namespace_by_path[path] = namespace = Namespace(self, path)
         return namespace
 

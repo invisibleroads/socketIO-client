@@ -86,7 +86,7 @@ def parse_socketIO_packet_data(socketIO_packet_data):
 
 
 def get_namespace_path(socketIO_packet_data):
-    if '/' != get_character(socketIO_packet_data, 0):
+    if not socketIO_packet_data.startswith(b'/'):
         return ''
     # Loop incrementally in case there is binary data
     parts = []

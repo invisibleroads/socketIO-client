@@ -2,7 +2,7 @@ import logging
 import time
 from unittest import TestCase
 
-from .. import SocketIO, LoggingSocketIONamespace, find_callback
+from .. import SocketIO, LoggingNamespace, find_callback
 
 
 HOST = 'localhost'
@@ -15,14 +15,16 @@ logging.basicConfig(level=logging.DEBUG)
 class BaseMixin(object):
 
     def setUp(self):
+        super(BaseMixin, self).setUp()
         self.called_on_response = False
 
     def tearDown(self):
+        super(BaseMixin, self).tearDown()
         del self.socketIO
 
     def test_disconnect(self):
         'Disconnect'
-        self.socketIO.define(LoggingSocketIONamespace)
+        self.socketIO.define(LoggingNamespace)
         self.assertTrue(self.socketIO.connected)
         self.socketIO.disconnect()
         self.assertFalse(self.socketIO.connected)
@@ -63,14 +65,14 @@ class BaseMixin(object):
 
     def test_emit_with_callback(self):
         'Emit with callback'
-        self.socketIO.define(LoggingSocketIONamespace)
+        self.socketIO.define(LoggingNamespace)
         self.socketIO.emit('emit_with_callback', self.on_response)
         self.socketIO.wait_for_callbacks(seconds=self.wait_time_in_seconds)
         self.assertTrue(self.called_on_response)
 
     def test_emit_with_callback_with_payload(self):
         'Emit with callback with payload'
-        self.socketIO.define(LoggingSocketIONamespace)
+        self.socketIO.define(LoggingNamespace)
         self.socketIO.emit(
             'emit_with_callback_with_payload', self.on_response)
         self.socketIO.wait_for_callbacks(seconds=self.wait_time_in_seconds)
@@ -78,7 +80,7 @@ class BaseMixin(object):
 
     def test_emit_with_callback_with_multiple_payloads(self):
         'Emit with callback with multiple payloads'
-        self.socketIO.define(LoggingSocketIONamespace)
+        self.socketIO.define(LoggingNamespace)
         self.socketIO.emit(
             'emit_with_callback_with_multiple_payloads', self.on_response)
         self.socketIO.wait_for_callbacks(seconds=self.wait_time_in_seconds)
@@ -156,7 +158,7 @@ class BaseMixin(object):
         self.called_on_response = True
 
 
-class Test_XHR_PollingTransport(TestCase, BaseMixin):
+class Test_XHR_PollingTransport(BaseMixin, TestCase):
 
     def setUp(self):
         super(Test_XHR_PollingTransport, self).setUp()
@@ -164,7 +166,7 @@ class Test_XHR_PollingTransport(TestCase, BaseMixin):
         self.wait_time_in_seconds = 1
 
 
-class Namespace(LoggingSocketIONamespace):
+class Namespace(LoggingNamespace):
 
     def initialize(self):
         self.called_on_disconnect = False
