@@ -18,6 +18,10 @@ class EngineIONamespace(LoggingMixin):
         'Define a callback to handle an event emitted by the server'
         self._callback_by_event[event] = callback
 
+    def send(self, data):
+        'Send a message'
+        self._io.send(data)
+
     def on_open(self):
         """Called after engine.io connects.
         You can override this method."""
@@ -62,6 +66,18 @@ class SocketIONamespace(EngineIONamespace):
     def __init__(self, io, path):
         self.path = path
         super(SocketIONamespace, self).__init__(io)
+
+    def connect(self):
+        self._io.connect(self.path)
+
+    def disconnect(self):
+        self._io.disconnect(self.path)
+
+    def emit(self, event, *args, **kw):
+        self._io.emit(event, *args, **kw)
+
+    def send(self, data='', callback=None):
+        self._io.send(data, callback)
 
     def on_connect(self):
         """Called after socket.io connects.

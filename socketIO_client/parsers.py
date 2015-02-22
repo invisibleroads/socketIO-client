@@ -1,9 +1,12 @@
 import json
 from collections import namedtuple
 
-from .symmetries import encode_string, get_byte, get_character, parse_url
+from .symmetries import (
+    decode_string, encode_string, get_byte, get_character, parse_url)
 
 
+EngineIOSession = namedtuple('EngineIOSession', [
+    'id', 'ping_interval', 'ping_timeout', 'transport_upgrades'])
 SocketIOData = namedtuple('SocketIOData', ['path', 'ack_id', 'args'])
 
 
@@ -15,6 +18,15 @@ def parse_host(host, port, resource):
     port = port or url_pack.port or (443 if is_secure else 80)
     url = '%s:%d%s/%s' % (url_pack.hostname, port, url_pack.path, resource)
     return is_secure, url
+
+
+def parse_engineIO_session(engineIO_packet_data):
+    d = json.loads(decode_string(engineIO_packet_data))
+    return EngineIOSession(
+        id=d['sid'],
+        ping_interval=d['pingInterval'] / float(1000),
+        ping_timeout=d['pingTimeout'] / float(1000),
+        transport_upgrades=d['upgrades'])
 
 
 def encode_engineIO_content(engineIO_packets):
@@ -42,7 +54,7 @@ def decode_engineIO_content(content):
 
 
 def parse_socketIO_data(data):
-    data = encode_string(data)
+    data = decode_string(data)
     if data.startswith('/'):
         try:
             path, data = data.split(',', 1)
@@ -62,6 +74,15 @@ def parse_socketIO_data(data):
     except ValueError:
         args = []
     return SocketIOData(path=path, ack_id=ack_id, args=args)
+
+
+def format_socketIO_data(path=None, ack_id=None, args=None):
+    socketIO_packet_data = json.dumps(args) if args else ''
+    if ack_id is not None:
+        socketIO_packet_data = str(ack_id) + socketIO_packet_data
+    if path:
+        socketIO_packet_data = path + ',' + socketIO_packet_data
+    return socketIO_packet_data
 
 
 def _make_packet_header(packet_string):

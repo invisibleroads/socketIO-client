@@ -1,11 +1,11 @@
-import json
-
 from .exceptions import ConnectionError, TimeoutError, PacketError
 from .heartbeats import HeartbeatThread
 from .logs import LoggingMixin
 from .namespaces import EngineIONamespace, SocketIONamespace, find_callback
-from .parsers import parse_host, parse_socketIO_data
-from .symmetries import encode_string, get_character
+from .parsers import (
+    parse_host, parse_engineIO_session,
+    parse_socketIO_data, format_socketIO_data)
+from .symmetries import get_character
 from .transports import XHR_PollingTransport, prepare_http_session, TRANSPORTS
 
 
@@ -46,7 +46,7 @@ class EngineIO(LoggingMixin):
                 return self.__transport
         except AttributeError:
             pass
-        self._get_engineIO_session()
+        self._engineIO_session = self._get_engineIO_session()
         self._negotiate_transport()
         self._reset_heartbeat()
         self._connect_namespaces()
@@ -60,18 +60,13 @@ class EngineIO(LoggingMixin):
             try:
                 engineIO_packet_type, engineIO_packet_data = next(
                     transport.recv_packet())
-
             except (TimeoutError, ConnectionError) as e:
                 if not self._wait_for_connection:
                     raise
                 warning = Exception('[waiting for connection] %s' % e)
                 warning_screen.throw(warning)
         assert engineIO_packet_type == 0
-        value_by_name = json.loads(encode_string(engineIO_packet_data))
-        self._session_id = value_by_name['sid']
-        self._ping_interval = value_by_name['pingInterval'] / float(1000)
-        self._ping_timeout = value_by_name['pingTimeout'] / float(1000)
-        self._transport_upgrades = value_by_name['upgrades']
+        return parse_engineIO_session(engineIO_packet_data)
 
     def _negotiate_transport(self):
         self.__transport = self._get_transport('xhr-polling')
@@ -83,7 +78,7 @@ class EngineIO(LoggingMixin):
             pass
         self._heartbeat_thread = HeartbeatThread(
             send_heartbeat=self.__transport._ping,
-            relax_interval_in_seconds=self._ping_interval,
+            relax_interval_in_seconds=self._engineIO_session.ping_interval,
             hurry_interval_in_seconds=1)
         self._heartbeat_thread.start()
 
@@ -128,6 +123,9 @@ class EngineIO(LoggingMixin):
             raise PacketError('undefined engine.io namespace')
 
     # Act
+
+    def send(self, engineIO_packet_data):
+        self._message(engineIO_packet_data)
 
     def _open(self):
         engineIO_packet_type = 0
@@ -188,7 +186,6 @@ class EngineIO(LoggingMixin):
         self._heartbeat_thread.relax()
 
     def _should_stop_waiting(self):
-        # Use __transport to make sure that we do not reconnect inadvertently
         return self._wants_to_close
 
     def _process_packets(self):
@@ -278,7 +275,7 @@ class SocketIO(EngineIO):
         for path, namespace in self._namespace_by_path.items():
             namespace._transport = self.__transport
             if path:
-                self.__transport.connect(path)
+                self.connect(path)
 
     def __exit__(self, *exception_pack):
         self.disconnect()
@@ -311,33 +308,28 @@ class SocketIO(EngineIO):
 
     # Act
 
-    def connect():
-        pass
+    def connect(self, path):
+        socketIO_packet_type = 0
+        socketIO_packet_data = format_socketIO_data(path)
+        self._message(str(socketIO_packet_type) + socketIO_packet_data)
 
-    def disconnect():
-        pass
+    def disconnect(self, path=''):
+        socketIO_packet_type = 1
+        socketIO_packet_data = format_socketIO_data(path)
+        self._message(str(socketIO_packet_type) + socketIO_packet_data)
+        try:
+            namespace = self._namespace_by_path.pop(path)
+            namespace.on_disconnect()
+        except KeyError:
+            pass
 
     def emit(self, event, *args, **kw):
         path = kw.get('path', '')
         callback, args = find_callback(args, kw)
-        self._emit(path, event, args, callback)
-
-    def _emit(self, path, event, args, callback):
+        ack_id = self._set_ack_callback(callback) if callback else None
         socketIO_packet_type = 2
-
-        socketIO_packet_data = json.dumps([event] + list(args))
-        if callback:
-            ack_id = self._set_ack_callback(callback) if callback else ''
-            socketIO_packet_data = str(ack_id) + socketIO_packet_data
-        if path:
-            socketIO_packet_data = path + ',' + socketIO_packet_data
-
+        socketIO_packet_data = format_socketIO_data(path, ack_id, args)
         self._message(str(socketIO_packet_type) + socketIO_packet_data)
-
-    def _set_ack_callback(self, callback):
-        self._ack_id += 1
-        self._callback_by_ack_id[self._ack_id] = callback
-        return self._ack_id
 
     def send(self, data='', callback=None):
         args = [data]
@@ -354,8 +346,7 @@ class SocketIO(EngineIO):
         self.wait(seconds, for_callbacks=True)
 
     def _should_stop_waiting(self, for_callbacks):
-        # Use __transport to make sure that we do not reconnect inadvertently
-        if for_callbacks and not self.__transport.has_ack_callback:
+        if for_callbacks and not self._has_ack_callback:
             return True
         return super(SocketIO, self)._should_stop_waiting()
 
@@ -423,5 +414,14 @@ class SocketIO(EngineIO):
         'Return function that acknowledges the server'
         return lambda *args: self._ack(path, ack_id, *args)
 
+    def _set_ack_callback(self, callback):
+        self._ack_id += 1
+        self._callback_by_ack_id[self._ack_id] = callback
+        return self._ack_id
+
     def _get_ack_callback(self, ack_id):
         return self._callback_by_ack_id.pop(ack_id)
+
+    @property
+    def _has_ack_callback(self):
+        return True if self._callback_by_ack_id else False
