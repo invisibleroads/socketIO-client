@@ -1,4 +1,5 @@
 import logging
+import time
 from unittest import TestCase
 
 from .. import SocketIO, LoggingSocketIONamespace, find_callback
@@ -18,6 +19,20 @@ class BaseMixin(object):
 
     def tearDown(self):
         del self.socketIO
+
+    def test_disconnect(self):
+        'Disconnect'
+        self.socketIO.define(LoggingSocketIONamespace)
+        self.assertTrue(self.socketIO.connected)
+        self.socketIO.disconnect()
+        self.assertFalse(self.socketIO.connected)
+        # Use context manager
+        with SocketIO(HOST, PORT, Namespace) as self.socketIO:
+            namespace = self.socketIO.get_namespace()
+            self.assertFalse(namespace.called_on_disconnect)
+            self.assertTrue(self.socketIO.connected)
+        self.assertTrue(namespace.called_on_disconnect)
+        self.assertFalse(self.socketIO.connected)
 
     def test_emit(self):
         'Emit'
@@ -90,6 +105,48 @@ class BaseMixin(object):
         self.socketIO.wait(self.wait_time_in_seconds)
         self.assertEqual(namespace.response, DATA)
 
+    def test_ack(self):
+        'Respond to a server callback request'
+        namespace = self.socketIO.define(Namespace)
+        self.socketIO.emit('trigger_server_expects_callback', PAYLOAD)
+        self.socketIO.wait(self.wait_time_in_seconds)
+        self.assertEqual(namespace.args_by_event, {
+            'server_expects_callback': (PAYLOAD,),
+            'server_received_callback': (PAYLOAD,),
+        })
+
+    def test_wait_with_disconnect(self):
+        'Exit loop when the client wants to disconnect'
+        self.socketIO.define(Namespace)
+        self.socketIO.emit('wait_with_disconnect')
+        timeout_in_seconds = 5
+        start_time = time.time()
+        self.socketIO.wait(timeout_in_seconds)
+        self.assertTrue(time.time() - start_time < timeout_in_seconds)
+
+    def test_namespace_emit(self):
+        'Behave differently in different namespaces'
+        main_namespace = self.socketIO.define(Namespace)
+        chat_namespace = self.socketIO.define(Namespace, '/chat')
+        news_namespace = self.socketIO.define(Namespace, '/news')
+        news_namespace.emit('emit_with_payload', PAYLOAD)
+        self.socketIO.wait(self.wait_time_in_seconds)
+        self.assertEqual(main_namespace.args_by_event, {})
+        self.assertEqual(chat_namespace.args_by_event, {})
+        self.assertEqual(news_namespace.args_by_event, {
+            'emit_with_payload_response': (PAYLOAD,),
+        })
+
+    def test_namespace_ack(self):
+        'Trigger server callback'
+        chat_namespace = self.socketIO.define(Namespace, '/chat')
+        chat_namespace.emit('trigger_server_expects_callback', PAYLOAD)
+        self.socketIO.wait(self.wait_time_in_seconds)
+        self.assertEqual(chat_namespace.args_by_event, {
+            'server_expects_callback': (PAYLOAD,),
+            'server_received_callback': (PAYLOAD,),
+        })
+
     def on_response(self, *args):
         for arg in args:
             if isinstance(arg, dict):
@@ -97,14 +154,6 @@ class BaseMixin(object):
             else:
                 self.assertEqual(arg, DATA)
         self.called_on_response = True
-
-
-# class Test_WebsocketTransport(TestCase, BaseMixin):
-
-    # def setUp(self):
-        # super(Test_WebsocketTransport, self).setUp()
-        # self.socketIO = SocketIO(HOST, PORT, transports=['websocket'])
-        # self.wait_time_in_seconds = 0.1
 
 
 class Test_XHR_PollingTransport(TestCase, BaseMixin):

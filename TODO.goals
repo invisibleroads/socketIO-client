@@ -1,9 +1,8 @@
 Release 0.6.1 #41 #52
-    Send pong
-    Change print statements into logging statements
-    Clean up
-
-    Put tests in index.html
     Update tests
     Merge sarietta's pull request
+Add Websocket transport
+Consider logging packets sent and received
 Implement rooms #65
+Implement binary event
+Implement binary ack

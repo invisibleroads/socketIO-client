@@ -17,10 +17,10 @@ class AbstractTransport(object):
         self.url = url
         self.engineIO_session = engineIO_session
 
-    def send_packet(self, engineIO_packet_type, engineIO_packet_data):
+    def recv_packet(self):
         pass
 
-    def recv_packet(self):
+    def send_packet(self, engineIO_packet_type, engineIO_packet_data):
         pass
 
 

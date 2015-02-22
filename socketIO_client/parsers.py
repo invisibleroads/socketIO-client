@@ -77,7 +77,7 @@ def parse_socketIO_data(data):
 
 
 def format_socketIO_data(path=None, ack_id=None, args=None):
-    socketIO_packet_data = json.dumps(args) if args else ''
+    socketIO_packet_data = json.dumps(args, ensure_ascii=False) if args else ''
     if ack_id is not None:
         socketIO_packet_data = str(ack_id) + socketIO_packet_data
     if path:

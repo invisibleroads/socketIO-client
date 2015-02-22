@@ -314,9 +314,14 @@ class SocketIO(EngineIO):
         self._message(str(socketIO_packet_type) + socketIO_packet_data)
 
     def disconnect(self, path=''):
-        socketIO_packet_type = 1
-        socketIO_packet_data = format_socketIO_data(path)
-        self._message(str(socketIO_packet_type) + socketIO_packet_data)
+        if not self.connected:
+            return
+        if path:
+            socketIO_packet_type = 1
+            socketIO_packet_data = format_socketIO_data(path)
+            self._message(str(socketIO_packet_type) + socketIO_packet_data)
+        else:
+            self._close()
         try:
             namespace = self._namespace_by_path.pop(path)
             namespace.on_disconnect()
@@ -336,6 +341,11 @@ class SocketIO(EngineIO):
         if callback:
             args.append(callback)
         self.emit('message', *args)
+
+    def _ack(self, path, ack_id, *args):
+        socketIO_packet_type = 3
+        socketIO_packet_data = format_socketIO_data(path, ack_id, args)
+        self._message(str(socketIO_packet_type) + socketIO_packet_data)
 
     # React
 
