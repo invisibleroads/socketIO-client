@@ -84,7 +84,7 @@ class EngineIO(LoggingMixin):
 
     def _reset_heartbeat(self):
         try:
-            self._heartbeat_thread.stop()
+            self._heartbeat_thread.halt()
         except AttributeError:
             pass
         ping_interval = self._engineIO_session.ping_interval
@@ -150,7 +150,7 @@ class EngineIO(LoggingMixin):
 
     def _close(self):
         self._wants_to_close = True
-        self._heartbeat_thread.stop()
+        self._heartbeat_thread.halt()
         if not self._opened:
             return
         engineIO_packet_type = 1

@@ -68,7 +68,7 @@ class XHR_PollingTransport(AbstractTransport):
                 (engineIO_packet_type, engineIO_packet_data),
             ]),
             **self.kw_post)
-        assert response.content == 'ok'
+        assert response.content == b'ok'
 
     def _get_timestamp(self):
         timestamp = '%s-%s' % (int(time.time() * 1000), self.request_index)

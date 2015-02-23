@@ -17,11 +17,11 @@ class HeartbeatThread(Thread):
         self._hurry_interval_in_seconds = hurry_interval_in_seconds
         self._adrenaline = Event()
         self._rest = Event()
-        self._stop = Event()
+        self._halt = Event()
 
     def run(self):
         try:
-            while not self._stop.is_set():
+            while not self._halt.is_set():
                 try:
                     self._send_heartbeat()
                 except TimeoutError:
@@ -42,6 +42,6 @@ class HeartbeatThread(Thread):
         self._rest.set()
         self._rest.clear()
 
-    def stop(self):
+    def halt(self):
         self._rest.set()
-        self._stop.set()
+        self._halt.set()

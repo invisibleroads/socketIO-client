@@ -30,11 +30,11 @@ def parse_engineIO_session(engineIO_packet_data):
 
 
 def encode_engineIO_content(engineIO_packets):
-    parts = []
+    content = bytearray()
     for packet_type, packet_data in engineIO_packets:
-        packet_string = str(packet_type) + encode_string(packet_data)
-        parts.append(_make_packet_header(packet_string) + packet_string)
-    return ''.join(parts)
+        packet_string = encode_string(str(packet_type) + packet_data)
+        content.extend(_make_packet_header(packet_string) + packet_string)
+    return content
 
 
 def decode_engineIO_content(content):
@@ -100,11 +100,11 @@ def get_namespace_path(socketIO_packet_data):
 
 def _make_packet_header(packet_string):
     length_string = str(len(packet_string))
-    header_digits = [0]
+    header_digits = bytearray([0])
     for i in range(len(length_string)):
         header_digits.append(ord(length_string[i]) - 48)
     header_digits.append(255)
-    return ''.join(chr(x) for x in header_digits)
+    return header_digits
 
 
 def _read_packet_length(content, content_index):
