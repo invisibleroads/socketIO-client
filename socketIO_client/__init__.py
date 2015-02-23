@@ -18,6 +18,17 @@ BaseNamespace = SocketIONamespace
 LoggingNamespace = LoggingSocketIONamespace
 
 
+def retry(f):
+    def wrap(*args, **kw):
+        self = args[0]
+        try:
+            return f(*args, **kw)
+        except (TimeoutError, ConnectionError):
+            self._opened = False
+            return f(*args, **kw)
+    return wrap
+
+
 class EngineIO(LoggingMixin):
 
     def __init__(
@@ -28,10 +39,10 @@ class EngineIO(LoggingMixin):
         self._wait_for_connection = wait_for_connection
         self._client_transports = transports
         self._hurry_interval_in_seconds = hurry_interval_in_seconds
-        self._http_session = prepare_http_session(kw)
+        self._kw = kw
         self._log_name = self._url
         self._wants_to_close = False
-        self.connected = False
+        self._opened = False
         if Namespace:
             self.define(Namespace)
 
@@ -39,17 +50,18 @@ class EngineIO(LoggingMixin):
 
     @property
     def _transport(self):
-        if self.connected:
+        if self._opened:
             return self._transport_instance
         self._engineIO_session = self._get_engineIO_session()
         self._transport_instance = self._negotiate_transport()
         self._connect_namespaces()
-        self.connected = True
+        self._opened = True
         self._reset_heartbeat()
         return self._transport_instance
 
     def _get_engineIO_session(self):
         warning_screen = self._yield_warning_screen()
+        self._http_session = prepare_http_session(self._kw)
         for elapsed_time in warning_screen:
             transport = XHR_PollingTransport(
                 self._http_session, self._is_secure, self._url)
@@ -130,34 +142,40 @@ class EngineIO(LoggingMixin):
     def send(self, engineIO_packet_data):
         self._message(engineIO_packet_data)
 
+    @retry
     def _open(self):
         engineIO_packet_type = 0
         self._transport.send_packet(engineIO_packet_type, '')
 
     def _close(self):
         self._wants_to_close = True
-        if not self.connected:
+        if not self._opened:
             return
         engineIO_packet_type = 1
         self._transport.send_packet(engineIO_packet_type, '')
-        self.connected = False
+        self._opened = False
 
+    @retry
     def _ping(self, engineIO_packet_data=''):
         engineIO_packet_type = 2
         self._transport.send_packet(engineIO_packet_type, engineIO_packet_data)
 
+    @retry
     def _pong(self, engineIO_packet_data=''):
         engineIO_packet_type = 3
         self._transport.send_packet(engineIO_packet_type, engineIO_packet_data)
 
+    @retry
     def _message(self, engineIO_packet_data):
         engineIO_packet_type = 4
         self._transport.send_packet(engineIO_packet_type, engineIO_packet_data)
 
+    @retry
     def _upgrade(self):
         engineIO_packet_type = 5
         self._transport.send_packet(engineIO_packet_type, '')
 
+    @retry
     def _noop(self):
         engineIO_packet_type = 6
         self._transport.send_packet(engineIO_packet_type, '')
@@ -317,7 +335,7 @@ class SocketIO(EngineIO):
         self._message(str(socketIO_packet_type) + socketIO_packet_data)
 
     def disconnect(self, path=''):
-        if not self.connected:
+        if not self._opened:
             return
         if path:
             socketIO_packet_type = 1

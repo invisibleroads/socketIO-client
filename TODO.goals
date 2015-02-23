@@ -1,10 +1,8 @@
 Release 0.6.1 #41 #52
-    Fix connection status code 400 error
-        Rename connected to opened
-        Add retry to engineio commands
     Run README commands
     Merge sarietta's pull request
 Add Websocket transport
+    Update proxy to include websocket depending on argument
 Consider logging packets sent and received
 Implement rooms #65
 Implement binary event
