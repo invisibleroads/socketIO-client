@@ -1,5 +1,8 @@
 Release 0.6.1 #41 #52
-    Update tests
+    Fix connection status code 400 error
+        Rename connected to opened
+        Add retry to engineio commands
+    Run README commands
     Merge sarietta's pull request
 Add Websocket transport
 Consider logging packets sent and received
