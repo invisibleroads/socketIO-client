@@ -1,8 +1,11 @@
 Release 0.6.1 #41 #52
     Run README commands
+    Fix for Python 3
     Merge sarietta's pull request
 Add Websocket transport
     Update proxy to include websocket depending on argument
+    Use prepared request to get headers from http_session
+    Include https://github.com/invisibleroads/socketIO-client/issues/68
 Consider logging packets sent and received
 Implement rooms #65
 Implement binary event

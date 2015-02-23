@@ -42,6 +42,7 @@ Launch your socket.io server. ::
 For debugging information, run these commands first. ::
 
     import logging
+    logging.getLogger('requests').setLevel(logging.WARNING)
     logging.basicConfig(level=logging.DEBUG)
 
 Emit. ::
@@ -144,7 +145,7 @@ Wait forever. ::
 
     from socketIO_client import SocketIO
 
-    socketIO = SocketIO('localhost')
+    socketIO = SocketIO('localhost', 8000)
     socketIO.wait()
 
 

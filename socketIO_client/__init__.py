@@ -45,6 +45,7 @@ class EngineIO(LoggingMixin):
         self._opened = False
         if Namespace:
             self.define(Namespace)
+        self._transport
 
     # Connect
 
@@ -149,6 +150,7 @@ class EngineIO(LoggingMixin):
 
     def _close(self):
         self._wants_to_close = True
+        self._heartbeat_thread.stop()
         if not self._opened:
             return
         engineIO_packet_type = 1
@@ -169,6 +171,7 @@ class EngineIO(LoggingMixin):
     def _message(self, engineIO_packet_data):
         engineIO_packet_type = 4
         self._transport.send_packet(engineIO_packet_type, engineIO_packet_data)
+        self._debug('[socket.io packet sent] %s', engineIO_packet_data)
 
     @retry
     def _upgrade(self):
@@ -292,6 +295,10 @@ class SocketIO(EngineIO):
 
     # Connect
 
+    @property
+    def connected(self):
+        return self._opened
+
     def _connect_namespaces(self):
         for path, namespace in self._namespace_by_path.items():
             namespace._transport = self._transport_instance
@@ -387,6 +394,7 @@ class SocketIO(EngineIO):
         engineIO_packet_data = super(SocketIO, self)._process_packet(packet)
         if engineIO_packet_data is None:
             return
+        self._debug('[socket.io packet received] %s', engineIO_packet_data)
         socketIO_packet_type = int(get_character(engineIO_packet_data, 0))
         socketIO_packet_data = engineIO_packet_data[1:]
         # Launch callbacks

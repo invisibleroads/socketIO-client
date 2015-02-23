@@ -149,15 +149,15 @@ class LoggingEngineIONamespace(EngineIONamespace):
         super(LoggingEngineIONamespace, self).on_close()
 
     def on_ping(self, data):
-        self._debug('[ping] %s' % data)
+        self._debug('[ping] %s', data)
         super(LoggingEngineIONamespace, self).on_ping(data)
 
     def on_pong(self, data):
-        self._debug('[pong] %s' % data)
+        self._debug('[pong] %s', data)
         super(LoggingEngineIONamespace, self).on_pong(data)
 
     def on_message(self, data):
-        self._debug('[message] %s' % data)
+        self._debug('[message] %s', data)
         super(LoggingEngineIONamespace, self).on_message(data)
 
     def on_upgrade(self):
@@ -180,15 +180,15 @@ class LoggingEngineIONamespace(EngineIONamespace):
 class LoggingSocketIONamespace(SocketIONamespace):
 
     def on_connect(self):
-        self._debug('%s [connect]' % self.path)
+        self._debug('%s[connect]', _make_logging_header(self.path))
         super(LoggingSocketIONamespace, self).on_connect()
 
     def on_reconnect(self):
-        self._debug('%s [reconnect]' % self.path)
+        self._debug('%s[reconnect]', _make_logging_header(self.path))
         super(LoggingSocketIONamespace, self).on_reconnect()
 
     def on_disconnect(self):
-        self._debug('%s [disconnect]' % self.path)
+        self._debug('%s[disconnect]', _make_logging_header(self.path))
         super(LoggingSocketIONamespace, self).on_disconnect()
 
     def on_event(self, event, *args):
@@ -196,11 +196,13 @@ class LoggingSocketIONamespace(SocketIONamespace):
         arguments = [repr(_) for _ in args]
         if callback:
             arguments.append('callback(*args)')
-        self._info('%s [event] %s(%s)', self.path, event, ', '.join(arguments))
+        self._info(
+            '%s[event] %s(%s)', _make_logging_header(self.path), event,
+            ', '.join(arguments))
         super(LoggingSocketIONamespace, self).on_event(event, *args)
 
     def on_error(self, data):
-        self._debug('%s [error] %s' % (self.path, data))
+        self._debug('%s[error] %s', _make_logging_header(self.path), data)
         super(LoggingSocketIONamespace, self).on_error()
 
 
@@ -212,3 +214,7 @@ def find_callback(args, kw=None):
         return kw['callback'], args
     except (KeyError, TypeError):
         return None, args
+
+
+def _make_logging_header(path):
+    return path + ' ' if path else ''

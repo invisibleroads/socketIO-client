@@ -24,14 +24,12 @@ class BaseMixin(object):
 
     def test_disconnect(self):
         'Disconnect'
-        self.socketIO.emit('whee')
         self.assertTrue(self.socketIO.connected)
         self.socketIO.disconnect()
         self.assertFalse(self.socketIO.connected)
         # Use context manager
         with SocketIO(HOST, PORT, Namespace) as self.socketIO:
             namespace = self.socketIO.get_namespace()
-            namespace.emit('whee')
             self.assertFalse(namespace.called_on_disconnect)
             self.assertTrue(self.socketIO.connected)
         self.assertTrue(namespace.called_on_disconnect)
