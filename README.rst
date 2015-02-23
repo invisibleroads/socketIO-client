@@ -1,4 +1,4 @@
-.. image:: https://travis-ci.org/invisibleroads/socketIO-client.svg?branch=v0.5.4
+.. image:: https://travis-ci.org/invisibleroads/socketIO-client.svg?branch=0.6.1
     :target: https://travis-ci.org/invisibleroads/socketIO-client
 
 
@@ -32,11 +32,17 @@ Activate isolated environment. ::
 
 Launch your socket.io server. ::
 
-    node serve-tests.js
+    # Get package folder
+    PACKAGE_FOLDER=`python -c "import os, socketIO_client; print(os.path.dirname(socketIO_client.__file__))"`
+    # Start socket.io server
+    DEBUG=* node $PACKAGE_FOLDER/tests/serve.js
+    # Start proxy server in a separate terminal on the same machine
+    DEBUG=* node $PACKAGE_FOLDER/tests/proxy.js
 
 For debugging information, run these commands first. ::
 
     import logging
+    logging.getLogger('requests').setLevel(logging.WARNING)
     logging.basicConfig(level=logging.DEBUG)
 
 Emit. ::
@@ -52,7 +58,7 @@ Emit with callback. ::
     from socketIO_client import SocketIO, LoggingNamespace
 
     def on_bbb_response(*args):
-        print 'on_bbb_response', args
+        print('on_bbb_response', args)
 
     with SocketIO('localhost', 8000, LoggingNamespace) as socketIO:
         socketIO.emit('bbb', {'xxx': 'yyy'}, on_bbb_response)
@@ -63,7 +69,7 @@ Define events. ::
     from socketIO_client import SocketIO, LoggingNamespace
 
     def on_aaa_response(*args):
-        print 'on_aaa_response', args
+        print('on_aaa_response', args)
 
     socketIO = SocketIO('localhost', 8000, LoggingNamespace)
     socketIO.on('aaa_response', on_aaa_response)
@@ -77,7 +83,7 @@ Define events in a namespace. ::
     class Namespace(BaseNamespace):
 
         def on_aaa_response(self, *args):
-            print 'on_aaa_response', args
+            print('on_aaa_response', args)
             self.emit('bbb')
 
     socketIO = SocketIO('localhost', 8000, Namespace)
@@ -91,7 +97,7 @@ Define standard events. ::
     class Namespace(BaseNamespace):
 
         def on_connect(self):
-            print '[Connected]'
+            print('[Connected]')
 
     socketIO = SocketIO('localhost', 8000, Namespace)
     socketIO.wait(seconds=1)
@@ -103,12 +109,12 @@ Define different namespaces on a single socket. ::
     class ChatNamespace(BaseNamespace):
 
         def on_aaa_response(self, *args):
-            print 'on_aaa_response', args
+            print('on_aaa_response', args)
 
     class NewsNamespace(BaseNamespace):
 
         def on_aaa_response(self, *args):
-            print 'on_aaa_response', args
+            print('on_aaa_response', args)
 
     socketIO = SocketIO('localhost', 8000)
     chat_namespace = socketIO.define(ChatNamespace, '/chat')
@@ -139,7 +145,7 @@ Wait forever. ::
 
     from socketIO_client import SocketIO
 
-    socketIO = SocketIO('localhost')
+    socketIO = SocketIO('localhost', 8000)
     socketIO.wait()
 
 

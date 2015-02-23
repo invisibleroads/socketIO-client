@@ -1,181 +1,270 @@
-import logging
-import json
-import requests
-import time
-from collections import namedtuple
-try:
-    from urllib.parse import urlparse as parse_url
-except ImportError:
-    from urlparse import urlparse as parse_url
-
-from .exceptions import (
-    SocketIOError, ConnectionError, TimeoutError, PacketError)
-from .transports import (
-    _get_response, TRANSPORTS,
-    _WebsocketTransport, _XHR_PollingTransport, _JSONP_PollingTransport)
+from .exceptions import ConnectionError, TimeoutError, PacketError
+from .heartbeats import HeartbeatThread
+from .logs import LoggingMixin
+from .namespaces import (
+    EngineIONamespace, SocketIONamespace, LoggingSocketIONamespace,
+    find_callback)
+from .parsers import (
+    parse_host, parse_engineIO_session,
+    format_socketIO_packet_data, parse_socketIO_packet_data,
+    get_namespace_path)
+from .symmetries import get_character
+from .transports import XHR_PollingTransport, prepare_http_session, TRANSPORTS
 
 
-__version__ = '0.5.4'
-_SocketIOSession = namedtuple('_SocketIOSession', [
-    'id',
-    'heartbeat_timeout',
-    'server_supported_transports',
-])
-_log = logging.getLogger(__name__)
-PROTOCOL_VERSION = 1
-RETRY_INTERVAL_IN_SECONDS = 1
+__all__ = 'SocketIO', 'SocketIONamespace'
+__version__ = '0.6.1'
+BaseNamespace = SocketIONamespace
+LoggingNamespace = LoggingSocketIONamespace
 
 
-class BaseNamespace(object):
-    'Define client behavior'
+def retry(f):
+    def wrap(*args, **kw):
+        self = args[0]
+        try:
+            return f(*args, **kw)
+        except (TimeoutError, ConnectionError):
+            self._opened = False
+            return f(*args, **kw)
+    return wrap
 
-    def __init__(self, _transport, path):
-        self._transport = _transport
-        self.path = path
-        self._was_connected = False
-        self._callback_by_event = {}
-        self.initialize()
 
-    def initialize(self):
-        'Initialize custom variables here; you can override this method'
+class EngineIO(LoggingMixin):
+
+    def __init__(
+            self, host, port=None, Namespace=EngineIONamespace,
+            wait_for_connection=True, transports=TRANSPORTS,
+            resource='engine.io', hurry_interval_in_seconds=1, **kw):
+        self._is_secure, self._url = parse_host(host, port, resource)
+        self._wait_for_connection = wait_for_connection
+        self._client_transports = transports
+        self._hurry_interval_in_seconds = hurry_interval_in_seconds
+        self._kw = kw
+        self._log_name = self._url
+        self._wants_to_close = False
+        self._opened = False
+        if Namespace:
+            self.define(Namespace)
+        self._transport
+
+    # Connect
+
+    @property
+    def _transport(self):
+        if self._opened:
+            return self._transport_instance
+        self._engineIO_session = self._get_engineIO_session()
+        self._transport_instance = self._negotiate_transport()
+        self._connect_namespaces()
+        self._opened = True
+        self._reset_heartbeat()
+        return self._transport_instance
+
+    def _get_engineIO_session(self):
+        warning_screen = self._yield_warning_screen()
+        self._http_session = prepare_http_session(self._kw)
+        for elapsed_time in warning_screen:
+            transport = XHR_PollingTransport(
+                self._http_session, self._is_secure, self._url)
+            try:
+                engineIO_packet_type, engineIO_packet_data = next(
+                    transport.recv_packet())
+                break
+            except (TimeoutError, ConnectionError) as e:
+                if not self._wait_for_connection:
+                    raise
+                warning = Exception('[waiting for connection] %s' % e)
+                warning_screen.throw(warning)
+        assert engineIO_packet_type == 0
+        return parse_engineIO_session(engineIO_packet_data)
+
+    def _negotiate_transport(self):
+        self._transport_name = 'xhr-polling'
+        return self._get_transport(self._transport_name)
+
+    def _reset_heartbeat(self):
+        try:
+            self._heartbeat_thread.halt()
+        except AttributeError:
+            pass
+        ping_interval = self._engineIO_session.ping_interval
+        if self._transport_name.endswith('-polling'):
+            hurry_interval_in_seconds = self._hurry_interval_in_seconds
+        else:
+            hurry_interval_in_seconds = ping_interval
+        self._heartbeat_thread = HeartbeatThread(
+            send_heartbeat=self._ping,
+            relax_interval_in_seconds=ping_interval,
+            hurry_interval_in_seconds=hurry_interval_in_seconds)
+        self._heartbeat_thread.start()
+
+    def _connect_namespaces(self):
         pass
 
-    def message(self, data='', callback=None):
-        self._transport.message(self.path, data, callback)
+    def _get_transport(self, transport_name):
+        self._debug('[transport selected] %s', transport_name)
+        SelectedTransport = {
+            'xhr-polling': XHR_PollingTransport,
+        }[transport_name]
+        return SelectedTransport(
+            self._http_session, self._is_secure, self._url,
+            self._engineIO_session)
 
-    def emit(self, event, *args, **kw):
-        callback, args = find_callback(args, kw)
-        self._transport.emit(self.path, event, args, callback)
+    def __enter__(self):
+        return self
 
-    def disconnect(self):
-        self._transport.disconnect(self.path)
+    def __exit__(self, *exception_pack):
+        self._close()
+
+    def __del__(self):
+        self._close()
+
+    # Define
+
+    def define(self, Namespace):
+        self._namespace = namespace = Namespace(self)
+        return namespace
 
     def on(self, event, callback):
-        'Define a callback to handle a custom event emitted by the server'
-        self._callback_by_event[event] = callback
-
-    def on_connect(self):
-        'Called after server connects; you can override this method'
-        pass
-
-    def on_disconnect(self):
-        'Called after server disconnects; you can override this method'
-        pass
-
-    def on_heartbeat(self):
-        'Called after server sends a heartbeat; you can override this method'
-        pass
-
-    def on_message(self, data):
-        'Called after server sends a message; you can override this method'
-        pass
-
-    def on_event(self, event, *args):
-        """
-        Called after server sends an event; you can override this method.
-        Called only if a custom event handler does not exist,
-        such as one defined by namespace.on('my_event', my_function).
-        """
-        callback, args = find_callback(args)
-        if callback:
-            callback(*args)
-
-    def on_error(self, reason, advice):
-        'Called after server sends an error; you can override this method'
-        pass
-
-    def on_noop(self):
-        'Called after server sends a noop; you can override this method'
-        pass
-
-    def on_open(self, *args):
-        pass
-
-    def on_close(self, *args):
-        pass
-
-    def on_retry(self, *args):
-        pass
-
-    def on_reconnect(self, *args):
-        pass
-
-    def _find_event_callback(self, event):
-        # Check callbacks defined by on()
         try:
-            return self._callback_by_event[event]
+            namespace = self.get_namespace()
+        except PacketError:
+            namespace = self.define(EngineIONamespace)
+        return namespace.on(event, callback)
+
+    def get_namespace(self):
+        try:
+            return self._namespace
+        except AttributeError:
+            raise PacketError('undefined engine.io namespace')
+
+    # Act
+
+    def send(self, engineIO_packet_data):
+        self._message(engineIO_packet_data)
+
+    @retry
+    def _open(self):
+        engineIO_packet_type = 0
+        self._transport.send_packet(engineIO_packet_type, '')
+
+    def _close(self):
+        self._wants_to_close = True
+        self._heartbeat_thread.halt()
+        if not self._opened:
+            return
+        engineIO_packet_type = 1
+        self._transport.send_packet(engineIO_packet_type, '')
+        self._opened = False
+
+    @retry
+    def _ping(self, engineIO_packet_data=''):
+        engineIO_packet_type = 2
+        self._transport.send_packet(engineIO_packet_type, engineIO_packet_data)
+
+    @retry
+    def _pong(self, engineIO_packet_data=''):
+        engineIO_packet_type = 3
+        self._transport.send_packet(engineIO_packet_type, engineIO_packet_data)
+
+    @retry
+    def _message(self, engineIO_packet_data):
+        engineIO_packet_type = 4
+        self._transport.send_packet(engineIO_packet_type, engineIO_packet_data)
+        self._debug('[socket.io packet sent] %s', engineIO_packet_data)
+
+    @retry
+    def _upgrade(self):
+        engineIO_packet_type = 5
+        self._transport.send_packet(engineIO_packet_type, '')
+
+    @retry
+    def _noop(self):
+        engineIO_packet_type = 6
+        self._transport.send_packet(engineIO_packet_type, '')
+
+    # React
+
+    def wait(self, seconds=None, **kw):
+        'Wait in a loop and react to events as defined in the namespaces'
+        self._heartbeat_thread.hurry()
+        warning_screen = self._yield_warning_screen(seconds)
+        for elapsed_time in warning_screen:
+            if self._should_stop_waiting(**kw):
+                break
+            try:
+                try:
+                    self._process_packets()
+                except TimeoutError:
+                    pass
+            except ConnectionError as e:
+                try:
+                    warning = Exception('[connection error] %s' % e)
+                    warning_screen.throw(warning)
+                except StopIteration:
+                    self._warn(warning)
+                try:
+                    namespace = self.get_namespace()
+                    namespace.on_disconnect()
+                except PacketError:
+                    pass
+        self._heartbeat_thread.relax()
+
+    def _should_stop_waiting(self):
+        return self._wants_to_close
+
+    def _process_packets(self):
+        for engineIO_packet in self._transport.recv_packet():
+            try:
+                self._process_packet(engineIO_packet)
+            except PacketError as e:
+                self._warn('[packet error] %s', e)
+
+    def _process_packet(self, packet):
+        engineIO_packet_type, engineIO_packet_data = packet
+        # Launch callbacks
+        namespace = self.get_namespace()
+        try:
+            delegate = {
+                0: self._on_open,
+                1: self._on_close,
+                2: self._on_ping,
+                3: self._on_pong,
+                4: self._on_message,
+                5: self._on_upgrade,
+                6: self._on_noop,
+            }[engineIO_packet_type]
         except KeyError:
-            pass
-        # Convert connect to reconnect if we have seen connect already
-        if event == 'connect':
-            if not self._was_connected:
-                self._was_connected = True
-            else:
-                event = 'reconnect'
-        # Check callbacks defined explicitly or use on_event()
-        return getattr(
-            self,
-            'on_' + event.replace(' ', '_'),
-            lambda *args: self.on_event(event, *args))
+            raise PacketError(
+                'unexpected engine.io packet type (%s)' % engineIO_packet_type)
+        delegate(engineIO_packet_data, namespace._find_packet_callback)
+        if engineIO_packet_type is 4:
+            return engineIO_packet_data
+
+    def _on_open(self, data, find_packet_callback):
+        find_packet_callback('open')()
+
+    def _on_close(self, data, find_packet_callback):
+        find_packet_callback('close')()
+
+    def _on_ping(self, data, find_packet_callback):
+        self._pong(data)
+        find_packet_callback('ping')(data)
+
+    def _on_pong(self, data, find_packet_callback):
+        find_packet_callback('pong')(data)
+
+    def _on_message(self, data, find_packet_callback):
+        find_packet_callback('message')(data)
+
+    def _on_upgrade(self, data, find_packet_callback):
+        find_packet_callback('upgrade')()
+
+    def _on_noop(self, data, find_packet_callback):
+        find_packet_callback('noop')()
 
 
-class LoggingNamespace(BaseNamespace):
-
-    def _log(self, level, msg, *attrs):
-        _log.log(level, '%s: %s' % (self._transport._url, msg), *attrs)
-
-    def on_connect(self):
-        self._log(logging.DEBUG, '%s [connect]', self.path)
-        super(LoggingNamespace, self).on_connect()
-
-    def on_disconnect(self):
-        self._log(logging.DEBUG, '%s [disconnect]', self.path)
-        super(LoggingNamespace, self).on_disconnect()
-
-    def on_heartbeat(self):
-        self._log(logging.DEBUG, '%s [heartbeat]', self.path)
-        super(LoggingNamespace, self).on_heartbeat()
-
-    def on_message(self, data):
-        self._log(logging.INFO, '%s [message] %s', self.path, data)
-        super(LoggingNamespace, self).on_message(data)
-
-    def on_event(self, event, *args):
-        callback, args = find_callback(args)
-        arguments = [repr(_) for _ in args]
-        if callback:
-            arguments.append('callback(*args)')
-        self._log(logging.INFO, '%s [event] %s(%s)', self.path, event,
-                  ', '.join(arguments))
-        super(LoggingNamespace, self).on_event(event, *args)
-
-    def on_error(self, reason, advice):
-        self._log(logging.INFO, '%s [error] %s', self.path, advice)
-        super(LoggingNamespace, self).on_error(reason, advice)
-
-    def on_noop(self):
-        self._log(logging.INFO, '%s [noop]', self.path)
-        super(LoggingNamespace, self).on_noop()
-
-    def on_open(self, *args):
-        self._log(logging.INFO, '%s [open] %s', self.path, args)
-        super(LoggingNamespace, self).on_open(*args)
-
-    def on_close(self, *args):
-        self._log(logging.INFO, '%s [close] %s', self.path, args)
-        super(LoggingNamespace, self).on_close(*args)
-
-    def on_retry(self, *args):
-        self._log(logging.INFO, '%s [retry] %s', self.path, args)
-        super(LoggingNamespace, self).on_retry(*args)
-
-    def on_reconnect(self, *args):
-        self._log(logging.INFO, '%s [reconnect] %s', self.path, args)
-        super(LoggingNamespace, self).on_reconnect(*args)
-
-
-class SocketIO(object):
-
+class SocketIO(EngineIO):
     """Create a socket.io client that connects to a socket.io server
     at the specified host and port.
 
@@ -185,7 +274,8 @@ class SocketIO(object):
     - Specify desired transports=['websocket', 'xhr-polling'].
     - Pass query params, headers, cookies, proxies as keyword arguments.
 
-    SocketIO('localhost', 8000,
+    SocketIO(
+        'localhost', 8000,
         params={'q': 'qqq'},
         headers={'Authorization': 'Basic ' + b64encode('username:password')},
         cookies={'a': 'aaa'},
@@ -193,330 +283,186 @@ class SocketIO(object):
     """
 
     def __init__(
-            self, host, port=None, Namespace=None,
+            self, host, port=None, Namespace=SocketIONamespace,
             wait_for_connection=True, transports=TRANSPORTS,
-            resource='socket.io', **kw):
-        self.is_secure, self._base_url = _parse_host(host, port, resource)
-        self.wait_for_connection = wait_for_connection
+            resource='socket.io', hurry_interval_in_seconds=1, **kw):
         self._namespace_by_path = {}
-        self._client_supported_transports = transports
-        self._kw = kw
-        if Namespace:
-            self.define(Namespace)
+        self._callback_by_ack_id = {}
+        self._ack_id = 0
+        super(SocketIO, self).__init__(
+            host, port, Namespace, wait_for_connection, transports,
+            resource, hurry_interval_in_seconds, **kw)
 
-    def _log(self, level, msg, *attrs):
-        _log.log(level, '%s: %s' % (self._base_url, msg), *attrs)
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, *exception_pack):
-        self.disconnect()
-
-    def __del__(self):
-        self.disconnect()
-
-    def define(self, Namespace, path=''):
-        if path:
-            self._transport.connect(path)
-        namespace = Namespace(self._transport, path)
-        self._namespace_by_path[path] = namespace
-        return namespace
-
-    def on(self, event, callback, path=''):
-        if path not in self._namespace_by_path:
-            self.define(BaseNamespace, path)
-        return self.get_namespace(path).on(event, callback)
-
-    def message(self, data='', callback=None, path=''):
-        self._transport.message(path, data, callback)
-
-    def emit(self, event, *args, **kw):
-        path = kw.get('path', '')
-        callback, args = find_callback(args, kw)
-        self._transport.emit(path, event, args, callback)
-
-    def wait(self, seconds=None, for_callbacks=False):
-        """Wait in a loop and process events as defined in the namespaces.
-
-        - Omit seconds, i.e. call wait() without arguments, to wait forever.
-        """
-        warning_screen = _yield_warning_screen(seconds)
-        timeout = min(self._heartbeat_interval, seconds)
-        for elapsed_time in warning_screen:
-            if self._stop_waiting(for_callbacks):
-                break
-            try:
-                try:
-                    self._process_events(timeout)
-                except TimeoutError:
-                    pass
-                next(self._heartbeat_pacemaker)
-            except ConnectionError as e:
-                try:
-                    warning = Exception('[connection error] %s' % e)
-                    warning_screen.throw(warning)
-                except StopIteration:
-                    self._log(logging.WARNING, warning)
-                try:
-                    namespace = self._namespace_by_path['']
-                    namespace.on_disconnect()
-                except KeyError:
-                    pass
-
-    def _process_events(self, timeout=None):
-        for packet in self._transport.recv_packet(timeout):
-            try:
-                self._process_packet(packet)
-            except PacketError as e:
-                self._log(logging.WARNING, '[packet error] %s', e)
-
-    def _process_packet(self, packet):
-        code, packet_id, path, data = packet
-        namespace = self.get_namespace(path)
-        delegate = self._get_delegate(code)
-        delegate(packet, namespace._find_event_callback)
-
-    def _stop_waiting(self, for_callbacks):
-        # Use __transport to make sure that we do not reconnect inadvertently
-        if for_callbacks and not self.__transport.has_ack_callback:
-            return True
-        if self.__transport._wants_to_disconnect:
-            return True
-        return False
-
-    def wait_for_callbacks(self, seconds=None):
-        self.wait(seconds, for_callbacks=True)
-
-    def disconnect(self, path=''):
-        try:
-            self._transport.disconnect(path)
-        except ReferenceError:
-            pass
-        try:
-            namespace = self._namespace_by_path[path]
-            namespace.on_disconnect()
-            del self._namespace_by_path[path]
-        except KeyError:
-            pass
+    # Connect
 
     @property
     def connected(self):
-        try:
-            transport = self.__transport
-        except AttributeError:
-            return False
-        else:
-            return transport.connected
+        return self._opened
 
-    @property
-    def _transport(self):
-        try:
-            if self.connected:
-                return self.__transport
-        except AttributeError:
-            pass
-        socketIO_session = self._get_socketIO_session()
-        supported_transports = self._get_supported_transports(socketIO_session)
-        self._heartbeat_pacemaker = self._make_heartbeat_pacemaker(
-            heartbeat_timeout=socketIO_session.heartbeat_timeout)
-        next(self._heartbeat_pacemaker)
-        warning_screen = _yield_warning_screen(seconds=None)
-        for elapsed_time in warning_screen:
-            try:
-                self._transport_name = supported_transports.pop(0)
-            except IndexError:
-                raise ConnectionError('Could not negotiate a transport')
-            try:
-                self.__transport = self._get_transport(
-                    socketIO_session, self._transport_name)
-                break
-            except ConnectionError:
-                pass
+    def _connect_namespaces(self):
         for path, namespace in self._namespace_by_path.items():
-            namespace._transport = self.__transport
+            namespace._transport = self._transport_instance
             if path:
-                self.__transport.connect(path)
-        return self.__transport
+                self.connect(path)
 
-    def _get_socketIO_session(self):
-        warning_screen = _yield_warning_screen(seconds=None)
-        for elapsed_time in warning_screen:
-            try:
-                return _get_socketIO_session(
-                    self.is_secure, self._base_url, **self._kw)
-            except ConnectionError as e:
-                if not self.wait_for_connection:
-                    raise
-                warning = Exception('[waiting for connection] %s' % e)
-                try:
-                    warning_screen.throw(warning)
-                except StopIteration:
-                    self._log(logging.WARNING, warning)
+    def __exit__(self, *exception_pack):
+        self.disconnect()
+        super(SocketIO, self).__exit__(*exception_pack)
 
-    def _get_supported_transports(self, session):
-        self._log(
-            logging.DEBUG, '[transports available] %s',
-            ' '.join(session.server_supported_transports))
-        supported_transports = [
-            x for x in self._client_supported_transports if
-            x in session.server_supported_transports]
-        if not supported_transports:
-            raise SocketIOError(' '.join([
-                'could not negotiate a transport:',
-                'client supports %s but' % ', '.join(
-                    self._client_supported_transports),
-                'server supports %s' % ', '.join(
-                    session.server_supported_transports),
-            ]))
-        return supported_transports
+    def __del__(self):
+        self.disconnect()
+        super(SocketIO, self).__del__()
 
-    def _get_transport(self, session, transport_name):
-        self._log(logging.DEBUG, '[transport chosen] %s', transport_name)
-        return {
-            'websocket': _WebsocketTransport,
-            'xhr-polling': _XHR_PollingTransport,
-            'jsonp-polling': _JSONP_PollingTransport,
-        }[transport_name](session, self.is_secure, self._base_url, **self._kw)
+    # Define
 
-    def _make_heartbeat_pacemaker(self, heartbeat_timeout):
-        self._heartbeat_interval = heartbeat_timeout / 2
-        heartbeat_time = time.time()
-        while True:
-            yield
-            if time.time() - heartbeat_time > self._heartbeat_interval:
-                heartbeat_time = time.time()
-                self._transport.send_heartbeat()
+    def define(self, Namespace, path=''):
+        if path:
+            self.connect(path)
+        self._namespace_by_path[path] = namespace = Namespace(self, path)
+        return namespace
+
+    def on(self, event, callback, path=''):
+        try:
+            namespace = self.get_namespace(path)
+        except PacketError:
+            namespace = self.define(SocketIONamespace, path)
+        return namespace.on(event, callback)
 
     def get_namespace(self, path=''):
         try:
             return self._namespace_by_path[path]
         except KeyError:
-            raise PacketError('unhandled namespace path (%s)' % path)
+            raise PacketError('undefined socket.io namespace (%s)' % path)
 
-    def _get_delegate(self, code):
+    # Act
+
+    def connect(self, path):
+        socketIO_packet_type = 0
+        socketIO_packet_data = format_socketIO_packet_data(path)
+        self._message(str(socketIO_packet_type) + socketIO_packet_data)
+
+    def disconnect(self, path=''):
+        if not self._opened:
+            return
+        if path:
+            socketIO_packet_type = 1
+            socketIO_packet_data = format_socketIO_packet_data(path)
+            self._message(str(socketIO_packet_type) + socketIO_packet_data)
+        else:
+            self._close()
         try:
-            return {
-                '0': self._on_disconnect,
-                '1': self._on_connect,
-                '2': self._on_heartbeat,
-                '3': self._on_message,
-                '4': self._on_json,
-                '5': self._on_event,
-                '6': self._on_ack,
-                '7': self._on_error,
-                '8': self._on_noop,
-            }[code]
+            namespace = self._namespace_by_path.pop(path)
+            namespace.on_disconnect()
         except KeyError:
-            raise PacketError('unexpected code (%s)' % code)
+            pass
 
-    def _on_disconnect(self, packet, find_event_callback):
-        find_event_callback('disconnect')()
+    def emit(self, event, *args, **kw):
+        path = kw.get('path', '')
+        callback, args = find_callback(args, kw)
+        ack_id = self._set_ack_callback(callback) if callback else None
+        args = [event] + list(args)
+        socketIO_packet_type = 2
+        socketIO_packet_data = format_socketIO_packet_data(path, ack_id, args)
+        self._message(str(socketIO_packet_type) + socketIO_packet_data)
 
-    def _on_connect(self, packet, find_event_callback):
-        find_event_callback('connect')()
-
-    def _on_heartbeat(self, packet, find_event_callback):
-        find_event_callback('heartbeat')()
-
-    def _on_message(self, packet, find_event_callback):
-        code, packet_id, path, data = packet
+    def send(self, data='', callback=None, **kw):
+        path = kw.get('path', '')
         args = [data]
-        if packet_id:
-            args.append(self._prepare_to_send_ack(path, packet_id))
-        find_event_callback('message')(*args)
+        if callback:
+            args.append(callback)
+        self.emit('message', *args, path=path)
 
-    def _on_json(self, packet, find_event_callback):
-        code, packet_id, path, data = packet
-        args = [json.loads(data)]
-        if packet_id:
-            args.append(self._prepare_to_send_ack(path, packet_id))
-        find_event_callback('message')(*args)
+    def _ack(self, path, ack_id, *args):
+        socketIO_packet_type = 3
+        socketIO_packet_data = format_socketIO_packet_data(path, ack_id, args)
+        self._message(str(socketIO_packet_type) + socketIO_packet_data)
 
-    def _on_event(self, packet, find_event_callback):
-        code, packet_id, path, data = packet
-        value_by_name = json.loads(data)
-        event = value_by_name['name']
-        args = value_by_name.get('args', [])
-        if packet_id:
-            args.append(self._prepare_to_send_ack(path, packet_id))
-        find_event_callback(event)(*args)
+    # React
 
-    def _on_ack(self, packet, find_event_callback):
-        code, packet_id, path, data = packet
-        data_parts = data.split('+', 1)
-        packet_id = data_parts[0]
+    def wait(self, seconds=None, for_callbacks=False):
+        super(SocketIO, self).wait(seconds, for_callbacks=for_callbacks)
+
+    def wait_for_callbacks(self, seconds=None):
+        self.wait(seconds, for_callbacks=True)
+
+    def _should_stop_waiting(self, for_callbacks):
+        if for_callbacks and not self._has_ack_callback:
+            return True
+        return super(SocketIO, self)._should_stop_waiting()
+
+    def _process_packet(self, packet):
+        engineIO_packet_data = super(SocketIO, self)._process_packet(packet)
+        if engineIO_packet_data is None:
+            return
+        self._debug('[socket.io packet received] %s', engineIO_packet_data)
+        socketIO_packet_type = int(get_character(engineIO_packet_data, 0))
+        socketIO_packet_data = engineIO_packet_data[1:]
+        # Launch callbacks
+        path = get_namespace_path(socketIO_packet_data)
+        namespace = self.get_namespace(path)
         try:
-            ack_callback = self._transport.get_ack_callback(packet_id)
+            delegate = {
+                0: self._on_connect,
+                1: self._on_disconnect,
+                2: self._on_event,
+                3: self._on_ack,
+                4: self._on_error,
+                5: self._on_binary_event,
+                6: self._on_binary_ack,
+            }[socketIO_packet_type]
+        except KeyError:
+            raise PacketError(
+                'unexpected socket.io packet type (%s)' % socketIO_packet_type)
+        delegate(socketIO_packet_data, namespace._find_packet_callback)
+        return socketIO_packet_data
+
+    def _on_connect(self, data, find_packet_callback):
+        find_packet_callback('connect')()
+
+    def _on_disconnect(self, data, find_packet_callback):
+        find_packet_callback('disconnect')()
+
+    def _on_event(self, data, find_packet_callback):
+        data_parsed = parse_socketIO_packet_data(data)
+        args = data_parsed.args
+        try:
+            event = args.pop(0)
+        except IndexError:
+            raise PacketError('missing event name')
+        if data_parsed.ack_id is not None:
+            args.append(self._prepare_to_send_ack(
+                data_parsed.path, data_parsed.ack_id))
+        find_packet_callback(event)(*args)
+
+    def _on_ack(self, data, find_packet_callback):
+        data_parsed = parse_socketIO_packet_data(data)
+        try:
+            ack_callback = self._get_ack_callback(data_parsed.ack_id)
         except KeyError:
             return
-        args = json.loads(data_parts[1]) if len(data_parts) > 1 else []
-        ack_callback(*args)
+        ack_callback(*data_parsed.args)
 
-    def _on_error(self, packet, find_event_callback):
-        code, packet_id, path, data = packet
-        reason, advice = data.split('+', 1)
-        find_event_callback('error')(reason, advice)
+    def _on_error(self, data, find_packet_callback):
+        find_packet_callback('error')(data)
 
-    def _on_noop(self, packet, find_event_callback):
-        find_event_callback('noop')()
+    def _on_binary_event(self, data, find_packet_callback):
+        self._warn('[not implemented] binary event')
 
-    def _prepare_to_send_ack(self, path, packet_id):
+    def _on_binary_ack(self, data, find_packet_callback):
+        self._warn('[not implemented] binary ack')
+
+    def _prepare_to_send_ack(self, path, ack_id):
         'Return function that acknowledges the server'
-        return lambda *args: self._transport.ack(path, packet_id, *args)
+        return lambda *args: self._ack(path, ack_id, *args)
 
+    def _set_ack_callback(self, callback):
+        self._ack_id += 1
+        self._callback_by_ack_id[self._ack_id] = callback
+        return self._ack_id
 
-def find_callback(args, kw=None):
-    'Return callback whether passed as a last argument or as a keyword'
-    if args and callable(args[-1]):
-        return args[-1], args[:-1]
-    try:
-        return kw['callback'], args
-    except (KeyError, TypeError):
-        return None, args
+    def _get_ack_callback(self, ack_id):
+        return self._callback_by_ack_id.pop(ack_id)
 
-
-def _parse_host(host, port, resource):
-    if not host.startswith('http'):
-        host = 'http://' + host
-    url_pack = parse_url(host)
-    is_secure = url_pack.scheme == 'https'
-    port = port or url_pack.port or (443 if is_secure else 80)
-    base_url = '%s:%d%s/%s/%s' % (
-        url_pack.hostname, port, url_pack.path, resource, PROTOCOL_VERSION)
-    return is_secure, base_url
-
-
-def _yield_warning_screen(seconds=None):
-    last_warning = None
-    for elapsed_time in _yield_elapsed_time(seconds):
-        try:
-            yield elapsed_time
-        except Exception as warning:
-            warning = str(warning)
-            if last_warning != warning:
-                last_warning = warning
-                _log.warn(warning)
-            time.sleep(RETRY_INTERVAL_IN_SECONDS)
-
-
-def _yield_elapsed_time(seconds=None):
-    start_time = time.time()
-    if seconds is None:
-        while True:
-            yield time.time() - start_time
-    while time.time() - start_time < seconds:
-        yield time.time() - start_time
-
-
-def _get_socketIO_session(is_secure, base_url, **kw):
-    server_url = '%s://%s/' % ('https' if is_secure else 'http', base_url)
-    try:
-        response = _get_response(requests.get, server_url, **kw)
-    except TimeoutError as e:
-        raise ConnectionError(e)
-    response_parts = response.text.split(':')
-    return _SocketIOSession(
-        id=response_parts[0],
-        heartbeat_timeout=int(response_parts[1]),
-        server_supported_transports=response_parts[3].split(','))
+    @property
+    def _has_ack_callback(self):
+        return True if self._callback_by_ack_id else False
