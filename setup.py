@@ -1,17 +1,24 @@
-import os
-from setuptools import setup, find_packages
+from os.path import abspath, dirname, join
+from setuptools import find_packages, setup
 
 
-here = os.path.abspath(os.path.dirname(__file__))
-README = open(os.path.join(here, 'README.rst')).read()
-CHANGES = open(os.path.join(here, 'CHANGES.rst')).read()
+REQUIREMENTS = [
+    'requests',
+    'six',
+    'websocket-client',
+]
 
 
+HERE = dirname(abspath(__file__))
+DESCRIPTION = '\n\n'.join(open(join(HERE, _)).read() for _ in [
+    'README.rst',
+    'CHANGES.rst',
+])
 setup(
-    name='socketIO-client',
-    version='0.5.5',
+    name='socketIO_client',
+    version='0.6.1',
     description='A socket.io client library',
-    long_description=README + '\n\n' + CHANGES,
+    long_description=DESCRIPTION,
     license='MIT',
     classifiers=[
         'Intended Audience :: Developers',
@@ -22,11 +29,7 @@ setup(
     author='Roy Hyunjin Han',
     author_email='rhh@crosscompute.com',
     url='https://github.com/invisibleroads/socketIO-client',
-    install_requires=[
-        'requests',
-        'six',
-        'websocket-client',
-    ],
+    install_requires=REQUIREMENTS,
     tests_require=[
         'nose',
         'coverage',

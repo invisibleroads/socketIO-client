@@ -3,19 +3,18 @@ python:
   - 2.6
   - 2.7
   - 3.4
-matrix:
-  allow_failures:
-    - python: 3.4
 before_install:
   - sudo apt-get update
   - sudo apt-get install nodejs
 install:
-  - npm install -G socket.io@0.9
+  - npm install -G socket.io
+  - npm install -G http-proxy
   - pip install -U requests
   - pip install -U six
   - pip install -U websocket-client
   - pip install -U coverage
 before_script:
-  - node serve-tests.js &
+  - DEBUG=* node socketIO_client/tests/serve.js &
+  - DEBUG=* node socketIO_client/tests/proxy.js &
   - sleep 3
 script: nosetests

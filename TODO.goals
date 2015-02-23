@@ -1,10 +1,11 @@
-Revive heartbeat as separate process thanks to sarietta
-    Check that heartbeats are sent even with short wait time #64
-Restore namespace as separate process #50
-Upgrade to socket.io 1.2 #41 #52
+Release 0.6.1 #41 #52
     Merge sarietta's pull request
+Add Websocket transport
+    Update proxy to include websocket depending on argument
+    Use prepared request to get headers from http_session
+    Include https://github.com/invisibleroads/socketIO-client/issues/68
+Add test for on_reconnect using sarietta's bash scripts
+Consider logging packets sent and received
 Implement rooms #65
-Run under Python 3 #51
-Use continuous integration with TravisCI
-Credit everyone who took the time to submit an issue or pull request
-Release 0.6.1
+Implement binary event
+Implement binary ack

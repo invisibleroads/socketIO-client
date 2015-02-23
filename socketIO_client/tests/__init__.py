@@ -2,8 +2,7 @@ import logging
 import time
 from unittest import TestCase
 
-from . import SocketIO, LoggingNamespace, find_callback
-from .transports import TIMEOUT_IN_SECONDS
+from .. import SocketIO, LoggingNamespace, find_callback
 
 
 HOST = 'localhost'
@@ -16,22 +15,15 @@ logging.basicConfig(level=logging.DEBUG)
 class BaseMixin(object):
 
     def setUp(self):
+        super(BaseMixin, self).setUp()
         self.called_on_response = False
 
     def tearDown(self):
+        super(BaseMixin, self).tearDown()
         del self.socketIO
-
-    def on_response(self, *args):
-        for arg in args:
-            if isinstance(arg, dict):
-                self.assertEqual(arg, PAYLOAD)
-            else:
-                self.assertEqual(arg, DATA)
-        self.called_on_response = True
 
     def test_disconnect(self):
         'Disconnect'
-        self.socketIO.define(LoggingNamespace)
         self.assertTrue(self.socketIO.connected)
         self.socketIO.disconnect()
         self.assertFalse(self.socketIO.connected)
@@ -42,41 +34,6 @@ class BaseMixin(object):
             self.assertTrue(self.socketIO.connected)
         self.assertTrue(namespace.called_on_disconnect)
         self.assertFalse(self.socketIO.connected)
-
-    def test_message(self):
-        'Message'
-        namespace = self.socketIO.define(Namespace)
-        self.socketIO.message()
-        self.socketIO.wait(self.wait_time_in_seconds)
-        self.assertEqual(namespace.response, 'message_response')
-
-    def test_message_with_data(self):
-        'Message with data'
-        namespace = self.socketIO.define(Namespace)
-        self.socketIO.message(DATA)
-        self.socketIO.wait(self.wait_time_in_seconds)
-        self.assertEqual(namespace.response, DATA)
-
-    def test_message_with_payload(self):
-        'Message with payload'
-        namespace = self.socketIO.define(Namespace)
-        self.socketIO.message(PAYLOAD)
-        self.socketIO.wait(self.wait_time_in_seconds)
-        self.assertEqual(namespace.response, PAYLOAD)
-
-    def test_message_with_callback(self):
-        'Message with callback'
-        self.socketIO.define(LoggingNamespace)
-        self.socketIO.message(callback=self.on_response)
-        self.socketIO.wait_for_callbacks(seconds=self.wait_time_in_seconds)
-        self.assertTrue(self.called_on_response)
-
-    def test_message_with_callback_with_data(self):
-        'Message with callback with data'
-        self.socketIO.define(LoggingNamespace)
-        self.socketIO.message(DATA, self.on_response)
-        self.socketIO.wait_for_callbacks(seconds=self.wait_time_in_seconds)
-        self.assertTrue(self.called_on_response)
 
     def test_emit(self):
         'Emit'
@@ -107,14 +64,12 @@ class BaseMixin(object):
 
     def test_emit_with_callback(self):
         'Emit with callback'
-        self.socketIO.define(LoggingNamespace)
         self.socketIO.emit('emit_with_callback', self.on_response)
         self.socketIO.wait_for_callbacks(seconds=self.wait_time_in_seconds)
         self.assertTrue(self.called_on_response)
 
     def test_emit_with_callback_with_payload(self):
         'Emit with callback with payload'
-        self.socketIO.define(LoggingNamespace)
         self.socketIO.emit(
             'emit_with_callback_with_payload', self.on_response)
         self.socketIO.wait_for_callbacks(seconds=self.wait_time_in_seconds)
@@ -122,7 +77,6 @@ class BaseMixin(object):
 
     def test_emit_with_callback_with_multiple_payloads(self):
         'Emit with callback with multiple payloads'
-        self.socketIO.define(LoggingNamespace)
         self.socketIO.emit(
             'emit_with_callback_with_multiple_payloads', self.on_response)
         self.socketIO.wait_for_callbacks(seconds=self.wait_time_in_seconds)
@@ -135,14 +89,28 @@ class BaseMixin(object):
         self.socketIO.wait(self.wait_time_in_seconds)
         self.assertTrue(self.called_on_response)
 
-    def test_ack(self):
-        'Trigger server callback'
+    def test_send(self):
+        'Send'
         namespace = self.socketIO.define(Namespace)
-        self.socketIO.emit('ack', PAYLOAD)
+        self.socketIO.send()
+        self.socketIO.wait(self.wait_time_in_seconds)
+        self.assertEqual(namespace.response, 'message_response')
+
+    def test_send_with_data(self):
+        'Send with data'
+        namespace = self.socketIO.define(Namespace)
+        self.socketIO.send(DATA)
+        self.socketIO.wait(self.wait_time_in_seconds)
+        self.assertEqual(namespace.response, DATA)
+
+    def test_ack(self):
+        'Respond to a server callback request'
+        namespace = self.socketIO.define(Namespace)
+        self.socketIO.emit('trigger_server_expects_callback', PAYLOAD)
         self.socketIO.wait(self.wait_time_in_seconds)
         self.assertEqual(namespace.args_by_event, {
-            'ack_response': (PAYLOAD,),
-            'ack_callback_response': (PAYLOAD,),
+            'server_expects_callback': (PAYLOAD,),
+            'server_received_callback': (PAYLOAD,),
         })
 
     def test_wait_with_disconnect(self):
@@ -168,52 +136,45 @@ class BaseMixin(object):
         })
 
     def test_namespace_ack(self):
-        'Trigger server callback'
+        'Respond to a server callback request within a namespace'
         chat_namespace = self.socketIO.define(Namespace, '/chat')
-        chat_namespace.emit('ack', PAYLOAD)
+        chat_namespace.emit('trigger_server_expects_callback', PAYLOAD)
         self.socketIO.wait(self.wait_time_in_seconds)
         self.assertEqual(chat_namespace.args_by_event, {
-            'ack_response': (PAYLOAD,),
-            'ack_callback_response': (PAYLOAD,),
+            'server_expects_callback': (PAYLOAD,),
+            'server_received_callback': (PAYLOAD,),
         })
 
+    def on_response(self, *args):
+        for arg in args:
+            if isinstance(arg, dict):
+                self.assertEqual(arg, PAYLOAD)
+            else:
+                self.assertEqual(arg, DATA)
+        self.called_on_response = True
 
-class Test_WebsocketTransport(TestCase, BaseMixin):
 
-    def setUp(self):
-        super(Test_WebsocketTransport, self).setUp()
-        self.socketIO = SocketIO(HOST, PORT, transports=['websocket'])
-        self.wait_time_in_seconds = 0.1
-
-
-class Test_XHR_PollingTransport(TestCase, BaseMixin):
+class Test_XHR_PollingTransport(BaseMixin, TestCase):
 
     def setUp(self):
         super(Test_XHR_PollingTransport, self).setUp()
-        self.socketIO = SocketIO(HOST, PORT, transports=['xhr-polling'])
-        self.wait_time_in_seconds = TIMEOUT_IN_SECONDS + 1
-
-
-class Test_JSONP_PollingTransport(TestCase, BaseMixin):
-
-    def setUp(self):
-        super(Test_JSONP_PollingTransport, self).setUp()
-        self.socketIO = SocketIO(HOST, PORT, transports=['jsonp-polling'])
-        self.wait_time_in_seconds = TIMEOUT_IN_SECONDS + 1
+        self.socketIO = SocketIO(HOST, PORT, LoggingNamespace, transports=[
+            'xhr-polling'])
+        self.wait_time_in_seconds = 1
 
 
 class Namespace(LoggingNamespace):
 
     def initialize(self):
-        self.response = None
-        self.args_by_event = {}
         self.called_on_disconnect = False
+        self.args_by_event = {}
+        self.response = None
 
     def on_disconnect(self):
         self.called_on_disconnect = True
 
-    def on_message(self, data):
-        self.response = data
+    def on_wait_with_disconnect_response(self):
+        self.disconnect()
 
     def on_event(self, event, *args):
         callback, args = find_callback(args)
@@ -221,5 +182,5 @@ class Namespace(LoggingNamespace):
             callback(*args)
         self.args_by_event[event] = args
 
-    def on_wait_with_disconnect_response(self):
-        self.disconnect()
+    def on_message(self, data):
+        self.response = data
