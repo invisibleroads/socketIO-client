@@ -1,5 +1,3 @@
-Release 0.6.1 #41 #52
-    Merge sarietta's pull request
 Add Websocket transport
     Update proxy to include websocket depending on argument
     Use prepared request to get headers from http_session
