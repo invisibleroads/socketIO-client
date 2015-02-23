@@ -16,18 +16,12 @@ class AbstractTransport(object):
         self.is_secure = is_secure
         self.url = url
         self.engineIO_session = engineIO_session
-        self.engineIO_packets = []
 
     def recv_packet(self):
-        while self.engineIO_packets:
-            yield self.engineIO_packets.pop(0)
+        pass
 
     def send_packet(self, engineIO_packet_type, engineIO_packet_data):
         pass
-
-    def queue_packet(self, engineIO_packet):
-        print 'queue_packet %s' % str(engineIO_packet)
-        self.engineIO_packets.append(engineIO_packet)
 
 
 class XHR_PollingTransport(AbstractTransport):
@@ -53,8 +47,6 @@ class XHR_PollingTransport(AbstractTransport):
             self.kw_post = {}
 
     def recv_packet(self):
-        for engineIO_packet in super(XHR_PollingTransport, self).recv_packet():
-            yield engineIO_packet
         params = dict(self.params)
         params['t'] = self._get_timestamp()
         response = get_response(

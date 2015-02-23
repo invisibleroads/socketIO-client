@@ -21,7 +21,7 @@ LoggingNamespace = LoggingSocketIONamespace
 class EngineIO(LoggingMixin):
 
     def __init__(
-            self, host, port=None, Namespace=None,
+            self, host, port=None, Namespace=EngineIONamespace,
             wait_for_connection=True, transports=TRANSPORTS,
             resource='engine.io', **kw):
         self._is_secure, self._url = parse_host(host, port, resource)
@@ -30,32 +30,29 @@ class EngineIO(LoggingMixin):
         self._http_session = prepare_http_session(kw)
         self._log_name = self._url
         self._wants_to_close = False
+        self._connected = False
         if Namespace:
             self.define(Namespace)
+        # self._transport
 
     # Connect
 
     @property
-    def connected(self):
-        try:
-            return self._connected
-        except AttributeError:
-            return False
-
-    @property
     def _transport(self):
-        try:
-            if self.connected:
-                return self._transport_instance
-        except AttributeError:
-            pass
+        print 't1'
+        if self._connected:
+            return self._transport_instance
+        print 't2'
         self._engineIO_session = self._get_engineIO_session()
+        print 't3'
         self._transport_instance = self._negotiate_transport()
+        print 't4'
         self._connect_namespaces()
+        print 't5'
         self._connected = True
-        for engineIO_packet in self._transport_instance.recv_packet():
-            self._transport_instance.queue_packet(engineIO_packet)
+        print 't6 starting heartbeat'
         self._reset_heartbeat()
+        print 't7'
         return self._transport_instance
 
     def _get_engineIO_session(self):
@@ -144,7 +141,7 @@ class EngineIO(LoggingMixin):
 
     def _close(self):
         self._wants_to_close = True
-        if not self.connected:
+        if not self._connected:
             return
         engineIO_packet_type = 1
         self._transport.send_packet(engineIO_packet_type, '')
@@ -274,7 +271,7 @@ class SocketIO(EngineIO):
     """
 
     def __init__(
-            self, host, port=None, Namespace=None,
+            self, host, port=None, Namespace=SocketIONamespace,
             wait_for_connection=True, transports=TRANSPORTS,
             resource='socket.io', **kw):
         self._namespace_by_path = {}
@@ -329,7 +326,7 @@ class SocketIO(EngineIO):
         self._message(str(socketIO_packet_type) + socketIO_packet_data)
 
     def disconnect(self, path=''):
-        if not self.connected:
+        if not self._connected:
             return
         if path:
             socketIO_packet_type = 1
@@ -351,10 +348,11 @@ class SocketIO(EngineIO):
         print 'z3'
         ack_id = self._set_ack_callback(callback) if callback else None
         print 'z4'
+        args = [event] + list(args)
         socketIO_packet_type = 2
-        print 'z5'
+        print 'z5 path=%s ack_id=%s args=%s' % (path, ack_id, str(args))
         socketIO_packet_data = format_socketIO_packet_data(path, ack_id, args)
-        print 'z6'
+        print 'z6 emitting %s' % str(socketIO_packet_data)
         self._message(str(socketIO_packet_type) + socketIO_packet_data)
         print 'z7'
 
