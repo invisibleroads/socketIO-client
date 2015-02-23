@@ -74,7 +74,7 @@ class SocketIONamespace(EngineIONamespace):
         self._io.disconnect(self.path)
 
     def emit(self, event, *args, **kw):
-        self._io.emit(event, *args, **kw)
+        self._io.emit(event, path=self.path, *args, **kw)
 
     def send(self, data='', callback=None):
         self._io.send(data, callback)

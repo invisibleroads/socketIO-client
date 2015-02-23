@@ -337,11 +337,12 @@ class SocketIO(EngineIO):
         socketIO_packet_data = format_socketIO_packet_data(path, ack_id, args)
         self._message(str(socketIO_packet_type) + socketIO_packet_data)
 
-    def send(self, data='', callback=None):
+    def send(self, data='', callback=None, **kw):
+        path = kw.get('path', '')
         args = [data]
         if callback:
             args.append(callback)
-        self.emit('message', *args)
+        self.emit('message', *args, path=path)
 
     def _ack(self, path, ack_id, *args):
         socketIO_packet_type = 3
