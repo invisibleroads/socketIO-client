@@ -39,7 +39,9 @@ class BaseMixin(object):
     def test_emit(self):
         'Emit'
         namespace = self.socketIO.define(Namespace)
+        print 'a'
         self.socketIO.emit('emit')
+        print 'b'
         self.socketIO.wait(self.wait_time_in_seconds)
         self.assertEqual(namespace.args_by_event, {
             'emit_response': (),
@@ -169,21 +171,26 @@ class Test_XHR_PollingTransport(BaseMixin, TestCase):
 class Namespace(LoggingNamespace):
 
     def initialize(self):
+        print('xxx initialize')
         self.called_on_disconnect = False
         self.args_by_event = {}
         self.response = None
 
     def on_disconnect(self):
+        print('xxx on_disconnect')
         self.called_on_disconnect = True
 
     def on_wait_with_disconnect_response(self):
+        print('xxx on_wait_with_disconnect_response')
         self.disconnect()
 
     def on_event(self, event, *args):
+        print('xxx on_event')
         callback, args = find_callback(args)
         if callback:
             callback(*args)
         self.args_by_event[event] = args
 
     def on_message(self, data):
+        print('xxx on_message')
         self.response = data

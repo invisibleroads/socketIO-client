@@ -50,9 +50,11 @@ class EngineIO(LoggingMixin):
         except AttributeError:
             pass
         self._engineIO_session = self._get_engineIO_session()
-        self._negotiate_transport()
+        self._transport_instance = self._negotiate_transport()
         self._connect_namespaces()
         self._connected = True
+        for engineIO_packet in self._transport_instance.recv_packet():
+            self._transport_instance.queue_packet(engineIO_packet)
         self._reset_heartbeat()
         return self._transport_instance
 
@@ -74,9 +76,8 @@ class EngineIO(LoggingMixin):
         return parse_engineIO_session(engineIO_packet_data)
 
     def _negotiate_transport(self):
-        transport_name = 'xhr-polling'
-        self._transport_instance = self._get_transport(transport_name)
-        self._transport_name = transport_name
+        self._transport_name = 'xhr-polling'
+        return self._get_transport(self._transport_name)
 
     def _reset_heartbeat(self):
         try:
@@ -158,6 +159,7 @@ class EngineIO(LoggingMixin):
         self._transport.send_packet(engineIO_packet_type, engineIO_packet_data)
 
     def _message(self, engineIO_packet_data):
+        print('_message %s' % str(engineIO_packet_data))
         engineIO_packet_type = 4
         self._transport.send_packet(engineIO_packet_type, engineIO_packet_data)
 
@@ -208,6 +210,7 @@ class EngineIO(LoggingMixin):
 
     def _process_packet(self, packet):
         engineIO_packet_type, engineIO_packet_data = packet
+        print 'engineIO_packet_data=%s' % engineIO_packet_data
         # Launch callbacks
         namespace = self.get_namespace()
         try:
@@ -224,6 +227,8 @@ class EngineIO(LoggingMixin):
             raise PacketError(
                 'unexpected engine.io packet type (%s)' % engineIO_packet_type)
         delegate(engineIO_packet_data, namespace._find_packet_callback)
+        print '*** in engine.io, engineIO_packet_type=%s' % engineIO_packet_type
+        print '*** in engine.io, engineIO_packet_data=%s' % engineIO_packet_data
         if engineIO_packet_type is 4:
             return engineIO_packet_data
 
@@ -339,12 +344,19 @@ class SocketIO(EngineIO):
             pass
 
     def emit(self, event, *args, **kw):
+        print 'z1'
         path = kw.get('path', '')
+        print 'z2'
         callback, args = find_callback(args, kw)
+        print 'z3'
         ack_id = self._set_ack_callback(callback) if callback else None
+        print 'z4'
         socketIO_packet_type = 2
+        print 'z5'
         socketIO_packet_data = format_socketIO_packet_data(path, ack_id, args)
+        print 'z6'
         self._message(str(socketIO_packet_type) + socketIO_packet_data)
+        print 'z7'
 
     def send(self, data='', callback=None):
         args = [data]
@@ -372,6 +384,7 @@ class SocketIO(EngineIO):
 
     def _process_packet(self, packet):
         engineIO_packet_data = super(SocketIO, self)._process_packet(packet)
+        print '*** in socket.io, engineIO_packet_data=%s' % engineIO_packet_data
         if engineIO_packet_data is None:
             return
         socketIO_packet_type = int(get_character(engineIO_packet_data, 0))

@@ -16,12 +16,18 @@ class AbstractTransport(object):
         self.is_secure = is_secure
         self.url = url
         self.engineIO_session = engineIO_session
+        self.engineIO_packets = []
 
     def recv_packet(self):
-        pass
+        while self.engineIO_packets:
+            yield self.engineIO_packets.pop(0)
 
     def send_packet(self, engineIO_packet_type, engineIO_packet_data):
         pass
+
+    def queue_packet(self, engineIO_packet):
+        print 'queue_packet %s' % str(engineIO_packet)
+        self.engineIO_packets.append(engineIO_packet)
 
 
 class XHR_PollingTransport(AbstractTransport):
@@ -47,18 +53,21 @@ class XHR_PollingTransport(AbstractTransport):
             self.kw_post = {}
 
     def recv_packet(self):
+        for engineIO_packet in super(XHR_PollingTransport, self).recv_packet():
+            yield engineIO_packet
         params = dict(self.params)
-        params['t'] = self.get_timestamp()
+        params['t'] = self._get_timestamp()
         response = get_response(
             self.http_session.get,
             self.http_url,
             params=params,
             **self.kw_get)
-        return decode_engineIO_content(response.content)
+        for engineIO_packet in decode_engineIO_content(response.content):
+            yield engineIO_packet
 
     def send_packet(self, engineIO_packet_type, engineIO_packet_data):
         params = dict(self.params)
-        params['t'] = self.get_timestamp()
+        params['t'] = self._get_timestamp()
         response = get_response(
             self.http_session.post,
             self.http_url,
@@ -69,7 +78,7 @@ class XHR_PollingTransport(AbstractTransport):
             **self.kw_post)
         assert response.content == 'ok'
 
-    def get_timestamp(self):
+    def _get_timestamp(self):
         timestamp = '%s-%s' % (int(time.time() * 1000), self.request_index)
         self.request_index += 1
         return timestamp
