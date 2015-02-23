@@ -33,7 +33,8 @@ Activate isolated environment. ::
 Launch your socket.io server. ::
 
     # Get package folder
-    PACKAGE_FOLDER=`python -c "import os, socketIO_client; print(os.path.dirname(socketIO_client.__file__))"`
+    PACKAGE_FOLDER=`python -c "import os, socketIO_client;\
+        print(os.path.dirname(socketIO_client.__file__))"`
     # Start socket.io server
     DEBUG=* node $PACKAGE_FOLDER/tests/serve.js
     # Start proxy server in a separate terminal on the same machine
@@ -156,7 +157,7 @@ This software is available under the MIT License.
 
 Credits
 -------
-- `Guillermo Rauch <https://github.com/rauchg>`_ wrote the `socket.io specification <https://github.com/LearnBoost/socket.io-spec>`_.
+- `Guillermo Rauch <https://github.com/rauchg>`_ wrote the `socket.io specification <https://github.com/automattic/socket.io-protocol>`_.
 - `Hiroki Ohtani <https://github.com/liris>`_ wrote `websocket-client <https://github.com/liris/websocket-client>`_.
 - `rod <http://stackoverflow.com/users/370115/rod>`_ wrote a `prototype for a Python client to a socket.io server <http://stackoverflow.com/questions/6692908/formatting-messages-to-send-to-socket-io-node-js-server-from-python-client>`_.
 - `Alexandre Bourget <https://github.com/abourget>`_ wrote `gevent-socketio <https://github.com/abourget/gevent-socketio>`_, which is a socket.io server written in Python.
