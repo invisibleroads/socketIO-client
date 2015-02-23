@@ -138,7 +138,7 @@ class BaseMixin(object):
         })
 
     def test_namespace_ack(self):
-        'Trigger server callback'
+        'Respond to a server callback request within a namespace'
         chat_namespace = self.socketIO.define(Namespace, '/chat')
         chat_namespace.emit('trigger_server_expects_callback', PAYLOAD)
         self.socketIO.wait(self.wait_time_in_seconds)

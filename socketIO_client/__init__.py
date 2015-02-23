@@ -23,10 +23,11 @@ class EngineIO(LoggingMixin):
     def __init__(
             self, host, port=None, Namespace=EngineIONamespace,
             wait_for_connection=True, transports=TRANSPORTS,
-            resource='engine.io', **kw):
+            resource='engine.io', hurry_interval_in_seconds=1, **kw):
         self._is_secure, self._url = parse_host(host, port, resource)
         self._wait_for_connection = wait_for_connection
         self._client_transports = transports
+        self._hurry_interval_in_seconds = hurry_interval_in_seconds
         self._http_session = prepare_http_session(kw)
         self._log_name = self._url
         self._wants_to_close = False
@@ -74,12 +75,14 @@ class EngineIO(LoggingMixin):
         except AttributeError:
             pass
         ping_interval = self._engineIO_session.ping_interval
+        if self._transport_name.endswith('-polling'):
+            hurry_interval_in_seconds = self._hurry_interval_in_seconds
+        else:
+            hurry_interval_in_seconds = ping_interval
         self._heartbeat_thread = HeartbeatThread(
             send_heartbeat=self._ping,
             relax_interval_in_seconds=ping_interval,
-            hurry_interval_in_seconds=1 if self._transport_name in [
-                'xhr-polling',
-            ] else ping_interval)
+            hurry_interval_in_seconds=hurry_interval_in_seconds)
         self._heartbeat_thread.start()
 
     def _connect_namespaces(self):
@@ -261,13 +264,13 @@ class SocketIO(EngineIO):
     def __init__(
             self, host, port=None, Namespace=SocketIONamespace,
             wait_for_connection=True, transports=TRANSPORTS,
-            resource='socket.io', **kw):
+            resource='socket.io', hurry_interval_in_seconds=1, **kw):
         self._namespace_by_path = {}
         self._callback_by_ack_id = {}
         self._ack_id = 0
         super(SocketIO, self).__init__(
             host, port, Namespace, wait_for_connection, transports,
-            resource, **kw)
+            resource, hurry_interval_in_seconds, **kw)
 
     # Connect
 
@@ -400,7 +403,7 @@ class SocketIO(EngineIO):
             event = args.pop(0)
         except IndexError:
             raise PacketError('missing event name')
-        if data_parsed.ack_id:
+        if data_parsed.ack_id is not None:
             args.append(self._prepare_to_send_ack(
                 data_parsed.path, data_parsed.ack_id))
         find_packet_callback(event)(*args)
