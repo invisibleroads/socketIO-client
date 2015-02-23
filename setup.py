@@ -15,7 +15,7 @@ DESCRIPTION = '\n\n'.join(open(join(HERE, _)).read() for _ in [
     'CHANGES.rst',
 ])
 setup(
-    name='socketIO-client',
+    name='socketIO_client',
     version='0.6.1',
     description='A socket.io client library',
     long_description=DESCRIPTION,
