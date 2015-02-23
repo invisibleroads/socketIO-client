@@ -24,13 +24,14 @@ class BaseMixin(object):
 
     def test_disconnect(self):
         'Disconnect'
-        self.socketIO.define(LoggingNamespace)
+        self.socketIO.emit('whee')
         self.assertTrue(self.socketIO.connected)
         self.socketIO.disconnect()
         self.assertFalse(self.socketIO.connected)
         # Use context manager
         with SocketIO(HOST, PORT, Namespace) as self.socketIO:
             namespace = self.socketIO.get_namespace()
+            namespace.emit('whee')
             self.assertFalse(namespace.called_on_disconnect)
             self.assertTrue(self.socketIO.connected)
         self.assertTrue(namespace.called_on_disconnect)
@@ -65,14 +66,12 @@ class BaseMixin(object):
 
     def test_emit_with_callback(self):
         'Emit with callback'
-        self.socketIO.define(LoggingNamespace)
         self.socketIO.emit('emit_with_callback', self.on_response)
         self.socketIO.wait_for_callbacks(seconds=self.wait_time_in_seconds)
         self.assertTrue(self.called_on_response)
 
     def test_emit_with_callback_with_payload(self):
         'Emit with callback with payload'
-        self.socketIO.define(LoggingNamespace)
         self.socketIO.emit(
             'emit_with_callback_with_payload', self.on_response)
         self.socketIO.wait_for_callbacks(seconds=self.wait_time_in_seconds)
@@ -80,7 +79,6 @@ class BaseMixin(object):
 
     def test_emit_with_callback_with_multiple_payloads(self):
         'Emit with callback with multiple payloads'
-        self.socketIO.define(LoggingNamespace)
         self.socketIO.emit(
             'emit_with_callback_with_multiple_payloads', self.on_response)
         self.socketIO.wait_for_callbacks(seconds=self.wait_time_in_seconds)
@@ -162,7 +160,8 @@ class Test_XHR_PollingTransport(BaseMixin, TestCase):
 
     def setUp(self):
         super(Test_XHR_PollingTransport, self).setUp()
-        self.socketIO = SocketIO(HOST, PORT, transports=['xhr-polling'])
+        self.socketIO = SocketIO(HOST, PORT, LoggingNamespace, transports=[
+            'xhr-polling'])
         self.wait_time_in_seconds = 1
 
 

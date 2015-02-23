@@ -30,21 +30,20 @@ class EngineIO(LoggingMixin):
         self._http_session = prepare_http_session(kw)
         self._log_name = self._url
         self._wants_to_close = False
-        self._connected = False
+        self.connected = False
         if Namespace:
             self.define(Namespace)
-        # self._transport
 
     # Connect
 
     @property
     def _transport(self):
-        if self._connected:
+        if self.connected:
             return self._transport_instance
         self._engineIO_session = self._get_engineIO_session()
         self._transport_instance = self._negotiate_transport()
         self._connect_namespaces()
-        self._connected = True
+        self.connected = True
         self._reset_heartbeat()
         return self._transport_instance
 
@@ -134,11 +133,11 @@ class EngineIO(LoggingMixin):
 
     def _close(self):
         self._wants_to_close = True
-        if not self._connected:
+        if not self.connected:
             return
         engineIO_packet_type = 1
         self._transport.send_packet(engineIO_packet_type, '')
-        self._connected = False
+        self.connected = False
 
     def _ping(self, engineIO_packet_data=''):
         engineIO_packet_type = 2
@@ -315,7 +314,7 @@ class SocketIO(EngineIO):
         self._message(str(socketIO_packet_type) + socketIO_packet_data)
 
     def disconnect(self, path=''):
-        if not self._connected:
+        if not self.connected:
             return
         if path:
             socketIO_packet_type = 1
