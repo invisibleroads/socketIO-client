@@ -59,7 +59,6 @@ def format_socketIO_packet_data(path=None, ack_id=None, args=None):
         socketIO_packet_data = str(ack_id) + socketIO_packet_data
     if path:
         socketIO_packet_data = path + ',' + socketIO_packet_data
-    print 'format_socketIO_packet_data = %s' % socketIO_packet_data
     return socketIO_packet_data
 
 
