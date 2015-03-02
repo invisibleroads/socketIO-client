@@ -1,6 +1,9 @@
 .. image:: https://travis-ci.org/invisibleroads/socketIO-client.svg?branch=master
     :target: https://travis-ci.org/invisibleroads/socketIO-client
 
+.. image:: https://www.bountysource.com/badge/tracker?tracker_id=388415
+    :target: https://www.bountysource.com/trackers/388415-invisibleroads-socketio-client?utm_source=388415&utm_medium=shield&utm_campaign=TRACKER_BADGE
+
 
 socketIO-client
 ===============
