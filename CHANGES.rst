@@ -1,4 +1,4 @@
-0.6.2
+0.6.3
 -----
 - Upgraded to socket.io protocol 1.x for websocket transport
 - Added locks to fix concurrency issues with polling transport

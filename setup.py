@@ -16,7 +16,7 @@ DESCRIPTION = '\n\n'.join(open(join(HERE, _)).read() for _ in [
 ])
 setup(
     name='socketIO_client',
-    version='0.6.1',
+    version='0.6.3',
     description='A socket.io client library',
     long_description=DESCRIPTION,
     license='MIT',
