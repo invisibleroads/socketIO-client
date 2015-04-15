@@ -2,6 +2,7 @@
 -----
 - Upgraded to socket.io protocol 1.x for websocket transport
 - Added locks to fix concurrency issues with polling transport
+- Fixed SSL support
 
 0.6.1
 -----
