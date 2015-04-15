@@ -146,7 +146,7 @@ class WebsocketTransport(AbstractTransport):
         except websocket.WebSocketTimeoutException as e:
             raise TimeoutError('recv timed out (%s)' % e)
         except websocket.SSLError as e:
-            raise ConnectionError('recv disconnected by ssl (%s)' % e)
+            raise ConnectionError('recv disconnected by SSL (%s)' % e)
         except websocket.WebSocketConnectionClosedException as e:
             raise ConnectionError('recv disconnected (%s)' % e)
         except socket.error as e:
