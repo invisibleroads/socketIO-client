@@ -3,6 +3,7 @@ import six
 import socket
 import ssl
 import sys
+import threading
 import time
 import websocket
 
@@ -54,10 +55,11 @@ class XHR_PollingTransport(AbstractTransport):
             'EIO': ENGINEIO_PROTOCOL, 'transport': 'polling'}
         if engineIO_session:
             self._request_index = 1
-            self._kw_get = dict(timeout=engineIO_session.ping_timeout)
-            self._kw_post = dict(headers={
-                'content-type': 'application/octet-stream',
-            })
+            self._kw_get = dict(
+                timeout=engineIO_session.ping_timeout)
+            self._kw_post = dict(
+                timeout=engineIO_session.ping_timeout,
+                headers={'content-type': 'application/octet-stream'})
             self._params['sid'] = engineIO_session.id
         else:
             self._request_index = 0
@@ -65,6 +67,8 @@ class XHR_PollingTransport(AbstractTransport):
             self._kw_post = {}
         http_scheme = 'https' if is_secure else 'http'
         self._http_url = '%s://%s/' % (http_scheme, url)
+        self._request_index_lock = threading.Lock()
+        self._send_packet_lock = threading.Lock()
 
     def recv_packet(self):
         params = dict(self._params)
@@ -79,21 +83,24 @@ class XHR_PollingTransport(AbstractTransport):
             yield engineIO_packet_type, engineIO_packet_data
 
     def send_packet(self, engineIO_packet_type, engineIO_packet_data=''):
-        params = dict(self._params)
-        params['t'] = self._get_timestamp()
-        response = get_response(
-            self.http_session.post,
-            self._http_url,
-            params=params,
-            data=encode_engineIO_content([
-                (engineIO_packet_type, engineIO_packet_data),
-            ]),
-            **self._kw_post)
-        assert response.content == b'ok'
+        with self._send_packet_lock:
+            params = dict(self._params)
+            params['t'] = self._get_timestamp()
+            response = get_response(
+                self.http_session.post,
+                self._http_url,
+                params=params,
+                data=encode_engineIO_content([
+                    (engineIO_packet_type, engineIO_packet_data),
+                ]),
+                **self._kw_post)
+            assert response.content == b'ok'
 
     def _get_timestamp(self):
-        timestamp = '%s-%s' % (int(time.time() * 1000), self._request_index)
-        self._request_index += 1
+        with self._request_index_lock:
+            timestamp = '%s-%s' % (
+                int(time.time() * 1000), self._request_index)
+            self._request_index += 1
         return timestamp
 
 
@@ -164,7 +171,7 @@ class WebsocketTransport(AbstractTransport):
 
 def get_response(request, *args, **kw):
     try:
-        response = request(*args, **kw)
+        response = request(*args, stream=True, **kw)
     except requests.exceptions.Timeout as e:
         raise TimeoutError(e)
     except requests.exceptions.ConnectionError as e:

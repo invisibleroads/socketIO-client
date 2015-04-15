@@ -1,3 +1,4 @@
+import logging
 from threading import Thread, Event
 
 from .exceptions import ConnectionError, TimeoutError
@@ -22,17 +23,17 @@ class HeartbeatThread(Thread):
     def run(self):
         try:
             while not self._halt.is_set():
+                try:
+                    self._send_heartbeat()
+                except TimeoutError:
+                    pass
                 if self._adrenaline.is_set():
                     interval_in_seconds = self._hurry_interval_in_seconds
                 else:
                     interval_in_seconds = self._relax_interval_in_seconds
                 self._rest.wait(interval_in_seconds)
-                try:
-                    self._send_heartbeat()
-                except TimeoutError:
-                    pass
         except ConnectionError:
-            pass
+            logging.debug('[heartbeat connection error]')
 
     def relax(self):
         self._adrenaline.clear()
@@ -41,6 +42,10 @@ class HeartbeatThread(Thread):
         self._adrenaline.set()
         self._rest.set()
         self._rest.clear()
+
+    @property
+    def hurried(self):
+        return self._adrenaline.is_set()
 
     def halt(self):
         self._rest.set()

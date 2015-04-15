@@ -17,10 +17,11 @@ class BaseMixin(object):
     def setUp(self):
         super(BaseMixin, self).setUp()
         self.called_on_response = False
+        self.wait_time_in_seconds = 1
 
     def tearDown(self):
         super(BaseMixin, self).tearDown()
-        del self.socketIO
+        self.socketIO.disconnect()
 
     def test_disconnect(self):
         'Disconnect'
@@ -161,7 +162,6 @@ class Test_XHR_PollingTransport(BaseMixin, TestCase):
         self.socketIO = SocketIO(HOST, PORT, LoggingNamespace, transports=[
             'xhr-polling'], verify=False)
         self.assertEqual(self.socketIO.transport_name, 'xhr-polling')
-        self.wait_time_in_seconds = 1
 
 
 class Test_WebsocketTransport(BaseMixin, TestCase):
@@ -171,7 +171,6 @@ class Test_WebsocketTransport(BaseMixin, TestCase):
         self.socketIO = SocketIO(HOST, PORT, LoggingNamespace, transports=[
             'xhr-polling', 'websocket'], verify=False)
         self.assertEqual(self.socketIO.transport_name, 'websocket')
-        self.wait_time_in_seconds = 1
 
 
 class Namespace(LoggingNamespace):

@@ -141,31 +141,31 @@ class SocketIONamespace(EngineIONamespace):
 class LoggingEngineIONamespace(EngineIONamespace):
 
     def on_open(self):
-        self._debug('[open]')
+        self._debug('[engine.io open]')
         super(LoggingEngineIONamespace, self).on_open()
 
     def on_close(self):
-        self._debug('[close]')
+        self._debug('[engine.io close]')
         super(LoggingEngineIONamespace, self).on_close()
 
     def on_ping(self, data):
-        self._debug('[ping] %s', data)
+        self._debug('[engine.io ping] %s', data)
         super(LoggingEngineIONamespace, self).on_ping(data)
 
     def on_pong(self, data):
-        self._debug('[pong] %s', data)
+        self._debug('[engine.io pong] %s', data)
         super(LoggingEngineIONamespace, self).on_pong(data)
 
     def on_message(self, data):
-        self._debug('[message] %s', data)
+        self._debug('[engine.io message] %s', data)
         super(LoggingEngineIONamespace, self).on_message(data)
 
     def on_upgrade(self):
-        self._debug('[upgrade]')
+        self._debug('[engine.io upgrade]')
         super(LoggingEngineIONamespace, self).on_upgrade()
 
     def on_noop(self):
-        self._debug('[noop]')
+        self._debug('[engine.io noop]')
         super(LoggingEngineIONamespace, self).on_noop()
 
     def on_event(self, event, *args):
@@ -173,22 +173,25 @@ class LoggingEngineIONamespace(EngineIONamespace):
         arguments = [repr(_) for _ in args]
         if callback:
             arguments.append('callback(*args)')
-        self._info('[event] %s(%s)', event, ', '.join(arguments))
+        self._info('[engine.io event] %s(%s)', event, ', '.join(arguments))
         super(LoggingEngineIONamespace, self).on_event(event, *args)
 
 
-class LoggingSocketIONamespace(SocketIONamespace):
+class LoggingSocketIONamespace(SocketIONamespace, LoggingEngineIONamespace):
 
     def on_connect(self):
-        self._debug('%s[connect]', _make_logging_header(self.path))
+        self._debug(
+            '%s[socket.io connect]', _make_logging_header(self.path))
         super(LoggingSocketIONamespace, self).on_connect()
 
     def on_reconnect(self):
-        self._debug('%s[reconnect]', _make_logging_header(self.path))
+        self._debug(
+            '%s[socket.io reconnect]', _make_logging_header(self.path))
         super(LoggingSocketIONamespace, self).on_reconnect()
 
     def on_disconnect(self):
-        self._debug('%s[disconnect]', _make_logging_header(self.path))
+        self._debug(
+            '%s[socket.io disconnect]', _make_logging_header(self.path))
         super(LoggingSocketIONamespace, self).on_disconnect()
 
     def on_event(self, event, *args):
@@ -197,12 +200,13 @@ class LoggingSocketIONamespace(SocketIONamespace):
         if callback:
             arguments.append('callback(*args)')
         self._info(
-            '%s[event] %s(%s)', _make_logging_header(self.path), event,
-            ', '.join(arguments))
+            '%s[socket.io event] %s(%s)', _make_logging_header(self.path),
+            event, ', '.join(arguments))
         super(LoggingSocketIONamespace, self).on_event(event, *args)
 
     def on_error(self, data):
-        self._debug('%s[error] %s', _make_logging_header(self.path), data)
+        self._debug(
+            '%s[socket.io error] %s', _make_logging_header(self.path), data)
         super(LoggingSocketIONamespace, self).on_error()
 
 
