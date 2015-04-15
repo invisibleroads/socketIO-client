@@ -86,13 +86,14 @@ class XHR_PollingTransport(AbstractTransport):
         with self._send_packet_lock:
             params = dict(self._params)
             params['t'] = self._get_timestamp()
+            data = encode_engineIO_content([
+                (engineIO_packet_type, engineIO_packet_data),
+            ])
             response = get_response(
                 self.http_session.post,
                 self._http_url,
                 params=params,
-                data=encode_engineIO_content([
-                    (engineIO_packet_type, engineIO_packet_data),
-                ]),
+                data=memoryview(data),
                 **self._kw_post)
             assert response.content == b'ok'
 
@@ -145,7 +146,7 @@ class WebsocketTransport(AbstractTransport):
         except websocket.WebSocketTimeoutException as e:
             raise TimeoutError('recv timed out (%s)' % e)
         except websocket.SSLError as e:
-            raise ConnectionError('recv disconnected (%s)' % e)
+            raise ConnectionError('recv disconnected by ssl (%s)' % e)
         except websocket.WebSocketConnectionClosedException as e:
             raise ConnectionError('recv disconnected (%s)' % e)
         except socket.error as e:

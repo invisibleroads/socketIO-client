@@ -1,5 +1,3 @@
-Fix https tests for xhr-polling
-Fix https tests for websocket
 Implement rooms #65
 Implement binary event
 Implement binary ack

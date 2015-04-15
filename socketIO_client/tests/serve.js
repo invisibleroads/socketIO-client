@@ -3,9 +3,10 @@
 var argv = require('yargs').argv;
 if (argv.secure) {
   var fs = require('fs');
+  var path = require('path');
   var app = require('https').createServer({
-    key: fs.readFileSync('ssl.key'),
-    cert: fs.readFileSync('ssl.crt')
+    key: fs.readFileSync(path.resolve(__dirname, 'ssl.key')),
+    cert: fs.readFileSync(path.resolve(__dirname, 'ssl.crt'))
   }, serve);
 } else {
   var app = require('http').createServer(serve);

@@ -10,6 +10,7 @@ PORT = 9000
 DATA = 'xxx'
 PAYLOAD = {'xxx': 'yyy'}
 logging.basicConfig(level=logging.DEBUG)
+logging.captureWarnings(True)
 
 
 class BaseMixin(object):
@@ -25,14 +26,10 @@ class BaseMixin(object):
 
     def test_disconnect(self):
         'Disconnect'
+        namespace = self.socketIO.define(Namespace)
         self.assertTrue(self.socketIO.connected)
+        self.assertFalse(namespace.called_on_disconnect)
         self.socketIO.disconnect()
-        self.assertFalse(self.socketIO.connected)
-        # Use context manager
-        with SocketIO(HOST, PORT, Namespace) as self.socketIO:
-            namespace = self.socketIO.get_namespace()
-            self.assertFalse(namespace.called_on_disconnect)
-            self.assertTrue(self.socketIO.connected)
         self.assertTrue(namespace.called_on_disconnect)
         self.assertFalse(self.socketIO.connected)
 
