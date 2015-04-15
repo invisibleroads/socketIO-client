@@ -7,6 +7,10 @@ try:
     from urlparse import urlparse as parse_url
 except ImportError:
     from urllib.parse import urlparse as parse_url
+try:
+    memoryview = memoryview
+except NameError:
+    memoryview = buffer
 
 
 def get_character(x, index):
