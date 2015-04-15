@@ -41,6 +41,9 @@ class AbstractTransport(object):
     def send_packet(self, engineIO_packet_type, engineIO_packet_data=''):
         pass
 
+    def set_timeout(self, seconds=None):
+        pass
+
 
 class XHR_PollingTransport(AbstractTransport):
 
@@ -105,7 +108,7 @@ class WebsocketTransport(AbstractTransport):
         kw = {'header': ['%s: %s' % x for x in request.headers.items()]}
         if engineIO_session:
             params['sid'] = engineIO_session.id
-            kw['timeout'] = engineIO_session.ping_timeout
+            kw['timeout'] = self._timeout = engineIO_session.ping_timeout
         ws_url = '%s://%s/?%s' % (
             'wss' if is_secure else 'ws', url, format_query(params))
         http_scheme = 'https' if is_secure else 'http'
@@ -155,6 +158,9 @@ class WebsocketTransport(AbstractTransport):
         except websocket.WebSocketConnectionClosedException as e:
             raise ConnectionError('send disconnected (%s)' % e)
 
+    def set_timeout(self, seconds=None):
+        self._connection.settimeout(seconds or self._timeout)
+
 
 def get_response(request, *args, **kw):
     try:
@@ -167,7 +173,8 @@ def get_response(request, *args, **kw):
         raise ConnectionError('could not negotiate SSL (%s)' % e)
     status_code = response.status_code
     if 200 != status_code:
-        raise ConnectionError('unexpected status code (%s)' % status_code)
+        raise ConnectionError('unexpected status code (%s %s)' % (
+            status_code, response.text))
     return response
 
 

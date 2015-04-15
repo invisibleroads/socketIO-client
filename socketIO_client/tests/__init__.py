@@ -116,7 +116,7 @@ class BaseMixin(object):
     def test_wait_with_disconnect(self):
         'Exit loop when the client wants to disconnect'
         self.socketIO.define(Namespace)
-        self.socketIO.emit('wait_with_disconnect')
+        self.socketIO.disconnect()
         timeout_in_seconds = 5
         start_time = time.time()
         self.socketIO.wait(timeout_in_seconds)
@@ -171,7 +171,7 @@ class Test_WebsocketTransport(BaseMixin, TestCase):
         self.socketIO = SocketIO(HOST, PORT, LoggingNamespace, transports=[
             'xhr-polling', 'websocket'], verify=False)
         self.assertEqual(self.socketIO.transport_name, 'websocket')
-        self.wait_time_in_seconds = 0.1
+        self.wait_time_in_seconds = 1
 
 
 class Namespace(LoggingNamespace):

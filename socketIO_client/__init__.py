@@ -103,12 +103,18 @@ class EngineIO(LoggingMixin):
         except AttributeError:
             pass
         ping_interval = self._engineIO_session.ping_interval
-        hurry_interval_in_seconds = self._hurry_interval_in_seconds
+        if self.transport_name.endswith('-polling'):
+            # Use ping/pong to unblock recv for polling transport
+            hurry_interval_in_seconds = self._hurry_interval_in_seconds
+        else:
+            # Use timeout to unblock recv for websocket transport
+            hurry_interval_in_seconds = ping_interval
         self._heartbeat_thread = HeartbeatThread(
             send_heartbeat=self._ping,
             relax_interval_in_seconds=ping_interval,
             hurry_interval_in_seconds=hurry_interval_in_seconds)
         self._heartbeat_thread.start()
+        self._debug('[heartbeat reset]')
 
     def _connect_namespaces(self):
         pass
@@ -202,7 +208,11 @@ class EngineIO(LoggingMixin):
 
     def wait(self, seconds=None, **kw):
         'Wait in a loop and react to events as defined in the namespaces'
+        # Use ping/pong to unblock recv for polling transport
         self._heartbeat_thread.hurry()
+        # Use timeout to unblock recv for websocket transport
+        self._transport.set_timeout(seconds)
+        # Listen
         warning_screen = self._yield_warning_screen(seconds)
         for elapsed_time in warning_screen:
             if self._should_stop_waiting(**kw):
@@ -224,6 +234,7 @@ class EngineIO(LoggingMixin):
                 except PacketError:
                     pass
         self._heartbeat_thread.relax()
+        self._transport.set_timeout()
 
     def _should_stop_waiting(self):
         return self._wants_to_close

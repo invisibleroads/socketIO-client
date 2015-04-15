@@ -33,6 +33,10 @@ def _yield_elapsed_time(seconds=None):
     start_time = time.time()
     if seconds is None:
         while True:
-            yield time.time() - start_time
-    while time.time() - start_time < seconds:
-        yield time.time() - start_time
+            yield _get_elapsed_time(start_time)
+    while _get_elapsed_time(start_time) < seconds:
+        yield _get_elapsed_time(start_time)
+
+
+def _get_elapsed_time(start_time):
+    return time.time() - start_time
