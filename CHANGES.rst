@@ -1,3 +1,8 @@
+0.6.2
+-----
+- Upgraded to socket.io protocol 1.x for websocket transport
+- Added locks to fix concurrency issues with polling transport
+
 0.6.1
 -----
 - Upgraded to socket.io protocol 1.x thanks to Sean Arietta and Joe Palmer
