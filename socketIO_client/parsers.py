@@ -32,8 +32,8 @@ def parse_engineIO_session(engineIO_packet_data):
 def encode_engineIO_content(engineIO_packets):
     content = bytearray()
     for packet_type, packet_data in engineIO_packets:
-        packet_string = encode_string(str(packet_type) + packet_data)
-        content.extend(_make_packet_header(packet_string) + packet_string)
+        packet_text = format_packet_text(packet_type, packet_data)
+        content.extend(_make_packet_prefix(packet_text) + packet_text)
     return content
 
 
@@ -46,10 +46,10 @@ def decode_engineIO_content(content):
                 content, content_index)
         except IndexError:
             break
-        content_index, packet_string = _read_packet_string(
+        content_index, packet_text = _read_packet_text(
             content, content_index, packet_length)
-        engineIO_packet_type = int(get_character(packet_string, 0))
-        engineIO_packet_data = packet_string[1:]
+        engineIO_packet_type, engineIO_packet_data = parse_packet_text(
+            packet_text)
         yield engineIO_packet_type, engineIO_packet_data
 
 
@@ -85,6 +85,16 @@ def parse_socketIO_packet_data(socketIO_packet_data):
     return SocketIOData(path=path, ack_id=ack_id, args=args)
 
 
+def format_packet_text(packet_type, packet_data):
+    return encode_string(str(packet_type) + packet_data)
+
+
+def parse_packet_text(packet_text):
+    packet_type = int(get_character(packet_text, 0))
+    packet_data = packet_text[1:]
+    return packet_type, packet_data
+
+
 def get_namespace_path(socketIO_packet_data):
     if not socketIO_packet_data.startswith(b'/'):
         return ''
@@ -98,8 +108,8 @@ def get_namespace_path(socketIO_packet_data):
     return ''.join(parts)
 
 
-def _make_packet_header(packet_string):
-    length_string = str(len(packet_string))
+def _make_packet_prefix(packet):
+    length_string = str(len(packet))
     header_digits = bytearray([0])
     for i in range(len(length_string)):
         header_digits.append(ord(length_string[i]) - 48)
@@ -120,8 +130,8 @@ def _read_packet_length(content, content_index):
     return content_index, int(packet_length_string)
 
 
-def _read_packet_string(content, content_index, packet_length):
+def _read_packet_text(content, content_index, packet_length):
     while get_byte(content, content_index) == 255:
         content_index += 1
-    packet_string = content[content_index:content_index + packet_length]
-    return content_index + packet_length, packet_string
+    packet_text = content[content_index:content_index + packet_length]
+    return content_index + packet_length, packet_text

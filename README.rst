@@ -1,9 +1,6 @@
 .. image:: https://travis-ci.org/invisibleroads/socketIO-client.svg?branch=master
     :target: https://travis-ci.org/invisibleroads/socketIO-client
 
-.. image:: https://www.bountysource.com/badge/tracker?tracker_id=388415
-    :target: https://www.bountysource.com/trackers/388415-invisibleroads-socketio-client?utm_source=388415&utm_medium=shield&utm_campaign=TRACKER_BADGE
-
 
 socketIO-client
 ===============
@@ -139,7 +136,8 @@ Specify params, headers, cookies, proxies thanks to the `requests <http://python
     from socketIO_client import SocketIO
     from base64 import b64encode
 
-    SocketIO('localhost', 8000,
+    SocketIO(
+        localhost', 8000,
         params={'q': 'qqq'},
         headers={'Authorization': 'Basic ' + b64encode('username:password')},
         cookies={'a': 'aaa'},

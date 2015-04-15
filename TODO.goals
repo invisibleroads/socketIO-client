@@ -1,9 +1,5 @@
-Add Websocket transport
-    Update proxy to include websocket depending on argument
-    Use prepared request to get headers from http_session
-    Include https://github.com/invisibleroads/socketIO-client/issues/68
-Add test for on_reconnect using sarietta's bash scripts
-Consider logging packets sent and received
+Fix https tests for xhr-polling
+Fix https tests for websocket
 Implement rooms #65
 Implement binary event
 Implement binary ack

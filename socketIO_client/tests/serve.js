@@ -1,8 +1,18 @@
 // DEBUG=* node serve.js
 
-var app = require('http').createServer(serve).listen(9000);
+var argv = require('yargs').argv;
+if (argv.secure) {
+  var fs = require('fs');
+  var app = require('https').createServer({
+    key: fs.readFileSync('ssl.key'),
+    cert: fs.readFileSync('ssl.crt')
+  }, serve);
+} else {
+  var app = require('http').createServer(serve);
+}
+app.listen(9000);
+
 var io = require('socket.io')(app);
-var fs = require('fs');
 var PAYLOAD = {'xxx': 'yyy'};
 
 io.on('connection', function(socket) {

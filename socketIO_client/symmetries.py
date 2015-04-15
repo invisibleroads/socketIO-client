@@ -1,16 +1,20 @@
 import six
 try:
-    from urllib.parse import urlparse as parse_url
+    from urllib import urlencode as format_query
 except ImportError:
+    from urllib.parse import urlencode as format_query
+try:
     from urlparse import urlparse as parse_url
+except ImportError:
+    from urllib.parse import urlparse as parse_url
+
+
+def get_character(x, index):
+    return chr(get_byte(x, index))
 
 
 def get_byte(x, index):
     return six.indexbytes(x, index)
-
-
-def get_character(x, index):
-    return chr(six.indexbytes(x, index))
 
 
 def encode_string(x):

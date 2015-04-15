@@ -22,15 +22,15 @@ class HeartbeatThread(Thread):
     def run(self):
         try:
             while not self._halt.is_set():
-                try:
-                    self._send_heartbeat()
-                except TimeoutError:
-                    pass
                 if self._adrenaline.is_set():
                     interval_in_seconds = self._hurry_interval_in_seconds
                 else:
                     interval_in_seconds = self._relax_interval_in_seconds
                 self._rest.wait(interval_in_seconds)
+                try:
+                    self._send_heartbeat()
+                except TimeoutError:
+                    pass
         except ConnectionError:
             pass
 

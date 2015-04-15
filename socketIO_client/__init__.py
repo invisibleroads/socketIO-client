@@ -9,7 +9,8 @@ from .parsers import (
     format_socketIO_packet_data, parse_socketIO_packet_data,
     get_namespace_path)
 from .symmetries import get_character
-from .transports import XHR_PollingTransport, prepare_http_session, TRANSPORTS
+from .transports import (
+    WebsocketTransport, XHR_PollingTransport, prepare_http_session, TRANSPORTS)
 
 
 __all__ = 'SocketIO', 'SocketIONamespace'
@@ -54,7 +55,7 @@ class EngineIO(LoggingMixin):
         if self._opened:
             return self._transport_instance
         self._engineIO_session = self._get_engineIO_session()
-        self._transport_instance = self._negotiate_transport()
+        self._negotiate_transport()
         self._connect_namespaces()
         self._opened = True
         self._reset_heartbeat()
@@ -79,8 +80,22 @@ class EngineIO(LoggingMixin):
         return parse_engineIO_session(engineIO_packet_data)
 
     def _negotiate_transport(self):
-        self._transport_name = 'xhr-polling'
-        return self._get_transport(self._transport_name)
+        self._transport_instance = self._get_transport('xhr-polling')
+        self.transport_name = 'xhr-polling'
+        is_ws_client = 'websocket' in self._client_transports
+        is_ws_server = 'websocket' in self._engineIO_session.transport_upgrades
+        if is_ws_client and is_ws_server:
+            try:
+                transport = self._get_transport('websocket')
+                transport.send_packet(2, 'probe')
+                for packet_type, packet_data in transport.recv_packet():
+                    if packet_type == 3 and packet_data == b'probe':
+                        transport.send_packet(5, '')
+                        self._transport_instance = transport
+                        self.transport_name = 'websocket'
+            except Exception:
+                pass
+        self._debug('[transport selected] %s', self.transport_name)
 
     def _reset_heartbeat(self):
         try:
@@ -88,10 +103,7 @@ class EngineIO(LoggingMixin):
         except AttributeError:
             pass
         ping_interval = self._engineIO_session.ping_interval
-        if self._transport_name.endswith('-polling'):
-            hurry_interval_in_seconds = self._hurry_interval_in_seconds
-        else:
-            hurry_interval_in_seconds = ping_interval
+        hurry_interval_in_seconds = self._hurry_interval_in_seconds
         self._heartbeat_thread = HeartbeatThread(
             send_heartbeat=self._ping,
             relax_interval_in_seconds=ping_interval,
@@ -102,9 +114,9 @@ class EngineIO(LoggingMixin):
         pass
 
     def _get_transport(self, transport_name):
-        self._debug('[transport selected] %s', transport_name)
         SelectedTransport = {
             'xhr-polling': XHR_PollingTransport,
+            'websocket': WebsocketTransport,
         }[transport_name]
         return SelectedTransport(
             self._http_session, self._is_secure, self._url,
@@ -146,7 +158,7 @@ class EngineIO(LoggingMixin):
     @retry
     def _open(self):
         engineIO_packet_type = 0
-        self._transport.send_packet(engineIO_packet_type, '')
+        self._transport_instance.send_packet(engineIO_packet_type)
 
     def _close(self):
         self._wants_to_close = True
@@ -154,34 +166,37 @@ class EngineIO(LoggingMixin):
         if not self._opened:
             return
         engineIO_packet_type = 1
-        self._transport.send_packet(engineIO_packet_type, '')
+        self._transport_instance.send_packet(engineIO_packet_type)
         self._opened = False
 
     @retry
     def _ping(self, engineIO_packet_data=''):
         engineIO_packet_type = 2
-        self._transport.send_packet(engineIO_packet_type, engineIO_packet_data)
+        self._transport_instance.send_packet(
+            engineIO_packet_type, engineIO_packet_data)
 
     @retry
     def _pong(self, engineIO_packet_data=''):
         engineIO_packet_type = 3
-        self._transport.send_packet(engineIO_packet_type, engineIO_packet_data)
+        self._transport_instance.send_packet(
+            engineIO_packet_type, engineIO_packet_data)
 
     @retry
     def _message(self, engineIO_packet_data):
         engineIO_packet_type = 4
-        self._transport.send_packet(engineIO_packet_type, engineIO_packet_data)
+        self._transport_instance.send_packet(
+            engineIO_packet_type, engineIO_packet_data)
         self._debug('[socket.io packet sent] %s', engineIO_packet_data)
 
     @retry
     def _upgrade(self):
         engineIO_packet_type = 5
-        self._transport.send_packet(engineIO_packet_type, '')
+        self._transport_instance.send_packet(engineIO_packet_type)
 
     @retry
     def _noop(self):
         engineIO_packet_type = 6
-        self._transport.send_packet(engineIO_packet_type, '')
+        self._transport_instance.send_packet(engineIO_packet_type)
 
     # React
 

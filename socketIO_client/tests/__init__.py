@@ -6,7 +6,7 @@ from .. import SocketIO, LoggingNamespace, find_callback
 
 
 HOST = 'localhost'
-PORT = 8000
+PORT = 9000
 DATA = 'xxx'
 PAYLOAD = {'xxx': 'yyy'}
 logging.basicConfig(level=logging.DEBUG)
@@ -159,8 +159,19 @@ class Test_XHR_PollingTransport(BaseMixin, TestCase):
     def setUp(self):
         super(Test_XHR_PollingTransport, self).setUp()
         self.socketIO = SocketIO(HOST, PORT, LoggingNamespace, transports=[
-            'xhr-polling'])
+            'xhr-polling'], verify=False)
+        self.assertEqual(self.socketIO.transport_name, 'xhr-polling')
         self.wait_time_in_seconds = 1
+
+
+class Test_WebsocketTransport(BaseMixin, TestCase):
+
+    def setUp(self):
+        super(Test_WebsocketTransport, self).setUp()
+        self.socketIO = SocketIO(HOST, PORT, LoggingNamespace, transports=[
+            'xhr-polling', 'websocket'], verify=False)
+        self.assertEqual(self.socketIO.transport_name, 'websocket')
+        self.wait_time_in_seconds = 0.1
 
 
 class Namespace(LoggingNamespace):

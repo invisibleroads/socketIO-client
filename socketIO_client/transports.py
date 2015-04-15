@@ -1,12 +1,30 @@
 import requests
+import six
+import socket
+import ssl
+import sys
 import time
+import websocket
 
 from .exceptions import ConnectionError, TimeoutError
-from .parsers import decode_engineIO_content, encode_engineIO_content
+from .parsers import (
+    encode_engineIO_content, decode_engineIO_content,
+    format_packet_text, parse_packet_text)
+from .symmetries import format_query, parse_url
+
+
+if not hasattr(websocket, 'create_connection'):
+    sys.exit("""\
+An incompatible websocket library is conflicting with the one we need.
+You can remove the incompatible library and install the correct one
+by running the following commands:
+
+yes | pip uninstall websocket websocket-client
+pip install -U websocket-client""")
 
 
 ENGINEIO_PROTOCOL = 3
-TRANSPORTS = 'websocket', 'xhr-polling'
+TRANSPORTS = 'xhr-polling', 'websocket'
 
 
 class AbstractTransport(object):
@@ -20,7 +38,7 @@ class AbstractTransport(object):
     def recv_packet(self):
         pass
 
-    def send_packet(self, engineIO_packet_type, engineIO_packet_data):
+    def send_packet(self, engineIO_packet_type, engineIO_packet_data=''):
         pass
 
 
@@ -29,51 +47,113 @@ class XHR_PollingTransport(AbstractTransport):
     def __init__(self, http_session, is_secure, url, engineIO_session=None):
         super(XHR_PollingTransport, self).__init__(
             http_session, is_secure, url, engineIO_session)
-        self.http_url = '%s://%s/' % ('https' if is_secure else 'http', url)
-        self.params = {
-            'EIO': ENGINEIO_PROTOCOL,
-            'transport': 'polling',
-        }
+        self._params = {
+            'EIO': ENGINEIO_PROTOCOL, 'transport': 'polling'}
         if engineIO_session:
-            self.request_index = 1
-            self.kw_get = dict(timeout=engineIO_session.ping_timeout)
-            self.kw_post = dict(headers={
+            self._request_index = 1
+            self._kw_get = dict(timeout=engineIO_session.ping_timeout)
+            self._kw_post = dict(headers={
                 'content-type': 'application/octet-stream',
             })
-            self.params['sid'] = engineIO_session.id
+            self._params['sid'] = engineIO_session.id
         else:
-            self.request_index = 0
-            self.kw_get = {}
-            self.kw_post = {}
+            self._request_index = 0
+            self._kw_get = {}
+            self._kw_post = {}
+        http_scheme = 'https' if is_secure else 'http'
+        self._http_url = '%s://%s/' % (http_scheme, url)
 
     def recv_packet(self):
-        params = dict(self.params)
+        params = dict(self._params)
         params['t'] = self._get_timestamp()
         response = get_response(
             self.http_session.get,
-            self.http_url,
+            self._http_url,
             params=params,
-            **self.kw_get)
+            **self._kw_get)
         for engineIO_packet in decode_engineIO_content(response.content):
-            yield engineIO_packet
+            engineIO_packet_type, engineIO_packet_data = engineIO_packet
+            yield engineIO_packet_type, engineIO_packet_data
 
-    def send_packet(self, engineIO_packet_type, engineIO_packet_data):
-        params = dict(self.params)
+    def send_packet(self, engineIO_packet_type, engineIO_packet_data=''):
+        params = dict(self._params)
         params['t'] = self._get_timestamp()
         response = get_response(
             self.http_session.post,
-            self.http_url,
+            self._http_url,
             params=params,
             data=encode_engineIO_content([
                 (engineIO_packet_type, engineIO_packet_data),
             ]),
-            **self.kw_post)
+            **self._kw_post)
         assert response.content == b'ok'
 
     def _get_timestamp(self):
-        timestamp = '%s-%s' % (int(time.time() * 1000), self.request_index)
-        self.request_index += 1
+        timestamp = '%s-%s' % (int(time.time() * 1000), self._request_index)
+        self._request_index += 1
         return timestamp
+
+
+class WebsocketTransport(AbstractTransport):
+
+    def __init__(self, http_session, is_secure, url, engineIO_session=None):
+        super(WebsocketTransport, self).__init__(
+            http_session, is_secure, url, engineIO_session)
+        params = dict(http_session.params, **{
+            'EIO': ENGINEIO_PROTOCOL, 'transport': 'websocket'})
+        request = http_session.prepare_request(requests.Request('GET', url))
+        kw = {'header': ['%s: %s' % x for x in request.headers.items()]}
+        if engineIO_session:
+            params['sid'] = engineIO_session.id
+            kw['timeout'] = engineIO_session.ping_timeout
+        ws_url = '%s://%s/?%s' % (
+            'wss' if is_secure else 'ws', url, format_query(params))
+        http_scheme = 'https' if is_secure else 'http'
+        if http_scheme in http_session.proxies:  # Use the correct proxy
+            proxy_url_pack = parse_url(http_session.proxies[http_scheme])
+            kw['http_proxy_host'] = proxy_url_pack.hostname
+            kw['http_proxy_port'] = proxy_url_pack.port
+            if proxy_url_pack.username:
+                kw['http_proxy_auth'] = (
+                    proxy_url_pack.username, proxy_url_pack.password)
+        if http_session.verify:
+            if http_session.cert:  # Specify certificate path on disk
+                if isinstance(http_session.cert, basestring):
+                    kw['ca_certs'] = http_session.cert
+                else:
+                    kw['ca_certs'] = http_session.cert[0]
+        else:  # Do not verify the SSL certificate
+            kw['sslopt'] = {'cert_reqs': ssl.CERT_NONE}
+        try:
+            self._connection = websocket.create_connection(ws_url, **kw)
+        except Exception as e:
+            raise ConnectionError(e)
+
+    def recv_packet(self):
+        try:
+            packet_text = self._connection.recv()
+        except websocket.WebSocketTimeoutException as e:
+            raise TimeoutError('recv timed out (%s)' % e)
+        except websocket.SSLError as e:
+            raise ConnectionError('recv disconnected (%s)' % e)
+        except websocket.WebSocketConnectionClosedException as e:
+            raise ConnectionError('recv disconnected (%s)' % e)
+        except socket.error as e:
+            raise ConnectionError('recv disconnected (%s)' % e)
+        engineIO_packet_type, engineIO_packet_data = parse_packet_text(
+            six.b(packet_text))
+        yield engineIO_packet_type, engineIO_packet_data
+
+    def send_packet(self, engineIO_packet_type, engineIO_packet_data=''):
+        packet = format_packet_text(engineIO_packet_type, engineIO_packet_data)
+        try:
+            self._connection.send(packet)
+        except websocket.WebSocketTimeoutException as e:
+            raise TimeoutError('send timed out (%s)' % e)
+        except socket.error as e:
+            raise ConnectionError('send disconnected (%s)' % e)
+        except websocket.WebSocketConnectionClosedException as e:
+            raise ConnectionError('send disconnected (%s)' % e)
 
 
 def get_response(request, *args, **kw):
@@ -98,7 +178,7 @@ def prepare_http_session(kw):
     http_session.proxies.update(kw.get('proxies', {}))
     http_session.hooks.update(kw.get('hooks', {}))
     http_session.params.update(kw.get('params', {}))
-    http_session.verify = kw.get('verify')
+    http_session.verify = kw.get('verify', True)
     http_session.cert = kw.get('cert')
     http_session.cookies.update(kw.get('cookies', {}))
     return http_session
