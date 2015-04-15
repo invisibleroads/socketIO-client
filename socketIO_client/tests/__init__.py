@@ -10,7 +10,6 @@ PORT = 9000
 DATA = 'xxx'
 PAYLOAD = {'xxx': 'yyy'}
 logging.basicConfig(level=logging.DEBUG)
-logging.captureWarnings(True)
 
 
 class BaseMixin(object):
