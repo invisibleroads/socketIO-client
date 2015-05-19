@@ -10,7 +10,7 @@ REQUIREMENTS = [
 
 
 HERE = dirname(abspath(__file__))
-DESCRIPTION = '\n\n'.join(open(join(HERE, _)).read() for _ in [
+DESCRIPTION = '\n\n'.join(open(join(HERE, _), encoding="utf8").read() for _ in [
     'README.rst',
     'CHANGES.rst',
 ])
