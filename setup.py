@@ -1,3 +1,4 @@
+import io
 from os.path import abspath, dirname, join
 from setuptools import find_packages, setup
 
@@ -10,7 +11,8 @@ REQUIREMENTS = [
 
 
 HERE = dirname(abspath(__file__))
-DESCRIPTION = '\n\n'.join(open(join(HERE, _), encoding="utf8").read() for _ in [
+LOAD_TEXT = lambda name: io.open(join(HERE, name), encoding='UTF-8').read()
+DESCRIPTION = '\n\n'.join(LOAD_TEXT(_) for _ in [
     'README.rst',
     'CHANGES.rst',
 ])
