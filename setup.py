@@ -26,6 +26,7 @@ setup(
         'Intended Audience :: Developers',
         'Programming Language :: Python',
         'License :: OSI Approved :: MIT License',
+        'Development Status :: 5 - Production/Stable',
     ],
     keywords='socket.io node.js',
     author='Roy Hyunjin Han',
