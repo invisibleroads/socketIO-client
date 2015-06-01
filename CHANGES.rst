@@ -1,3 +1,7 @@
+0.6.5
+-----
+- Updated wait loop to be more responsive under websocket transport
+
 0.6.4
 -----
 - Fixed support for Python 3
