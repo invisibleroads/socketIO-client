@@ -173,7 +173,10 @@ class EngineIO(LoggingMixin):
 
     def _close(self):
         self._wants_to_close = True
-        self._heartbeat_thread.halt()
+        try:
+            self._heartbeat_thread.halt()
+        except AttributeError:
+            pass
         if not self._opened:
             return
         engineIO_packet_type = 1
