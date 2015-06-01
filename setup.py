@@ -18,7 +18,7 @@ DESCRIPTION = '\n\n'.join(LOAD_TEXT(_) for _ in [
 ])
 setup(
     name='socketIO_client',
-    version='0.6.3',
+    version='0.6.4',
     description='A socket.io client library',
     long_description=DESCRIPTION,
     license='MIT',

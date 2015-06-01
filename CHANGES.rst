@@ -1,3 +1,8 @@
+0.6.4
+-----
+- Fixed support for Python 3
+- Fixed thread cleanup
+
 0.6.3
 -----
 - Upgraded to socket.io protocol 1.x for websocket transport
@@ -7,6 +12,10 @@
 0.6.1
 -----
 - Upgraded to socket.io protocol 1.x thanks to Sean Arietta and Joe Palmer
+
+0.5.6
+-----
+- Backported to support requests 0.8.2
 
 0.5.5
 -----
