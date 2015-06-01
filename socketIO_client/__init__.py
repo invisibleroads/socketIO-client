@@ -221,7 +221,7 @@ class EngineIO(LoggingMixin):
         # Use ping/pong to unblock recv for polling transport
         self._heartbeat_thread.hurry()
         # Use timeout to unblock recv for websocket transport
-        self._transport.set_timeout(seconds)
+        self._transport.set_timeout(seconds=1)
         # Listen
         warning_screen = self._yield_warning_screen(seconds)
         for elapsed_time in warning_screen:
