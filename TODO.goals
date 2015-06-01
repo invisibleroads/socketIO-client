@@ -1,8 +1,0 @@
-Release 0.6.1 #41 #52
-    + Update serve-tests.js
-    + Integrate serve-tests.js changes from sarietta
-    = Put tests in index.html
-    Update tests
-    Merge sarietta's pull request
-    Revive heartbeat as separate process
-Implement rooms #65

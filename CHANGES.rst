@@ -1,3 +1,7 @@
+0.5.6
+-----
+- Backported to support requests 0.8.2
+
 0.5.5
 -----
 - Fixed reconnection in the event of server restart

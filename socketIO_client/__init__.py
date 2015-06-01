@@ -10,6 +10,7 @@ except ImportError:
 
 from .exceptions import (
     SocketIOError, ConnectionError, TimeoutError, PacketError)
+from .symmetries import _get_text
 from .transports import (
     _get_response, TRANSPORTS,
     _WebsocketTransport, _XHR_PollingTransport, _JSONP_PollingTransport)
@@ -515,7 +516,7 @@ def _get_socketIO_session(is_secure, base_url, **kw):
         response = _get_response(requests.get, server_url, **kw)
     except TimeoutError as e:
         raise ConnectionError(e)
-    response_parts = response.text.split(':')
+    response_parts = _get_text(response).split(':')
     return _SocketIOSession(
         id=response_parts[0],
         heartbeat_timeout=int(response_parts[1]),

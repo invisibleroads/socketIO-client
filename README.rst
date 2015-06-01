@@ -6,6 +6,8 @@ socketIO-client
 ===============
 Here is a `socket.io <http://socket.io>`_ client library for Python.  You can use it to write test code for your socket.io server.
 
+Please note that this version implements `socket.io protocol 0.9 <https://github.com/learnboost/socket.io-spec>`_, which is compatible with `gevent-socketio <https://github.com/abourget/gevent-socketio>`_.  If you want to communicate using `socket.io protocol 1.x <https://github.com/automattic/socket.io-protocol>`_, please use `socketIO-client 0.6.3 <https://pypi.python.org/pypi/socketIO-client/0.6.3>`_ or higher.
+
 
 Installation
 ------------
@@ -32,6 +34,7 @@ Activate isolated environment. ::
 
 Launch your socket.io server. ::
 
+    npm install -g socket.io@0.9
     node serve-tests.js
 
 For debugging information, run these commands first. ::
@@ -156,5 +159,5 @@ Credits
 - `Alexandre Bourget <https://github.com/abourget>`_ wrote `gevent-socketio <https://github.com/abourget/gevent-socketio>`_, which is a socket.io server written in Python.
 - `Paul Kienzle <https://github.com/pkienzle>`_, `Zac Lee <https://github.com/zratic>`_, `Josh VanderLinden <https://github.com/codekoala>`_, `Ian Fitzpatrick <https://github.com/ifitzpatrick>`_, `Lucas Klein <https://github.com/lukasklein>`_, `Rui Chicoria <https://github.com/rchicoria>`_, `Travis Odom <https://github.com/burstaholic>`_, `Patrick Huber <https://github.com/stackmagic>`_, `Brad Campbell <https://github.com/bradjc>`_, `Daniel <https://github.com/dabidan>`_, `Sean Arietta <https://github.com/sarietta>`_ submitted code to expand support of the socket.io protocol.
 - `Bernard Pratz <https://github.com/guyzmo>`_, `Francis Bull <https://github.com/franbull>`_ wrote prototypes to support xhr-polling and jsonp-polling.
-- `Eric Chen <https://github.com/taiyangc>`_, `Denis Zinevich <https://github.com/dzinevich>`_, `Thiago Hersan <https://github.com/thiagohersan>`_, `Nayef Copty <https://github.com/nayefc>`_, `Jörgen Karlsson <https://github.com/jorgen-k>`_, `Branden Ghena <https://github.com/brghena>`_ suggested ways to make the connection more robust.
+- `Eric Chen <https://github.com/taiyangc>`_, `Denis Zinevich <https://github.com/dzinevich>`_, `Thiago Hersan <https://github.com/thiagohersan>`_, `Nayef Copty <https://github.com/nayefc>`_, `Jörgen Karlsson <https://github.com/jorgen-k>`_, `Branden Ghena <https://github.com/brghena>`_, `Tim Landscheidt <https://github.com/scfc>_` suggested ways to make the connection more robust.
 - `Merlijn van Deen <https://github.com/valhallasw>`_, `Frederic Sureau <https://github.com/fredericsureau>`_, `Marcus Cobden <https://github.com/leth>`_, `Drew Hutchison <https://github.com/drewhutchison>`_, `wuurrd <https://github.com/wuurrd>`_, `Adam Kecer <https://github.com/amfg>`_, `Alex Monk <https://github.com/Krenair>`_, `Vishal P R <https://github.com/vishalwy>`_, `John Vandenberg <https://github.com/jayvdb>`_, `Thomas Grainger <https://github.com/graingert>`_ proposed changes that make the library more friendly and practical for you!

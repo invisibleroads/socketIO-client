@@ -10,6 +10,7 @@ import time
 import websocket
 
 from .exceptions import ConnectionError, TimeoutError
+from .symmetries import _get_text
 
 
 if not hasattr(websocket, 'create_connection'):
@@ -223,7 +224,7 @@ class _XHR_PollingTransport(_AbstractTransport):
             params=self._params,
             timeout=timeout or TIMEOUT_IN_SECONDS,
             stream=True)
-        response_text = response.text
+        response_text = _get_text(response)
         if not response_text.startswith(BOUNDARY):
             yield response_text
             return
@@ -279,7 +280,7 @@ class _JSONP_PollingTransport(_AbstractTransport):
             params=self._params,
             headers={'content-type': 'text/javascript; charset=UTF-8'},
             timeout=timeout or TIMEOUT_IN_SECONDS)
-        response_text = response.text
+        response_text = _get_text(response)
         try:
             self._id, response_text = self.RESPONSE_PATTERN.match(
                 response_text).groups()
