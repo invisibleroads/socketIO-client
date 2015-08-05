@@ -1,0 +1,5 @@
+python-socketio-client (0.6.5) UNRELEASED; urgency=medium
+
+  * First version with Debian packaging.
+
+ -- Adam Roses Wight <adamw@ludd.net>  Tue, 04 Aug 2015 21:30:11 -0700

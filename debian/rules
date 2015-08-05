@@ -1,0 +1,19 @@
+#!/usr/bin/make -f
+
+export PYBUILD_NAME=socketio-client
+
+%:
+	dh $@ --with python2,python3 --buildsystem=pybuild
+
+override_dh_auto_test:
+	# Skip tests.
+	# FIXME: Need packages for these nodejs libraries.
+	#npm install http-proxy
+	#npm install socket.io
+	#npm install yargs
+	#DEBUG=* nodejs socketIO_client/tests/serve.js &
+	#DEBUG=* nodejs socketIO_client/tests/proxy.js &
+	#sleep 5
+	#PYBUILD_SYSTEM=custom \
+        #PYBUILD_TEST_ARGS="nosetests -v -v" \
+	#dh_auto_test
