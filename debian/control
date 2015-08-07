@@ -16,7 +16,11 @@ Homepage: https://github.com/invisibleroads/socketIO-client
 
 Package: python-socketio-client
 Architecture: all
-Depends: ${python:Depends}, ${misc:Depends}
+Depends: ${python:Depends},
+ ${misc:Depends},
+ python-requests,
+ python-setuptools,
+ python-six
 Description:  A socket.io client library for Python 2
  http://pypi.python.org/pypi/socketIO-client
  .
@@ -26,7 +30,11 @@ Description:  A socket.io client library for Python 2
 
 Package: python3-socketio-client
 Architecture: all
-Depends: ${python3:Depends}, ${misc:Depends}
+Depends: ${python3:Depends},
+ ${misc:Depends},
+ python3-requests,
+ python3-setuptools,
+ python3-six
 Description:  A socket.io client library for Python 3
  http://pypi.python.org/pypi/socketIO-client
  .
