@@ -4,7 +4,7 @@ from setuptools import find_packages, setup
 
 
 REQUIREMENTS = [
-    'requests',
+    'requests>=2.7.0',
     'six',
     'websocket-client',
 ]
