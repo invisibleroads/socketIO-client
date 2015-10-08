@@ -156,6 +156,20 @@ class EngineIO(LoggingMixin):
             namespace = self.define(EngineIONamespace)
         return namespace.on(event, callback)
 
+    def once(self, event, callback):
+        try:
+            namespace = self.get_namespace()
+        except PacketError:
+            namespace = self.define(EngineIONamespace)
+        return namespace.once(event, callback)
+
+    def off(self, event):
+        try:
+            namespace = self.get_namespace()
+        except PacketError:
+            namespace = self.define(EngineIONamespace)
+        return namespace.off(event)
+
     def get_namespace(self):
         try:
             return self._namespace
