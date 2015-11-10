@@ -6,6 +6,7 @@ import sys
 import threading
 import time
 import websocket
+from six import string_types
 
 from .exceptions import ConnectionError, TimeoutError
 from .parsers import (
@@ -129,7 +130,7 @@ class WebsocketTransport(AbstractTransport):
                     proxy_url_pack.username, proxy_url_pack.password)
         if http_session.verify:
             if http_session.cert:  # Specify certificate path on disk
-                if isinstance(http_session.cert, str):
+                if isinstance(http_session.cert, string_types):
                     kw['ca_certs'] = http_session.cert
                 else:
                     kw['ca_certs'] = http_session.cert[0]
