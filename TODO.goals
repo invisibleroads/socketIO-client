@@ -1,3 +1,11 @@
-Implement rooms #65
+Implement rooms 
+    https://github.com/invisibleroads/socketIO-client/pull/65
+    https://github.com/invisibleroads/socketIO-client/issues/72
 Implement binary event
+    https://github.com/invisibleroads/socketIO-client/issues/70
 Implement binary ack
+    https://github.com/invisibleroads/socketIO-client/issues/71
+Backport to support requests 0.8.2
+    https://github.com/invisibleroads/socketIO-client/commit/b288d89c15d452a30bfeb00f38494f59f71f5a43
+Check why connected=True after termination
+    https://github.com/invisibleroads/socketIO-client/issues/80
