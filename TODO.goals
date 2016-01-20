@@ -1,11 +1,48 @@
-Implement rooms 
-    https://github.com/invisibleroads/socketIO-client/pull/65
-    https://github.com/invisibleroads/socketIO-client/issues/72
-Implement binary event
+= Consider supporting both protocols in the same library
+    https://github.com/invisibleroads/socketIO-client/issues/95
+Add binary support
+    https://github.com/invisibleroads/socketIO-client/pull/85
     https://github.com/invisibleroads/socketIO-client/issues/70
-Implement binary ack
     https://github.com/invisibleroads/socketIO-client/issues/71
-Backport to support requests 0.8.2
+    https://github.com/invisibleroads/socketIO-client/issues/91
+Check requests dependency
+    https://github.com/invisibleroads/socketIO-client/issues/92
+    https://github.com/invisibleroads/socketIO-client/pull/93
     https://github.com/invisibleroads/socketIO-client/commit/b288d89c15d452a30bfeb00f38494f59f71f5a43
+Check SSL
+    https://github.com/invisibleroads/socketIO-client/issues/86
+    https://github.com/invisibleroads/socketIO-client/pull/87
+Look into invalid namespace handling
+    https://github.com/invisibleroads/socketIO-client/issues/84
+Check unicode issues
+    https://github.com/invisibleroads/socketIO-client/issues/81
+Check python3 support for socketIO-client 0.5.6
+    https://github.com/invisibleroads/socketIO-client/issues/83
+Check OK assertion
+    https://github.com/invisibleroads/socketIO-client/issues/99
+    https://github.com/invisibleroads/socketIO-client/pull/103
 Check why connected=True after termination
     https://github.com/invisibleroads/socketIO-client/issues/80
+    https://github.com/invisibleroads/socketIO-client/issues/98
+Consider catching heartbeat thread exception
+    https://github.com/invisibleroads/socketIO-client/issues/100
+Check why it blocks when defining a namespace
+    https://github.com/invisibleroads/socketIO-client/issues/96
+Check why transports are not being set
+    https://github.com/invisibleroads/socketIO-client/issues/102
+Look at 404 not found error
+    https://github.com/invisibleroads/socketIO-client/issues/101
+Look at socketio off and socketio once
+    https://github.com/invisibleroads/socketIO-client/pull/94
+Implement rooms 
+    https://github.com/invisibleroads/socketIO-client/issues/72
+    https://github.com/invisibleroads/socketIO-client/pull/65
+Check tests
+    https://github.com/invisibleroads/socketIO-client/issues/90
+Check whether it works on Windows 8
+    https://github.com/invisibleroads/socketIO-client/issues/97
+Add debian packaging support
+    https://github.com/invisibleroads/socketIO-client/pull/89
+
++ Review issues and pull requests
++ Order issues
