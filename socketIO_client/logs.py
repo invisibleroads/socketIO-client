@@ -2,7 +2,16 @@ import logging
 import time
 
 logger = logging.getLogger("socketIO-client")
-logger.addHandler(logging.NullHandler())
+
+try:
+    logger.addHandler(logging.NullHandler())
+except AttributeError:
+    # Workaround for Python 2.6 not having NullHandler
+    # See https://docs.python.org/release/2.6/library/logging.html#configuring-logging-for-a-library
+    class NullHandler(logging.Handler):
+        def emit(self, record):
+            pass
+    logger.addHandler(NullHandler())
 
 class LoggingMixin(object):
 
