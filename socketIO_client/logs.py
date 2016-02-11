@@ -1,6 +1,8 @@
 import logging
 import time
 
+logger = logging.getLogger("socketIO-client")
+logger.addHandler(logging.NullHandler())
 
 class LoggingMixin(object):
 
