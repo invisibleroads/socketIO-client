@@ -16,7 +16,7 @@ except AttributeError:
 class LoggingMixin(object):
 
     def _log(self, level, msg, *attrs):
-        logging.log(level, '%s %s' % (self._log_name, msg), *attrs)
+        logger.log(level, '%s %s' % (self._log_name, msg), *attrs)
 
     def _debug(self, msg, *attrs):
         self._log(logging.DEBUG, msg, *attrs)
