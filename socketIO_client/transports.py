@@ -153,7 +153,7 @@ class WebsocketTransport(AbstractTransport):
         except socket.error as e:
             raise ConnectionError('recv disconnected (%s)' % e)
         engineIO_packet_type, engineIO_packet_data = parse_packet_text(
-            six.b(packet_text))
+            six.u(packet_text))
         yield engineIO_packet_type, engineIO_packet_data
 
     def send_packet(self, engineIO_packet_type, engineIO_packet_data=''):
