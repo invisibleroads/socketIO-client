@@ -6,7 +6,6 @@ import sys
 import threading
 import time
 import websocket
-from six import string_types
 
 from .exceptions import ConnectionError, TimeoutError
 from .parsers import (
@@ -130,7 +129,7 @@ class WebsocketTransport(AbstractTransport):
                     proxy_url_pack.username, proxy_url_pack.password)
         if http_session.verify:
             if http_session.cert:  # Specify certificate path on disk
-                if isinstance(http_session.cert, string_types):
+                if isinstance(http_session.cert, basestring):
                     kw['ca_certs'] = http_session.cert
                 else:
                     kw['ca_certs'] = http_session.cert[0]
@@ -152,8 +151,14 @@ class WebsocketTransport(AbstractTransport):
             raise ConnectionError('recv disconnected (%s)' % e)
         except socket.error as e:
             raise ConnectionError('recv disconnected (%s)' % e)
-        engineIO_packet_type, engineIO_packet_data = parse_packet_text(
-            six.u(packet_text))
+        try:
+            encoded = six.b(packet_text)
+        except (UnicodeEncodeError):
+            # print("six.b latin-l encoding fails, switching to six.u unicode uncoding")
+            pass
+        else:
+            encoded = six.u(packet_text)
+        engineIO_packet_type, engineIO_packet_data = parse_packet_text(encoded)
         yield engineIO_packet_type, engineIO_packet_data
 
     def send_packet(self, engineIO_packet_type, engineIO_packet_data=''):
