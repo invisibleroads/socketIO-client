@@ -127,11 +127,17 @@ Define different namespaces on a single socket. ::
     news_namespace.emit('aaa')
     socketIO.wait(seconds=1)
 
-Connect via SSL. ::
+Connect via SSL (https://github.com/invisibleroads/socketIO-client/issues/54). ::
 
     from socketIO_client import SocketIO
 
+    # Skip server certificate verification
     SocketIO('https://localhost', verify=False)
+    # Verify the server certificate
+    SocketIO('https://localhost', verify='server.crt')
+    # Verify the server certificate and encrypt using client certificate
+    socketIO = SocketIO('https://localhost', verify='server.crt', cert=(
+        'client.crt', 'client.key'))
 
 Specify params, headers, cookies, proxies thanks to the `requests <http://python-requests.org>`_ library. ::
 
