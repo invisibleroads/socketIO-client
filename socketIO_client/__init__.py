@@ -16,7 +16,7 @@ from .transports import (
     _WebsocketTransport, _XHR_PollingTransport, _JSONP_PollingTransport)
 
 
-__version__ = '0.5.4'
+__version__ = '0.5.7'
 _SocketIOSession = namedtuple('_SocketIOSession', [
     'id',
     'heartbeat_timeout',
