@@ -6,6 +6,7 @@ class EngineIONamespace(LoggingMixin):
 
     def __init__(self, io):
         self._io = io
+        self._callback_by_once_event = {}
         self._callback_by_event = {}
         self._log_name = io._url
         self.initialize()
@@ -17,6 +18,14 @@ class EngineIONamespace(LoggingMixin):
     def on(self, event, callback):
         'Define a callback to handle an event emitted by the server'
         self._callback_by_event[event] = callback
+
+    def off(self, event):
+        'Remove an event handler'
+        self._callback_by_event.pop(event, None)
+
+    def once(self, event, callback):
+        'Define a callback to handle the first event emitted by the server'
+        self._callback_by_once_event[event] = callback
 
     def send(self, data):
         'Send a message'
@@ -129,6 +138,10 @@ class SocketIONamespace(EngineIONamespace):
                 event = 'reconnect'
         # Check callbacks defined by on()
         try:
+            if (event in self._callback_by_once_event):
+                result = self._callback_by_once_event[event]
+                self._callback_by_once_event.pop(event, None)
+                return result
             return self._callback_by_event[event]
         except KeyError:
             pass

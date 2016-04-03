@@ -1,3 +1,7 @@
+0.6.6
+-----
+- Added SocketIO.off() and SocketIO.once()
+
 0.6.5
 -----
 - Updated wait loop to be more responsive under websocket transport
