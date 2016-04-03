@@ -39,9 +39,6 @@ Check why transports are not being set
     https://github.com/invisibleroads/socketIO-client/issues/102
 Look at 404 not found error
     https://github.com/invisibleroads/socketIO-client/issues/101
-Look at socketio off and socketio once
-    https://github.com/invisibleroads/socketIO-client/pull/94
-    https://github.com/invisibleroads/socketIO-client/issues/110
 Implement rooms 
     https://github.com/invisibleroads/socketIO-client/issues/72
     https://github.com/invisibleroads/socketIO-client/pull/65
@@ -62,5 +59,8 @@ Update setup.py for consistency
 + Check SSL
     + https://github.com/invisibleroads/socketIO-client/issues/86
     + https://github.com/invisibleroads/socketIO-client/pull/87
++ Look at socketio off and socketio once
+    + https://github.com/invisibleroads/socketIO-client/pull/94
+    + https://github.com/invisibleroads/socketIO-client/issues/110
 _ Consider supporting both protocols in the same library
     _ https://github.com/invisibleroads/socketIO-client/issues/95
