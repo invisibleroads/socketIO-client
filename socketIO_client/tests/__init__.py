@@ -16,7 +16,7 @@ class BaseMixin(object):
 
     def setUp(self):
         super(BaseMixin, self).setUp()
-        self.called_on_response = False
+        self.response_count = 0
         self.wait_time_in_seconds = 1
 
     def tearDown(self):
@@ -63,28 +63,43 @@ class BaseMixin(object):
         'Emit with callback'
         self.socketIO.emit('emit_with_callback', self.on_response)
         self.socketIO.wait_for_callbacks(seconds=self.wait_time_in_seconds)
-        self.assertTrue(self.called_on_response)
+        self.assertEqual(self.response_count, 1)
 
     def test_emit_with_callback_with_payload(self):
         'Emit with callback with payload'
         self.socketIO.emit(
             'emit_with_callback_with_payload', self.on_response)
         self.socketIO.wait_for_callbacks(seconds=self.wait_time_in_seconds)
-        self.assertTrue(self.called_on_response)
+        self.assertEqual(self.response_count, 1)
 
     def test_emit_with_callback_with_multiple_payloads(self):
         'Emit with callback with multiple payloads'
         self.socketIO.emit(
             'emit_with_callback_with_multiple_payloads', self.on_response)
         self.socketIO.wait_for_callbacks(seconds=self.wait_time_in_seconds)
-        self.assertTrue(self.called_on_response)
+        self.assertEqual(self.response_count, 1)
 
     def test_emit_with_event(self):
         'Emit to trigger an event'
         self.socketIO.on('emit_with_event_response', self.on_response)
         self.socketIO.emit('emit_with_event', PAYLOAD)
         self.socketIO.wait(self.wait_time_in_seconds)
-        self.assertTrue(self.called_on_response)
+        self.assertEqual(self.response_count, 1)
+        self.socketIO.emit('emit_with_event', PAYLOAD)
+        self.socketIO.wait(self.wait_time_in_seconds)
+        self.assertEqual(self.response_count, 2)
+        self.socketIO.off('emit_with_event_response')
+        self.socketIO.emit('emit_with_event', PAYLOAD)
+        self.socketIO.wait(self.wait_time_in_seconds)
+        self.assertEqual(self.response_count, 2)
+
+    def test_once(self):
+        'Listen for an event only once'
+        self.socketIO.once('emit_with_event_response', self.on_response)
+        self.socketIO.emit('emit_with_event', PAYLOAD)
+        self.socketIO.emit('emit_with_event', PAYLOAD)
+        self.socketIO.wait(self.wait_time_in_seconds)
+        self.assertEqual(self.response_count, 1)
 
     def test_send(self):
         'Send'
@@ -148,7 +163,7 @@ class BaseMixin(object):
                 self.assertEqual(arg, PAYLOAD)
             else:
                 self.assertEqual(arg, DATA)
-        self.called_on_response = True
+        self.response_count += 1
 
 
 class Test_XHR_PollingTransport(BaseMixin, TestCase):
