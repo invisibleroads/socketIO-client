@@ -1,5 +1,3 @@
-= Consider supporting both protocols in the same library
-    https://github.com/invisibleroads/socketIO-client/issues/95
 Add binary support
     https://github.com/invisibleroads/socketIO-client/pull/85
     https://github.com/invisibleroads/socketIO-client/issues/70
@@ -9,9 +7,15 @@ Check requests dependency
     https://github.com/invisibleroads/socketIO-client/issues/92
     https://github.com/invisibleroads/socketIO-client/pull/93
     https://github.com/invisibleroads/socketIO-client/commit/b288d89c15d452a30bfeb00f38494f59f71f5a43
-Check SSL
-    https://github.com/invisibleroads/socketIO-client/issues/86
-    https://github.com/invisibleroads/socketIO-client/pull/87
+Move logging into a separate namespace
+    https://github.com/invisibleroads/socketIO-client/pull/105
+Check on_error data argument
+    https://github.com/invisibleroads/socketIO-client/pull/108
+Use six.u for unicode encoding
+    https://github.com/invisibleroads/socketIO-client/pull/109
+Replace *args with args
+    Investigate whether it is really true that callbacks can't take dictionaries
+    https://github.com/invisibleroads/socketIO-client/pull/112
 Look into invalid namespace handling
     https://github.com/invisibleroads/socketIO-client/issues/84
 Check unicode issues
@@ -26,6 +30,9 @@ Check why connected=True after termination
     https://github.com/invisibleroads/socketIO-client/issues/98
 Consider catching heartbeat thread exception
     https://github.com/invisibleroads/socketIO-client/issues/100
+Check disconnection issues
+    https://github.com/invisibleroads/socketIO-client/issues/107
+    https://github.com/invisibleroads/socketIO-client/issues/111
 Check why it blocks when defining a namespace
     https://github.com/invisibleroads/socketIO-client/issues/96
 Check why transports are not being set
@@ -34,6 +41,7 @@ Look at 404 not found error
     https://github.com/invisibleroads/socketIO-client/issues/101
 Look at socketio off and socketio once
     https://github.com/invisibleroads/socketIO-client/pull/94
+    https://github.com/invisibleroads/socketIO-client/issues/110
 Implement rooms 
     https://github.com/invisibleroads/socketIO-client/issues/72
     https://github.com/invisibleroads/socketIO-client/pull/65
@@ -43,6 +51,16 @@ Check whether it works on Windows 8
     https://github.com/invisibleroads/socketIO-client/issues/97
 Add debian packaging support
     https://github.com/invisibleroads/socketIO-client/pull/89
+    https://github.com/invisibleroads/socketIO-client/pull/113
+Consider allowing milliseconds
+    https://github.com/invisibleroads/socketIO-client/issues/106
+Update setup.py for consistency
+    Replace nose with pytest
 
 + Review issues and pull requests
 + Order issues
++ Check SSL
+    + https://github.com/invisibleroads/socketIO-client/issues/86
+    + https://github.com/invisibleroads/socketIO-client/pull/87
+_ Consider supporting both protocols in the same library
+    _ https://github.com/invisibleroads/socketIO-client/issues/95

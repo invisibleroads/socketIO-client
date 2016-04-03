@@ -1,3 +1,7 @@
+0.6.6
+-----
+- Added SocketIO.off() and SocketIO.once()
+
 0.6.5
 -----
 - Updated wait loop to be more responsive under websocket transport
@@ -62,7 +66,7 @@
 0.3
 ---
 - Added support for secure connections
-- Added socketIO.wait()
+- Added SocketIO.wait()
 - Improved exception handling in _RhythmicThread and _ListenerThread
 
 0.2

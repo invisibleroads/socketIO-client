@@ -14,7 +14,7 @@ from .transports import (
 
 
 __all__ = 'SocketIO', 'SocketIONamespace'
-__version__ = '0.6.3'
+__version__ = '0.6.6'
 BaseNamespace = SocketIONamespace
 LoggingNamespace = LoggingSocketIONamespace
 
@@ -155,6 +155,20 @@ class EngineIO(LoggingMixin):
         except PacketError:
             namespace = self.define(EngineIONamespace)
         return namespace.on(event, callback)
+
+    def once(self, event, callback):
+        try:
+            namespace = self.get_namespace()
+        except PacketError:
+            namespace = self.define(EngineIONamespace)
+        return namespace.once(event, callback)
+
+    def off(self, event):
+        try:
+            namespace = self.get_namespace()
+        except PacketError:
+            namespace = self.define(EngineIONamespace)
+        return namespace.off(event)
 
     def get_namespace(self):
         try:
