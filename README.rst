@@ -75,35 +75,22 @@ Define events. ::
         print('on_aaa_response', args)
 
     socketIO = SocketIO('localhost', 8000, LoggingNamespace)
+
+    # Listen
     socketIO.on('aaa_response', on_aaa_response)
+    socketIO.emit('aaa')
     socketIO.emit('aaa')
     socketIO.wait(seconds=1)
 
-Remove events. ::
-
-    from socketIO_client import SocketIO, LoggingNamespace
-
-    def on_aaa_response(*args):
-        print('on_aaa_response', args)
-
-    socketIO = SocketIO('localhost', 8000, LoggingNamespace)
-    socketIO.on('aaa_response', on_aaa_response)
-    socketIO.emit('aaa')
+    # Stop listening
     socketIO.off('aaa_response')
     socketIO.emit('aaa')
     socketIO.wait(seconds=1)
 
-Define one event. ::
-
-    from socketIO_client import SocketIO, LoggingNamespace
-
-    def on_aaa_response(*args):
-        print('on_aaa_response', args)
-
-    socketIO = SocketIO('localhost', 8000, LoggingNamespace)
+    # Listen only once
     socketIO.once('aaa_response', on_aaa_response)
-    socketIO.emit('aaa') #will fire on_aaa_response
-    socketIO.emit('aaa') #will not fire on_aaa_response
+    socketIO.emit('aaa')  # Activate aaa_response
+    socketIO.emit('aaa')  # Ignore
     socketIO.wait(seconds=1)
 
 Define events in a namespace. ::

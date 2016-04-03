@@ -6,8 +6,8 @@ class EngineIONamespace(LoggingMixin):
 
     def __init__(self, io):
         self._io = io
-        self._callback_by_once_event = {}
         self._callback_by_event = {}
+        self._once_events = set()
         self._log_name = io._url
         self.initialize()
 
@@ -19,13 +19,18 @@ class EngineIONamespace(LoggingMixin):
         'Define a callback to handle an event emitted by the server'
         self._callback_by_event[event] = callback
 
-    def off(self, event):
-        'Remove an event handler'
-        self._callback_by_event.pop(event, None)
-
     def once(self, event, callback):
         'Define a callback to handle the first event emitted by the server'
-        self._callback_by_once_event[event] = callback
+        self._once_events.add(event)
+        self.on(event, callback)
+
+    def off(self, event):
+        'Remove an event handler'
+        try:
+            self._once_events.remove(event)
+        except KeyError:
+            pass
+        self._callback_by_event.pop(event, None)
 
     def send(self, data):
         'Send a message'
@@ -62,9 +67,13 @@ class EngineIONamespace(LoggingMixin):
     def _find_packet_callback(self, event):
         # Check callbacks defined by on()
         try:
-            return self._callback_by_event[event]
+            callback = self._callback_by_event[event]
         except KeyError:
             pass
+        else:
+            if event in self._once_events:
+                self.off(event)
+            return callback
         # Check callbacks defined explicitly
         return getattr(self, 'on_' + event)
 
@@ -138,13 +147,13 @@ class SocketIONamespace(EngineIONamespace):
                 event = 'reconnect'
         # Check callbacks defined by on()
         try:
-            if (event in self._callback_by_once_event):
-                result = self._callback_by_once_event[event]
-                self._callback_by_once_event.pop(event, None)
-                return result
-            return self._callback_by_event[event]
+            callback = self._callback_by_event[event]
         except KeyError:
             pass
+        else:
+            if event in self._once_events:
+                self.off(event)
+            return callback
         # Check callbacks defined explicitly or use on_event()
         return getattr(
             self, 'on_' + event.replace(' ', '_'),

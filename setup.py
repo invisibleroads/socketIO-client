@@ -3,13 +3,6 @@ from os.path import abspath, dirname, join
 from setuptools import find_packages, setup
 
 
-REQUIREMENTS = [
-    'requests',
-    'six',
-    'websocket-client',
-]
-
-
 HERE = dirname(abspath(__file__))
 LOAD_TEXT = lambda name: io.open(join(HERE, name), encoding='UTF-8').read()
 DESCRIPTION = '\n\n'.join(LOAD_TEXT(_) for _ in [
@@ -32,7 +25,11 @@ setup(
     author='Roy Hyunjin Han',
     author_email='rhh@crosscompute.com',
     url='https://github.com/invisibleroads/socketIO-client',
-    install_requires=REQUIREMENTS,
+    install_requires=[
+        'requests',
+        'six',
+        'websocket-client',
+    ],
     tests_require=[
         'nose',
         'coverage',

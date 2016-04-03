@@ -66,7 +66,7 @@
 0.3
 ---
 - Added support for secure connections
-- Added socketIO.wait()
+- Added SocketIO.wait()
 - Improved exception handling in _RhythmicThread and _ListenerThread
 
 0.2
