@@ -1,6 +1,7 @@
 0.6.6
 -----
 - Added SocketIO.off() and SocketIO.once()
+- `Improved server compatibility <https://github.com/invisibleroads/socketIO-client/issues/99>`_
 
 0.6.5
 -----
