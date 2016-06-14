@@ -96,7 +96,6 @@ class XHR_PollingTransport(AbstractTransport):
                 params=params,
                 data=memoryview(data),
                 **self._kw_post)
-            assert response.content == b'ok'
 
     def _get_timestamp(self):
         with self._request_index_lock:
