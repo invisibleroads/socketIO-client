@@ -161,9 +161,11 @@ class WebsocketTransport(AbstractTransport):
             self._connection.send(packet)
         except websocket.WebSocketTimeoutException as e:
             raise TimeoutError('send timed out (%s)' % e)
-        except socket.error as e:
-            raise ConnectionError('send disconnected (%s)' % e)
-        except websocket.WebSocketConnectionClosedException as e:
+        except (
+            TypeError,
+            socket.error,
+            websocket.WebSocketConnectionClosedException,
+        ) as e:
             raise ConnectionError('send disconnected (%s)' % e)
 
     def set_timeout(self, seconds=None):

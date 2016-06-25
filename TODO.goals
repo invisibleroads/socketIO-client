@@ -53,14 +53,3 @@ Consider allowing milliseconds
     https://github.com/invisibleroads/socketIO-client/issues/106
 Update setup.py for consistency
     Replace nose with pytest
-
-+ Review issues and pull requests
-+ Order issues
-+ Check SSL
-    + https://github.com/invisibleroads/socketIO-client/issues/86
-    + https://github.com/invisibleroads/socketIO-client/pull/87
-+ Look at socketio off and socketio once
-    + https://github.com/invisibleroads/socketIO-client/pull/94
-    + https://github.com/invisibleroads/socketIO-client/issues/110
-_ Consider supporting both protocols in the same library
-    _ https://github.com/invisibleroads/socketIO-client/issues/95

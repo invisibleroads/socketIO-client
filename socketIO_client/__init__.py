@@ -189,6 +189,7 @@ class EngineIO(LoggingMixin):
         self._wants_to_close = True
         try:
             self._heartbeat_thread.halt()
+            self._heartbeat_thread.join()
         except AttributeError:
             pass
         if not self._opened:
