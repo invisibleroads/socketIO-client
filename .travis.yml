@@ -6,6 +6,7 @@ python:
 before_install:
   - sudo apt-get update
   - sudo apt-get install nodejs
+  - node --version
 install:
   - npm install -G socket.io
   - pip install -U requests
