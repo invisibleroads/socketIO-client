@@ -7,6 +7,8 @@ __pycache__
 build
 dist
 sdist
+# Transient
+*.log
 # Vim
 *.sw[op]
 *~

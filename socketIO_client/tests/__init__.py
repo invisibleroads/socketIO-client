@@ -1,6 +1,5 @@
 import logging
 import time
-from nose.tools import assert_raises
 from unittest import TestCase
 
 from .. import SocketIO, LoggingNamespace, find_callback
@@ -161,8 +160,8 @@ class BaseMixin(object):
 
     def test_namespace_invalid(self):
         'Try to connect to a namespace that is not defined on the server'
-        with assert_raises(ConnectionError):
-            self.socketIO.define(Namespace, '/invalid')
+        self.assertRaises(
+            ConnectionError, self.socketIO.define, Namespace, '/invalid')
 
     def on_response(self, *args):
         for arg in args:
