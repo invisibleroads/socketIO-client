@@ -4,16 +4,11 @@ python:
   - 2.7
   - 3.4
 before_install:
-  - sudo apt-get update
-  - sudo apt-get install nodejs
-  - node --version
+  - sudo apt-get install nodejs; node --version
 install:
+  - pip install -U coverage requests six websocket-client
   - npm install -G socket.io
-  - pip install -U requests
-  - pip install -U six
-  - pip install -U websocket-client
-  - pip install -U coverage
 before_script:
   - DEBUG=* node socketIO_client/tests/serve.js &
-  - sleep 3
+  - sleep 1
 script: nosetests

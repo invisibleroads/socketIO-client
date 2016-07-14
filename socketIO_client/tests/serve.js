@@ -13,6 +13,10 @@ app.listen(9000);
 
 var io = require('socket.io')(app);
 var PAYLOAD = {'xxx': 'yyy'};
+var BINARY_PAYLOAD = {
+    'data': Buffer.from([255, 255, 255]);,
+    'array': [Buffer.from([238]), Buffer.from([221])]
+}
 
 io.on('connection', function(socket) {
   socket.on('message', function(data, fn) {
@@ -48,6 +52,9 @@ io.on('connection', function(socket) {
   });
   socket.on('emit_with_callback_with_multiple_payloads', function(fn) {
     fn(PAYLOAD, PAYLOAD);
+  });
+  socket.on('emit_with_callback_with_binary_payload', function(fn) {
+    fn(BINARY_PAYLOAD);
   });
   socket.on('emit_with_event', function(payload) {
     socket.emit('emit_with_event_response', payload);
