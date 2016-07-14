@@ -1,17 +1,17 @@
 0.6
 ---
 - Upgraded to socket.io protocol 1.x thanks to Sean Arietta and Joe Palmer
-- Added locks to fix concurrency issues with polling transport
-- Fixed SSL support
 - Fixed support for Python 3
+- Fixed SSL support
+- Added locks to fix concurrency issues with polling transport
 - Added SocketIO.off() and SocketIO.once()
 
 0.5
 ---
-- Added support for Python 3.4
+- Added support for Python 3
 - Added support for jsonp-polling thanks to Bernard Pratz
-- Added support for query params and cookies
 - Added support for xhr-polling thanks to Francis Bull
+- Added support for query params and cookies
 - Fixed sending acknowledgments in custom namespaces thanks to Travis Odom
 - Rewrote library to use coroutines instead of threads to save memory
 
