@@ -75,7 +75,8 @@ class EngineIO(LoggingMixin):
             except (TimeoutError, ConnectionError) as e:
                 if not self._wait_for_connection:
                     raise
-                warning = Exception('[waiting for connection] %s' % e)
+                warning = Exception(
+                    '[engine.io waiting for connection] %s' % e)
                 warning_screen.throw(warning)
         assert engineIO_packet_type == 0  # engineIO_packet_type == open
         return parse_engineIO_session(engineIO_packet_data)
@@ -293,7 +294,7 @@ class EngineIO(LoggingMixin):
             raise PacketError(
                 'unexpected engine.io packet type (%s)' % engineIO_packet_type)
         delegate(engineIO_packet_data, namespace)
-        if engineIO_packet_type is 4:
+        if engineIO_packet_type == 4:
             return engineIO_packet_data
 
     def _on_open(self, data, namespace):
@@ -446,10 +447,10 @@ class SocketIO(EngineIO):
             for path, namespace in self._namespace_by_path.items():
                 is_namespace_connected = getattr(
                     namespace, '_connected', False)
-                self._debug(
-                    '%s[socket.io wait] connected=%s',
-                    make_logging_header(path), is_namespace_connected)
                 if not is_namespace_connected:
+                    self._debug(
+                        '%s[socket.io waiting for connection]',
+                        make_logging_header(path))
                     return False
             return True
         if for_callbacks and not self._has_ack_callback:
@@ -479,19 +480,20 @@ class SocketIO(EngineIO):
         except KeyError:
             raise PacketError(
                 'unexpected socket.io packet type (%s)' % socketIO_packet_type)
-        delegate(socketIO_packet_data, namespace)
+        delegate(parse_socketIO_packet_data(socketIO_packet_data), namespace)
         return socketIO_packet_data
 
-    def _on_connect(self, data, namespace):
+    def _on_connect(self, data_parsed, namespace):
         namespace._connected = True
         namespace._find_packet_callback('connect')()
+        self._debug(
+            '%s[socket.io connected]', make_logging_header(namespace.path))
 
-    def _on_disconnect(self, data, namespace):
+    def _on_disconnect(self, data_parsed, namespace):
         namespace._connected = False
         namespace._find_packet_callback('disconnect')()
 
-    def _on_event(self, data, namespace):
-        data_parsed = parse_socketIO_packet_data(data)
+    def _on_event(self, data_parsed, namespace):
         args = data_parsed.args
         try:
             event = args.pop(0)
@@ -502,21 +504,20 @@ class SocketIO(EngineIO):
                 data_parsed.path, data_parsed.ack_id))
         namespace._find_packet_callback(event)(*args)
 
-    def _on_ack(self, data, namespace):
-        data_parsed = parse_socketIO_packet_data(data)
+    def _on_ack(self, data_parsed, namespace):
         try:
             ack_callback = self._get_ack_callback(data_parsed.ack_id)
         except KeyError:
             return
         ack_callback(*data_parsed.args)
 
-    def _on_error(self, data, namespace):
-        namespace._find_packet_callback('error')(data)
+    def _on_error(self, data_parsed, namespace):
+        namespace._find_packet_callback('error')(*data_parsed.args)
 
-    def _on_binary_event(self, data, namespace):
+    def _on_binary_event(self, data_parsed, namespace):
         self._warn('[not implemented] binary event')
 
-    def _on_binary_ack(self, data, namespace):
+    def _on_binary_ack(self, data_parsed, namespace):
         self._warn('[not implemented] binary ack')
 
     def _prepare_to_send_ack(self, path, ack_id):

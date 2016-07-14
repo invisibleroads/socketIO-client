@@ -82,6 +82,8 @@ def parse_socketIO_packet_data(socketIO_packet_data):
         args = json.loads(data)
     except ValueError:
         args = []
+    if not hasattr(args, '__iter__'):
+        args = [args]
     return SocketIOData(path=path, ack_id=ack_id, args=args)
 
 
