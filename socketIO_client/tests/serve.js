@@ -14,7 +14,7 @@ app.listen(9000);
 var io = require('socket.io')(app);
 var PAYLOAD = {'xxx': 'yyy'};
 var BINARY_PAYLOAD = {
-    'data': Buffer.from([255, 255, 255]);,
+    'data': Buffer.from([255, 255, 255]),
     'array': [Buffer.from([238]), Buffer.from([221])]
 }
 
