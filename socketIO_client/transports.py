@@ -90,7 +90,7 @@ class XHR_PollingTransport(AbstractTransport):
             data = encode_engineIO_content([
                 (engineIO_packet_type, engineIO_packet_data),
             ])
-            response = get_response(
+            get_response(
                 self.http_session.post,
                 self._http_url,
                 params=params,
@@ -196,6 +196,14 @@ def prepare_http_session(kw):
     http_session.hooks.update(kw.get('hooks', {}))
     http_session.params.update(kw.get('params', {}))
     http_session.verify = kw.get('verify', True)
-    http_session.cert = kw.get('cert')
+    http_session.cert = _get_cert(kw)
     http_session.cookies.update(kw.get('cookies', {}))
     return http_session
+
+
+def _get_cert(kw):
+    # Reduce (None, None) to None
+    cert = kw.get('cert')
+    if hasattr(cert, '__iter__') and cert[0] is None:
+        cert = None
+    return cert

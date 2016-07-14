@@ -229,7 +229,7 @@ class LoggingSocketIONamespace(SocketIONamespace, LoggingEngineIONamespace):
     def on_error(self, data):
         self._debug(
             '%s[socket.io error] %s', _make_logging_header(self.path), data)
-        super(LoggingSocketIONamespace, self).on_error()
+        super(LoggingSocketIONamespace, self).on_error(data)
 
 
 def find_callback(args, kw=None):

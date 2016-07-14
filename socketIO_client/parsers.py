@@ -16,7 +16,7 @@ def parse_host(host, port, resource):
     url_pack = parse_url(host)
     is_secure = url_pack.scheme == 'https'
     port = port or url_pack.port or (443 if is_secure else 80)
-    url = '%s:%d%s/%s' % (url_pack.hostname, port, url_pack.path, resource)
+    url = '%s:%s%s/%s' % (url_pack.hostname, port, url_pack.path, resource)
     return is_secure, url
 
 

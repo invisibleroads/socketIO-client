@@ -192,7 +192,7 @@ class EngineIO(LoggingMixin):
             self._heartbeat_thread.join()
         except AttributeError:
             pass
-        if not self._opened:
+        if not hasattr(self, '_opened') or not self._opened:
             return
         engineIO_packet_type = 1
         try:
