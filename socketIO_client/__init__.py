@@ -2,8 +2,8 @@ from .exceptions import ConnectionError, TimeoutError, PacketError
 from .heartbeats import HeartbeatThread
 from .logs import LoggingMixin
 from .namespaces import (
-    EngineIONamespace, SocketIONamespace, LoggingSocketIONamespace,
-    find_callback)
+    EngineIONamespace, SocketIONamespace,
+    LoggingSocketIONamespace, find_callback, make_logging_header)
 from .parsers import (
     parse_host, parse_engineIO_session,
     format_socketIO_packet_data, parse_socketIO_packet_data,
@@ -98,7 +98,7 @@ class EngineIO(LoggingMixin):
                         self._warn('unexpected engine.io packet')
             except Exception:
                 pass
-        self._debug('[transport selected] %s', self.transport_name)
+        self._debug('[engine.io transport selected] %s', self.transport_name)
 
     def _reset_heartbeat(self):
         try:
@@ -120,7 +120,7 @@ class EngineIO(LoggingMixin):
         self._heartbeat_thread.start()
         if hurried:
             self._heartbeat_thread.hurry()
-        self._debug('[heartbeat reset]')
+        self._debug('[engine.io heartbeat reset]')
 
     def _connect_namespaces(self):
         pass
@@ -247,6 +247,9 @@ class EngineIO(LoggingMixin):
                     self._process_packets()
                 except TimeoutError:
                     pass
+                except KeyboardInterrupt:
+                    self._close()
+                    raise
             except ConnectionError as e:
                 self._opened = False
                 try:
@@ -440,9 +443,12 @@ class SocketIO(EngineIO):
 
     def _should_stop_waiting(self, for_connect=False, for_callbacks=False):
         if for_connect:
-            for namespace in self._namespace_by_path.values():
+            for path, namespace in self._namespace_by_path.items():
                 is_namespace_connected = getattr(
                     namespace, '_connected', False)
+                self._debug(
+                    '%s[socket.io wait] connected=%s',
+                    make_logging_header(path), is_namespace_connected)
                 if not is_namespace_connected:
                     return False
             return True

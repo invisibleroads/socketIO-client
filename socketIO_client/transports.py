@@ -1,28 +1,28 @@
 import requests
 import six
-import socket
 import ssl
-import sys
 import threading
 import time
-import websocket
 from six import string_types
-
-from .exceptions import ConnectionError, TimeoutError
-from .parsers import (
-    encode_engineIO_content, decode_engineIO_content,
-    format_packet_text, parse_packet_text)
-from .symmetries import format_query, memoryview, parse_url
-
-
-if not hasattr(websocket, 'create_connection'):
-    sys.exit("""\
+from socket import error as SocketError
+try:
+    from websocket import (
+        SSLError, WebSocketConnectionClosedException,
+        WebSocketTimeoutException, create_connection)
+except ImportError:
+    exit("""\
 An incompatible websocket library is conflicting with the one we need.
 You can remove the incompatible library and install the correct one
 by running the following commands:
 
 yes | pip uninstall websocket websocket-client
 pip install -U websocket-client""")
+
+from .exceptions import ConnectionError, TimeoutError
+from .parsers import (
+    encode_engineIO_content, decode_engineIO_content,
+    format_packet_text, parse_packet_text)
+from .symmetries import format_query, memoryview, parse_url
 
 
 ENGINEIO_PROTOCOL = 3
@@ -136,20 +136,20 @@ class WebsocketTransport(AbstractTransport):
         else:  # Do not verify the SSL certificate
             kw['sslopt'] = {'cert_reqs': ssl.CERT_NONE}
         try:
-            self._connection = websocket.create_connection(ws_url, **kw)
+            self._connection = create_connection(ws_url, **kw)
         except Exception as e:
             raise ConnectionError(e)
 
     def recv_packet(self):
         try:
             packet_text = self._connection.recv()
-        except websocket.WebSocketTimeoutException as e:
+        except WebSocketTimeoutException as e:
             raise TimeoutError('recv timed out (%s)' % e)
-        except websocket.SSLError as e:
+        except SSLError as e:
             raise ConnectionError('recv disconnected by SSL (%s)' % e)
-        except websocket.WebSocketConnectionClosedException as e:
+        except WebSocketConnectionClosedException as e:
             raise ConnectionError('recv disconnected (%s)' % e)
-        except socket.error as e:
+        except SocketError as e:
             raise ConnectionError('recv disconnected (%s)' % e)
         engineIO_packet_type, engineIO_packet_data = parse_packet_text(
             six.b(packet_text))
@@ -159,13 +159,9 @@ class WebsocketTransport(AbstractTransport):
         packet = format_packet_text(engineIO_packet_type, engineIO_packet_data)
         try:
             self._connection.send(packet)
-        except websocket.WebSocketTimeoutException as e:
+        except WebSocketTimeoutException as e:
             raise TimeoutError('send timed out (%s)' % e)
-        except (
-            TypeError,
-            socket.error,
-            websocket.WebSocketConnectionClosedException,
-        ) as e:
+        except (SocketError, WebSocketConnectionClosedException) as e:
             raise ConnectionError('send disconnected (%s)' % e)
 
     def set_timeout(self, seconds=None):
