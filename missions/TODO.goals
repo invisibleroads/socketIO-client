@@ -3,28 +3,17 @@ Add binary support
     https://github.com/invisibleroads/socketIO-client/issues/70
     https://github.com/invisibleroads/socketIO-client/issues/71
     https://github.com/invisibleroads/socketIO-client/issues/91
-Check requests dependency
-    https://github.com/invisibleroads/socketIO-client/issues/92
-    https://github.com/invisibleroads/socketIO-client/pull/93
-    https://github.com/invisibleroads/socketIO-client/commit/b288d89c15d452a30bfeb00f38494f59f71f5a43
 Move logging into a separate namespace
     https://github.com/invisibleroads/socketIO-client/pull/105
-Check on_error data argument
-    https://github.com/invisibleroads/socketIO-client/pull/108
 Use six.u for unicode encoding
     https://github.com/invisibleroads/socketIO-client/pull/109
 Replace *args with args
     Investigate whether it is really true that callbacks can't take dictionaries
     https://github.com/invisibleroads/socketIO-client/pull/112
-Look into invalid namespace handling
-    https://github.com/invisibleroads/socketIO-client/issues/84
 Check unicode issues
     https://github.com/invisibleroads/socketIO-client/issues/81
 Check python3 support for socketIO-client 0.5.6
     https://github.com/invisibleroads/socketIO-client/issues/83
-Check OK assertion
-    https://github.com/invisibleroads/socketIO-client/issues/99
-    https://github.com/invisibleroads/socketIO-client/pull/103
 Check why connected=True after termination
     https://github.com/invisibleroads/socketIO-client/issues/80
     https://github.com/invisibleroads/socketIO-client/issues/98
@@ -33,17 +22,10 @@ Consider catching heartbeat thread exception
 Check disconnection issues
     https://github.com/invisibleroads/socketIO-client/issues/107
     https://github.com/invisibleroads/socketIO-client/issues/111
-Check why it blocks when defining a namespace
-    https://github.com/invisibleroads/socketIO-client/issues/96
 Check why transports are not being set
     https://github.com/invisibleroads/socketIO-client/issues/102
 Look at 404 not found error
     https://github.com/invisibleroads/socketIO-client/issues/101
-Implement rooms 
-    https://github.com/invisibleroads/socketIO-client/issues/72
-    https://github.com/invisibleroads/socketIO-client/pull/65
-Check tests
-    https://github.com/invisibleroads/socketIO-client/issues/90
 Check whether it works on Windows 8
     https://github.com/invisibleroads/socketIO-client/issues/97
 Add debian packaging support
