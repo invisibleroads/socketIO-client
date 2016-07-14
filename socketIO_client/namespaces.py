@@ -137,6 +137,8 @@ class SocketIONamespace(EngineIONamespace):
     def on_error(self, data):
         """Called after socket.io sends an error packet.
         You can override this method."""
+        if data.lower() == 'invalid namespace':
+            self._invalid = True
 
     def _find_packet_callback(self, event):
         # Interpret events
@@ -203,17 +205,17 @@ class LoggingSocketIONamespace(SocketIONamespace, LoggingEngineIONamespace):
 
     def on_connect(self):
         self._debug(
-            '%s[socket.io connect]', make_logging_header(self.path))
+            '%s[socket.io connect]', make_logging_prefix(self.path))
         super(LoggingSocketIONamespace, self).on_connect()
 
     def on_reconnect(self):
         self._debug(
-            '%s[socket.io reconnect]', make_logging_header(self.path))
+            '%s[socket.io reconnect]', make_logging_prefix(self.path))
         super(LoggingSocketIONamespace, self).on_reconnect()
 
     def on_disconnect(self):
         self._debug(
-            '%s[socket.io disconnect]', make_logging_header(self.path))
+            '%s[socket.io disconnect]', make_logging_prefix(self.path))
         super(LoggingSocketIONamespace, self).on_disconnect()
 
     def on_event(self, event, *args):
@@ -222,13 +224,13 @@ class LoggingSocketIONamespace(SocketIONamespace, LoggingEngineIONamespace):
         if callback:
             arguments.append('callback(*args)')
         self._info(
-            '%s[socket.io event] %s(%s)', make_logging_header(self.path),
+            '%s[socket.io event] %s(%s)', make_logging_prefix(self.path),
             event, ', '.join(arguments))
         super(LoggingSocketIONamespace, self).on_event(event, *args)
 
     def on_error(self, data):
         self._warn(
-            '%s[socket.io error] %s', make_logging_header(self.path), data)
+            '%s[socket.io error] %s', make_logging_prefix(self.path), data)
         super(LoggingSocketIONamespace, self).on_error(data)
 
 
@@ -242,5 +244,5 @@ def find_callback(args, kw=None):
         return None, args
 
 
-def make_logging_header(path):
+def make_logging_prefix(path):
     return path + ' ' if path else ''

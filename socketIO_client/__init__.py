@@ -3,7 +3,7 @@ from .heartbeats import HeartbeatThread
 from .logs import LoggingMixin
 from .namespaces import (
     EngineIONamespace, SocketIONamespace,
-    LoggingSocketIONamespace, find_callback, make_logging_header)
+    LoggingSocketIONamespace, find_callback, make_logging_prefix)
 from .parsers import (
     parse_host, parse_engineIO_session,
     format_socketIO_packet_data, parse_socketIO_packet_data,
@@ -375,7 +375,7 @@ class SocketIO(EngineIO):
         self._namespace_by_path[path] = namespace = Namespace(self, path)
         if path:
             self.connect(path)
-            self.wait(for_connect=True)
+            self.wait(for_namespace=namespace)
         return namespace
 
     def on(self, event, callback, path=''):
@@ -442,16 +442,17 @@ class SocketIO(EngineIO):
     def wait_for_callbacks(self, seconds=None):
         self.wait(seconds, for_callbacks=True)
 
-    def _should_stop_waiting(self, for_connect=False, for_callbacks=False):
-        if for_connect:
-            for path, namespace in self._namespace_by_path.items():
-                is_namespace_connected = getattr(
-                    namespace, '_connected', False)
-                if not is_namespace_connected:
-                    self._debug(
-                        '%s[socket.io waiting for connection]',
-                        make_logging_header(path))
-                    return False
+    def _should_stop_waiting(self, for_namespace=False, for_callbacks=False):
+        if for_namespace:
+            namespace = for_namespace
+            if getattr(namespace, '_invalid', False):
+                raise ConnectionError(
+                    'invalid socket.io namespace (%s)' % namespace.path)
+            if not getattr(namespace, '_connected', False):
+                self._debug(
+                    '%s[socket.io waiting for connection]',
+                    make_logging_prefix(namespace.path))
+                return False
             return True
         if for_callbacks and not self._has_ack_callback:
             return True
@@ -487,7 +488,7 @@ class SocketIO(EngineIO):
         namespace._connected = True
         namespace._find_packet_callback('connect')()
         self._debug(
-            '%s[socket.io connected]', make_logging_header(namespace.path))
+            '%s[socket.io connected]', make_logging_prefix(namespace.path))
 
     def _on_disconnect(self, data_parsed, namespace):
         namespace._connected = False
