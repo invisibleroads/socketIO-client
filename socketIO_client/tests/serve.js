@@ -1,7 +1,5 @@
 // DEBUG=* node serve.js
-
-var argv = require('yargs').argv;
-if (argv.secure) {
+if (process.argv[2] == 'secure') {
   var fs = require('fs');
   var path = require('path');
   var app = require('https').createServer({

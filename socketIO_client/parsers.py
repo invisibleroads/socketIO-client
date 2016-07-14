@@ -1,5 +1,6 @@
 import json
 from collections import namedtuple
+from six import string_types
 
 from .symmetries import (
     decode_string, encode_string, get_byte, get_character, parse_url)
@@ -82,7 +83,7 @@ def parse_socketIO_packet_data(socketIO_packet_data):
         args = json.loads(data)
     except ValueError:
         args = []
-    if not hasattr(args, '__iter__'):
+    if isinstance(args, string_types):
         args = [args]
     return SocketIOData(path=path, ack_id=ack_id, args=args)
 

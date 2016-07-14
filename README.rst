@@ -34,13 +34,12 @@ Activate isolated environment. ::
 
 Launch your socket.io server. ::
 
-    # Get package folder
-    PACKAGE_FOLDER=`python -c "import os, socketIO_client;\
-        print(os.path.dirname(socketIO_client.__file__))"`
-    # Start socket.io server
-    DEBUG=* node $PACKAGE_FOLDER/tests/serve.js
-    # Start proxy server in a separate terminal on the same machine
-    DEBUG=* node $PACKAGE_FOLDER/tests/proxy.js
+    cd $(python -c "import os, socketIO_client;\
+        print(os.path.dirname(socketIO_client.__file__))")
+
+    DEBUG=* node tests/serve.js  # Start socket.io server in terminal one
+    DEBUG=* node tests/proxy.js  # Start proxy server in terminal two
+    nosetests                    # Run tests in terminal three
 
 For debugging information, run these commands first. ::
 

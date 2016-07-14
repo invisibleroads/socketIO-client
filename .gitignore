@@ -1,10 +1,12 @@
-*.egg
-*.egg-info
+# Python
+*.egg*
 *.py[co]
-*.sw[op]
-*~
 .cache
 .coverage
+__pycache__
 build
 dist
 sdist
+# Vim
+*.sw[op]
+*~

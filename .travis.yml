@@ -8,7 +8,6 @@ before_install:
   - sudo apt-get install nodejs
 install:
   - npm install -G socket.io
-  - npm install -G yargs
   - pip install -U requests
   - pip install -U six
   - pip install -U websocket-client
