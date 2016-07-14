@@ -3,6 +3,7 @@ import time
 from unittest import TestCase
 
 from .. import SocketIO, LoggingNamespace, find_callback
+from ..exceptions import ConnectionError
 
 
 HOST = 'localhost'
@@ -156,6 +157,11 @@ class BaseMixin(object):
             'server_expects_callback': (PAYLOAD,),
             'server_received_callback': (PAYLOAD,),
         })
+
+    def test_namespace_invalid(self):
+        'Try to connect to a namespace that is not defined on the server'
+        with self.assertRaises(ConnectionError):
+            self.socketIO.define(Namespace, '/invalid')
 
     def on_response(self, *args):
         for arg in args:

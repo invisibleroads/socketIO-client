@@ -1,3 +1,5 @@
+import atexit
+
 from .exceptions import ConnectionError, TimeoutError, PacketError
 from .heartbeats import HeartbeatThread
 from .logs import LoggingMixin
@@ -43,8 +45,9 @@ class EngineIO(LoggingMixin):
         self._http_session = prepare_http_session(kw)
 
         self._log_name = self._url
-        self._wants_to_close = False
         self._opened = False
+        self._wants_to_close = False
+        atexit.register(self._close)
 
         if Namespace:
             self.define(Namespace)
