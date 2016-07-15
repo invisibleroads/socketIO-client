@@ -1,3 +1,4 @@
+# coding: utf-8
 import logging
 import time
 from unittest import TestCase
@@ -10,6 +11,7 @@ HOST = 'localhost'
 PORT = 9000
 DATA = 'xxx'
 PAYLOAD = {'xxx': 'yyy'}
+UNICODE_PAYLOAD = {u'인삼': u'뿌리'}
 logging.basicConfig(level=logging.DEBUG)
 
 
@@ -160,8 +162,18 @@ class BaseMixin(object):
 
     def test_namespace_invalid(self):
         'Try to connect to a namespace that is not defined on the server'
-        with self.assertRaises(ConnectionError):
-            self.socketIO.define(Namespace, '/invalid')
+        self.assertRaises(
+            ConnectionError, self.socketIO.define, Namespace, '/invalid')
+
+    """
+    def test_unicode(self):
+        namespace = self.socketIO.define(Namespace)
+        self.socketIO.emit('emit_with_payload', UNICODE_PAYLOAD)
+        self.socketIO.wait(self.wait_time_in_seconds)
+        self.assertEqual(namespace.args_by_event, {
+            'emit_with_payload_response': (UNICODE_PAYLOAD,),
+        })
+    """
 
     def on_response(self, *args):
         for arg in args:

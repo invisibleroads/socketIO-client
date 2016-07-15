@@ -1,7 +1,5 @@
 // DEBUG=* node serve.js
-
-var argv = require('yargs').argv;
-if (argv.secure) {
+if (process.argv[2] == 'secure') {
   var fs = require('fs');
   var path = require('path');
   var app = require('https').createServer({
@@ -15,6 +13,20 @@ app.listen(9000);
 
 var io = require('socket.io')(app);
 var PAYLOAD = {'xxx': 'yyy'};
+var UNICODE_PAYLOAD = {'인삼': '뿌리'};
+
+// Travis currently does not support Buffer.from
+function getBuffer(array) {
+  var buffer = new Buffer(array.length);
+  for (var i = 0; i < array.length; i++) {
+    buffer[i] = array[i];
+  }
+  return buffer;
+}
+var BINARY_PAYLOAD = {
+    'data': getBuffer([255, 255, 255]),
+    'array': [getBuffer([238]), getBuffer([221])]
+}
 
 io.on('connection', function(socket) {
   socket.on('message', function(data, fn) {
@@ -50,6 +62,12 @@ io.on('connection', function(socket) {
   });
   socket.on('emit_with_callback_with_multiple_payloads', function(fn) {
     fn(PAYLOAD, PAYLOAD);
+  });
+  socket.on('emit_with_callback_with_unicode_payload', function(fn) {
+    fn(UNICODE_PAYLOAD);
+  });
+  socket.on('emit_with_callback_with_binary_payload', function(fn) {
+    fn(BINARY_PAYLOAD);
   });
   socket.on('emit_with_event', function(payload) {
     socket.emit('emit_with_event_response', payload);

@@ -3,7 +3,6 @@ import six
 import ssl
 import threading
 import time
-from six import string_types
 from socket import error as SocketError
 try:
     from websocket import (
@@ -129,7 +128,7 @@ class WebsocketTransport(AbstractTransport):
                     proxy_url_pack.username, proxy_url_pack.password)
         if http_session.verify:
             if http_session.cert:  # Specify certificate path on disk
-                if isinstance(http_session.cert, string_types):
+                if isinstance(http_session.cert, six.string_types):
                     kw['ca_certs'] = http_session.cert
                 else:
                     kw['ca_certs'] = http_session.cert[0]
@@ -151,8 +150,10 @@ class WebsocketTransport(AbstractTransport):
             raise ConnectionError('recv disconnected (%s)' % e)
         except SocketError as e:
             raise ConnectionError('recv disconnected (%s)' % e)
+        if not isinstance(packet_text, six.binary_type):
+            packet_text = six.b(packet_text)
         engineIO_packet_type, engineIO_packet_data = parse_packet_text(
-            six.b(packet_text))
+            packet_text)
         yield engineIO_packet_type, engineIO_packet_data
 
     def send_packet(self, engineIO_packet_type, engineIO_packet_data=''):
