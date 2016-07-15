@@ -13,6 +13,7 @@ app.listen(9000);
 
 var io = require('socket.io')(app);
 var PAYLOAD = {'xxx': 'yyy'};
+var UNICODE_PAYLOAD = {'인삼': '뿌리'};
 
 // Travis currently does not support Buffer.from
 function getBuffer(array) {
@@ -61,6 +62,9 @@ io.on('connection', function(socket) {
   });
   socket.on('emit_with_callback_with_multiple_payloads', function(fn) {
     fn(PAYLOAD, PAYLOAD);
+  });
+  socket.on('emit_with_callback_with_unicode_payload', function(fn) {
+    fn(UNICODE_PAYLOAD);
   });
   socket.on('emit_with_callback_with_binary_payload', function(fn) {
     fn(BINARY_PAYLOAD);
