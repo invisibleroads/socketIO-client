@@ -151,8 +151,10 @@ class WebsocketTransport(AbstractTransport):
             raise ConnectionError('recv disconnected (%s)' % e)
         except SocketError as e:
             raise ConnectionError('recv disconnected (%s)' % e)
+        if not isinstance(packet_text, six.binary_type):
+            packet_text = six.b(packet_text)
         engineIO_packet_type, engineIO_packet_data = parse_packet_text(
-            six.b(packet_text))
+            packet_text)
         yield engineIO_packet_type, engineIO_packet_data
 
     def send_packet(self, engineIO_packet_type, engineIO_packet_data=''):

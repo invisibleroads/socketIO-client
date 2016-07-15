@@ -13,9 +13,18 @@ app.listen(9000);
 
 var io = require('socket.io')(app);
 var PAYLOAD = {'xxx': 'yyy'};
+
+// Travis currently does not support Buffer.from
+function getBuffer(array) {
+  var buffer = new Buffer(array.length);
+  for (var i = 0; i < array.length; i++) {
+    buffer[i] = array[i];
+  }
+  return buffer;
+}
 var BINARY_PAYLOAD = {
-    'data': Buffer.from([255, 255, 255]),
-    'array': [Buffer.from([238]), Buffer.from([221])]
+    'data': getBuffer([255, 255, 255]),
+    'array': [getBuffer([238]), getBuffer([221])]
 }
 
 io.on('connection', function(socket) {
