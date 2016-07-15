@@ -1,3 +1,7 @@
+0.7
+---
+- Fixed thread cleanup
+
 0.6
 ---
 - Upgraded to socket.io protocol 1.x thanks to Sean Arietta and Joe Palmer
