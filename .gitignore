@@ -1,9 +1,14 @@
-*~
-*.sw[op]
-*.py[cod]
-*.egg
-*.egg-info
+# Python
+*.egg*
+*.py[co]
+.cache
+.coverage
+__pycache__
 build
 dist
 sdist
-.coverage
+# Transient
+*.log
+# Vim
+*.sw[op]
+*~
