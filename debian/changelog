@@ -1,4 +1,4 @@
-python-socketio-client (0.6.5) UNRELEASED; urgency=medium
+python-socketio-client (0.7.0) UNRELEASED; urgency=medium
 
   * First version with Debian packaging.
 

@@ -2,7 +2,7 @@ Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: socketIO-client
 
 Files: *
-Copyright: 2015 Roy Hyunjin Han <rhh@crosscompute.com>
+Copyright: 2016 Roy Hyunjin Han <rhh@crosscompute.com>
 License: MIT
 
 License: MIT
