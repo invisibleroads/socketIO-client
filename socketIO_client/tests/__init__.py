@@ -12,6 +12,11 @@ PORT = 9000
 DATA = 'xxx'
 PAYLOAD = {'xxx': 'yyy'}
 UNICODE_PAYLOAD = {u'인삼': u'뿌리'}
+BINARY_DATA = bytearray(b'\xff\xff\xff')
+BINARY_PAYLOAD = {
+    'data': BINARY_DATA,
+    'array': [bytearray(b'\xee'), bytearray(b'\xdd')]
+}
 logging.basicConfig(level=logging.DEBUG)
 
 
@@ -62,6 +67,26 @@ class BaseMixin(object):
             'emit_with_multiple_payloads_response': (PAYLOAD, PAYLOAD),
         })
 
+    """
+    def test_emit_with_unicode_payload(self):
+        'Emit with unicode payload'
+        namespace = self.socketIO.define(Namespace)
+        self.socketIO.emit('emit_with_payload', UNICODE_PAYLOAD)
+        self.socketIO.wait(self.wait_time_in_seconds)
+        self.assertEqual(namespace.args_by_event, {
+            'emit_with_payload_response': (UNICODE_PAYLOAD,),
+        })
+
+    def test_emit_with_binary_payload(self):
+        'Emit with binary payload'
+        namespace = self.socketIO.define(Namespace)
+        self.socketIO.emit('emit_with_payload', BINARY_PAYLOAD)
+        self.socketIO.wait(self.wait_time_in_seconds)
+        self.assertEqual(namespace.args_by_event, {
+            'emit_with_payload_response': (BINARY_PAYLOAD,),
+        })
+    """
+
     def test_emit_with_callback(self):
         'Emit with callback'
         self.socketIO.emit('emit_with_callback', self.on_response)
@@ -81,6 +106,15 @@ class BaseMixin(object):
             'emit_with_callback_with_multiple_payloads', self.on_response)
         self.socketIO.wait_for_callbacks(seconds=self.wait_time_in_seconds)
         self.assertEqual(self.response_count, 1)
+
+    """
+    def test_emit_with_callback_with_binary_payload(self):
+        'Emit with callback with binary payload'
+        self.socketIO.emit(
+            'emit_with_callback_with_binary_payload', self.on_binary_response)
+        self.socketIO.wait_for_callbacks(seconds=self.wait_time_in_seconds)
+        self.assertTrue(self.called_on_response)
+    """
 
     def test_emit_with_event(self):
         'Emit to trigger an event'
@@ -118,6 +152,15 @@ class BaseMixin(object):
         self.socketIO.wait(self.wait_time_in_seconds)
         self.assertEqual(namespace.response, DATA)
 
+    """
+    def test_send_with_binary_data(self):
+        'Send with binary data'
+        namespace = self.socketIO.define(Namespace)
+        self.socketIO.send(BINARY_DATA)
+        self.socketIO.wait(self.wait_time_in_seconds)
+        self.assertEqual(namespace.response, BINARY_DATA)
+    """
+
     def test_ack(self):
         'Respond to a server callback request'
         namespace = self.socketIO.define(Namespace)
@@ -128,6 +171,19 @@ class BaseMixin(object):
             'server_received_callback': (PAYLOAD,),
         })
 
+    """
+    def test_binary_ack(self):
+        'Respond to a server callback request with binary data'
+        namespace = self.socketIO.define(Namespace)
+        self.socketIO.emit(
+            'trigger_server_expects_callback', BINARY_PAYLOAD)
+        self.socketIO.wait(self.wait_time_in_seconds)
+        self.assertEqual(namespace.args_by_event, {
+            'server_expects_callback': (BINARY_PAYLOAD,),
+            'server_received_callback': (BINARY_PAYLOAD,),
+        })
+    """
+
     def test_wait_with_disconnect(self):
         'Exit loop when the client wants to disconnect'
         self.socketIO.define(Namespace)
@@ -137,8 +193,13 @@ class BaseMixin(object):
         self.socketIO.wait(timeout_in_seconds)
         self.assertTrue(time.time() - start_time < timeout_in_seconds)
 
+    def test_namespace_invalid(self):
+        'Connect to a namespace that is not defined on the server'
+        self.assertRaises(
+            ConnectionError, self.socketIO.define, Namespace, '/invalid')
+
     def test_namespace_emit(self):
-        'Behave differently in different namespaces'
+        'Emit to namespaces'
         main_namespace = self.socketIO.define(Namespace)
         chat_namespace = self.socketIO.define(Namespace, '/chat')
         news_namespace = self.socketIO.define(Namespace, '/news')
@@ -150,8 +211,23 @@ class BaseMixin(object):
             'emit_with_payload_response': (PAYLOAD,),
         })
 
+    """
+    def test_namespace_emit_with_binary_payload(self):
+        'Emit to namespaces with binary payload'
+        main_namespace = self.socketIO.define(Namespace)
+        chat_namespace = self.socketIO.define(Namespace, '/chat')
+        news_namespace = self.socketIO.define(Namespace, '/news')
+        news_namespace.emit('emit_with_payload', BINARY_PAYLOAD)
+        self.socketIO.wait(self.wait_time_in_seconds)
+        self.assertEqual(main_namespace.args_by_event, {})
+        self.assertEqual(chat_namespace.args_by_event, {})
+        self.assertEqual(news_namespace.args_by_event, {
+            'emit_with_payload_response': (BINARY_PAYLOAD,),
+        })
+    """
+
     def test_namespace_ack(self):
-        'Respond to a server callback request within a namespace'
+        'Respond to server callback request in namespace'
         chat_namespace = self.socketIO.define(Namespace, '/chat')
         chat_namespace.emit('trigger_server_expects_callback', PAYLOAD)
         self.socketIO.wait(self.wait_time_in_seconds)
@@ -160,18 +236,16 @@ class BaseMixin(object):
             'server_received_callback': (PAYLOAD,),
         })
 
-    def test_namespace_invalid(self):
-        'Try to connect to a namespace that is not defined on the server'
-        self.assertRaises(
-            ConnectionError, self.socketIO.define, Namespace, '/invalid')
-
     """
-    def test_unicode(self):
-        namespace = self.socketIO.define(Namespace)
-        self.socketIO.emit('emit_with_payload', UNICODE_PAYLOAD)
+    def test_namespace_ack_with_binary_payload(self):
+        'Respond to server callback request in namespace with binary payload'
+        chat_namespace = self.socketIO.define(Namespace, '/chat')
+        chat_namespace.emit(
+            'trigger_server_expects_callback', BINARY_PAYLOAD)
         self.socketIO.wait(self.wait_time_in_seconds)
-        self.assertEqual(namespace.args_by_event, {
-            'emit_with_payload_response': (UNICODE_PAYLOAD,),
+        self.assertEqual(chat_namespace.args_by_event, {
+            'server_expects_callback': (BINARY_PAYLOAD,),
+            'server_received_callback': (BINARY_PAYLOAD,),
         })
     """
 
@@ -182,6 +256,14 @@ class BaseMixin(object):
             else:
                 self.assertEqual(arg, DATA)
         self.response_count += 1
+
+    def on_binary_response(self, *args):
+        for arg in args:
+            if isinstance(arg, dict):
+                self.assertEqual(arg, BINARY_PAYLOAD)
+            else:
+                self.assertEqual(arg, BINARY_DATA)
+        self.called_on_response = True
 
 
 class Test_XHR_PollingTransport(BaseMixin, TestCase):

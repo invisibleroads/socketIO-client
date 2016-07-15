@@ -23,8 +23,9 @@ function getBuffer(array) {
   }
   return buffer;
 }
+var BINARY_DATA = getBuffer([255, 255, 255]);
 var BINARY_PAYLOAD = {
-    'data': getBuffer([255, 255, 255]),
+    'data': BINARY_DATA,
     'array': [getBuffer([238]), getBuffer([221])]
 }
 
