@@ -1,11 +1,17 @@
 import logging
 import time
 
+from .symmetries import NullHandler
+
+
+LOGGER = logging.getLogger('socketIO-client')
+LOGGER.addHandler(NullHandler())
+
 
 class LoggingMixin(object):
 
     def _log(self, level, msg, *attrs):
-        logging.log(level, '%s %s' % (self._log_name, msg), *attrs)
+        LOGGER.log(level, '%s %s' % (self._log_name, msg), *attrs)
 
     def _debug(self, msg, *attrs):
         self._log(logging.DEBUG, msg, *attrs)
