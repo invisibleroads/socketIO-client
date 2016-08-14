@@ -45,6 +45,7 @@ For debugging information, run these commands first. ::
 
     import logging
     logging.getLogger('socketIO-client').setLevel(logging.DEBUG)
+    logging.basicConfig()
 
 Emit. ::
 
