@@ -243,7 +243,12 @@ class SocketIO(object):
         - Omit seconds, i.e. call wait() without arguments, to wait forever.
         """
         warning_screen = _yield_warning_screen(seconds)
-        timeout = min(self._heartbeat_interval, seconds)
+
+        if seconds is None:
+            timeout = None
+        else:
+            timeout = min(self._heartbeat_interval, seconds)
+
         for elapsed_time in warning_screen:
             if self._stop_waiting(for_callbacks):
                 break
