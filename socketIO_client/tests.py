@@ -177,6 +177,18 @@ class BaseMixin(object):
             'ack_callback_response': (PAYLOAD,),
         })
 
+    def test_get_timeout(self):
+        """
+        when _get_timeout is supplied with None, it should return None
+        when supplied with numbers, should return numbers
+        """
+        timeout = self.socketIO._get_timeout(None)
+        self.socketIO._heartbeat_interval = 10
+        self.assertIsNone(timeout)
+
+        timeout = self.socketIO._get_timeout(3)
+        self.assertEqual(3, timeout)
+
 
 class Test_WebsocketTransport(TestCase, BaseMixin):
 

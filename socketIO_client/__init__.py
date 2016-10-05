@@ -244,10 +244,7 @@ class SocketIO(object):
         """
         warning_screen = _yield_warning_screen(seconds)
 
-        if seconds is None:
-            timeout = None
-        else:
-            timeout = min(self._heartbeat_interval, seconds)
+        timeout = self._get_timeout(seconds)
 
         for elapsed_time in warning_screen:
             if self._stop_waiting(for_callbacks):
@@ -269,6 +266,20 @@ class SocketIO(object):
                     namespace.on_disconnect()
                 except KeyError:
                     pass
+
+    def _get_timeout(self, seconds=None):
+        """
+        return the min value between heartbeat_interval and seconds param
+        if seconds is None, return None instead
+
+        :seconds: None | integer
+        :returns: None | integer
+
+        """
+        if seconds is None:
+            return None
+
+        return min(self._heartbeat_interval, seconds)
 
     def _process_events(self, timeout=None):
         for packet in self._transport.recv_packet(timeout):
