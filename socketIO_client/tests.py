@@ -6,7 +6,7 @@ from . import SocketIO, LoggingNamespace, find_callback
 from .transports import TIMEOUT_IN_SECONDS
 
 
-HOST = 'localhost'
+HOST = 'socketio'
 PORT = 8000
 DATA = 'xxx'
 PAYLOAD = {'xxx': 'yyy'}
@@ -184,7 +184,7 @@ class BaseMixin(object):
         """
         timeout = self.socketIO._get_timeout(None)
         self.socketIO._heartbeat_interval = 10
-        self.assertIsNone(timeout)
+        self.assertEqual(None, timeout)
 
         timeout = self.socketIO._get_timeout(3)
         self.assertEqual(3, timeout)
