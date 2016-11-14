@@ -1,9 +1,9 @@
 import json
 import six
 from collections import namedtuple
+from six.moves.urllib.parse import urlparse as parse_url
 
-from .symmetries import (
-    decode_string, encode_string, get_byte, get_character, parse_url)
+from .symmetries import decode_string, encode_string, get_byte, get_character
 
 
 EngineIOSession = namedtuple('EngineIOSession', [

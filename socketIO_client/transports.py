@@ -3,6 +3,8 @@ import six
 import ssl
 import threading
 import time
+from six.moves.urllib.parse import urlencode as format_query
+from six.moves.urllib.parse import urlparse as parse_url
 from socket import error as SocketError
 try:
     from websocket import (
@@ -21,7 +23,7 @@ from .exceptions import ConnectionError, TimeoutError
 from .parsers import (
     encode_engineIO_content, decode_engineIO_content,
     format_packet_text, parse_packet_text)
-from .symmetries import format_query, memoryview, parse_url
+from .symmetries import memoryview
 
 
 ENGINEIO_PROTOCOL = 3

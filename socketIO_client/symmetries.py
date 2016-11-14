@@ -1,4 +1,6 @@
-import six
+from six import indexbytes
+
+
 try:
     from logging import NullHandler
 except ImportError:  # Python 2.6
@@ -8,14 +10,8 @@ except ImportError:  # Python 2.6
 
         def emit(self, record):
             pass
-try:
-    from urllib import urlencode as format_query
-except ImportError:
-    from urllib.parse import urlencode as format_query  # noqa
-try:
-    from urlparse import urlparse as parse_url
-except ImportError:
-    from urllib.parse import urlparse as parse_url  # noqa
+
+
 try:
     memoryview = memoryview
 except NameError:
@@ -27,7 +23,7 @@ def get_character(x, index):
 
 
 def get_byte(x, index):
-    return six.indexbytes(x, index)
+    return indexbytes(x, index)
 
 
 def decode_string(x):
