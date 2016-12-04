@@ -8,8 +8,9 @@ from six.moves.urllib.parse import urlparse as parse_url
 from socket import error as SocketError
 try:
     from websocket import (
-        SSLError, WebSocketConnectionClosedException,
+        WebSocketConnectionClosedException,
         WebSocketTimeoutException, create_connection)
+    from websocket._ssl_compat import SSLError
 except ImportError:
     exit("""\
 An incompatible websocket library is conflicting with the one we need.
