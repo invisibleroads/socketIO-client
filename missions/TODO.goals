@@ -35,3 +35,4 @@ Consider allowing milliseconds
     https://github.com/invisibleroads/socketIO-client/issues/106
 Update setup.py for consistency
     Replace nose with pytest
+Consider using attrs instead of namedtuple
