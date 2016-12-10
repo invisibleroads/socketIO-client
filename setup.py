@@ -28,7 +28,7 @@ setup(
     install_requires=[
         'requests>=2.7.0',
         'six',
-        'websocket-client==0.37.0',
+        'websocket-client',
     ],
     tests_require=[
         'nose',
