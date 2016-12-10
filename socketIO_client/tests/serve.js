@@ -84,6 +84,7 @@ io.on('connection', function(socket) {
   socket.on('bbb', function(payload, fn) {
     if (fn) fn(payload);
   });
+  socket.emit('★');  // Test unicode
 });
 
 io.of('/chat').on('connection', function(socket) {

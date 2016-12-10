@@ -22,17 +22,32 @@ Some of our systems now rely on this package.
 
 20161209-2130 - 20161209-2230: 1 hour
 
-    Make decision on websocket-client issue for #139
+    + Make decision on websocket-client issue for #139
+    + Merge #139 into 0.7.2
+
+20161209-2330 - 20161210-0000: 30 minutes
+
+    + Merge #125 into 0.5.7
+
+20161210-0045 - 20161210-0115: 30 minutes
+
+    + Merge #136 into 0.7.2
+
+20161210-1100 - 20161210-1200: 1 hour
+
+    Merge #135 into 0.7.2
 
 # Tasks
+
+    + Release 0.5.7
+    Release 0.7.2
+    Release 0.8.0
 
     Add binary support
         https://github.com/invisibleroads/socketIO-client/pull/85
         https://github.com/invisibleroads/socketIO-client/issues/70
         https://github.com/invisibleroads/socketIO-client/issues/71
         https://github.com/invisibleroads/socketIO-client/issues/91
-    Move logging into a separate namespace
-        https://github.com/invisibleroads/socketIO-client/pull/105
     Use six.u for unicode encoding
         https://github.com/invisibleroads/socketIO-client/pull/109
     Replace *args with args
@@ -56,11 +71,6 @@ Some of our systems now rely on this package.
         https://github.com/invisibleroads/socketIO-client/issues/101
     Check whether it works on Windows 8
         https://github.com/invisibleroads/socketIO-client/issues/97
-    Add debian packaging support
-        https://github.com/invisibleroads/socketIO-client/pull/89
-        https://github.com/invisibleroads/socketIO-client/pull/113
     Consider allowing milliseconds
         https://github.com/invisibleroads/socketIO-client/issues/106
-    Update setup.py for consistency
-        Replace nose with pytest
     Consider using attrs instead of namedtuple
