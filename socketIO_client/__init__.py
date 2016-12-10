@@ -397,25 +397,29 @@ class SocketIO(EngineIO):
     # Act
 
     def connect(self, path='', with_transport_instance=False):
-        socketIO_packet_type = 0
-        socketIO_packet_data = format_socketIO_packet_data(path)
-        self._message(
-            str(socketIO_packet_type) + socketIO_packet_data,
-            with_transport_instance)
+        if path or not self.connected:
+            socketIO_packet_type = 0
+            socketIO_packet_data = format_socketIO_packet_data(path)
+            self._message(
+                str(socketIO_packet_type) + socketIO_packet_data,
+                with_transport_instance)
+        self._wants_to_close = False
 
     def disconnect(self, path=''):
-        if not path or not self._opened:
-            self._close()
-        elif path:
+        if path and self._opened:
             socketIO_packet_type = 1
             socketIO_packet_data = format_socketIO_packet_data(path)
             try:
                 self._message(str(socketIO_packet_type) + socketIO_packet_data)
             except (TimeoutError, ConnectionError):
                 pass
+        elif not path:
+            self._close()
         try:
-            namespace = self._namespace_by_path.pop(path)
+            namespace = self._namespace_by_path[path]
             namespace._find_packet_callback('disconnect')()
+            if path:
+                del self._namespace_by_path[path]
         except KeyError:
             pass
 

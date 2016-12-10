@@ -54,6 +54,9 @@ class BaseMixin(object):
         self.socketIO.on('reconnect', self.on_event)
         self.assertEqual(self.response_count, 0)
         self.socketIO.connect()
+        self.assertEqual(self.response_count, 0)
+        self.socketIO.disconnect()
+        self.socketIO.connect()
         self.socketIO.wait(self.wait_time_in_seconds)
         self.assertEqual(self.response_count, 1)
 
@@ -61,6 +64,9 @@ class BaseMixin(object):
         'Reconnect with namespace'
         namespace = self.socketIO.define(Namespace)
         self.assertFalse('reconnect' in namespace.args_by_event)
+        self.socketIO.connect()
+        self.assertFalse('reconnect' in namespace.args_by_event)
+        self.socketIO.disconnect()
         self.socketIO.connect()
         self.socketIO.wait(self.wait_time_in_seconds)
         self.assertTrue('reconnect' in namespace.args_by_event)
