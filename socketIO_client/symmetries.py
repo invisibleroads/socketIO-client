@@ -1,6 +1,3 @@
-from six import indexbytes
-
-
 try:
     from logging import NullHandler
 except ImportError:  # Python 2.6
@@ -12,18 +9,28 @@ except ImportError:  # Python 2.6
             pass
 
 
+from six import indexbytes
+
+
+try:
+    from ssl import SSLError
+except ImportError:
+    class SSLError(Exception):
+        pass
+
+
 try:
     memoryview = memoryview
 except NameError:
     memoryview = buffer
 
 
-def get_character(x, index):
-    return chr(get_byte(x, index))
-
-
 def get_byte(x, index):
     return indexbytes(x, index)
+
+
+def get_character(x, index):
+    return chr(get_byte(x, index))
 
 
 def decode_string(x):
