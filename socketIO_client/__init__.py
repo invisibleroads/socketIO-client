@@ -396,7 +396,7 @@ class SocketIO(EngineIO):
 
     # Act
 
-    def connect(self, path, with_transport_instance=False):
+    def connect(self, path='', with_transport_instance=False):
         socketIO_packet_type = 0
         socketIO_packet_data = format_socketIO_packet_data(path)
         self._message(
