@@ -1,6 +1,7 @@
 0.7
 ---
 - Fixed thread cleanup
+- Fixed disconnect detection if defined directly thanks to Andreas Strikos
 
 0.6
 ---
