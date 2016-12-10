@@ -22,7 +22,7 @@ Some of our systems now rely on this package.
 
 20161209-2130 - 20161209-2230: 1 hour
 
-    Make decision on websocket-client issue
+    Make decision on websocket-client issue for #139
 
 # Tasks
 
