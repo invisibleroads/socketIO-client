@@ -1,6 +1,7 @@
 0.5.7
 -----
 - Added support for Python 3.5
+- Log unicode characters properly
 
 0.5.6
 -----
