@@ -41,7 +41,8 @@ class _AbstractTransport(object):
         self._packets = []
 
     def _log(self, level, msg, *attrs):
-        _log.log(level, '[%s] %s' % (self._url, msg), *attrs)
+        _log.log(level, '[%s] %s' % (self._url, msg), *[
+            x.decode('utf-8') for x in attrs])
 
     def disconnect(self, path=''):
         if not path:
