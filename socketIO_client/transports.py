@@ -10,7 +10,7 @@ import time
 import websocket
 
 from .exceptions import ConnectionError, TimeoutError
-from .symmetries import _get_text
+from .symmetries import _decode_safely, _get_text
 
 
 if not hasattr(websocket, 'create_connection'):
@@ -42,7 +42,7 @@ class _AbstractTransport(object):
 
     def _log(self, level, msg, *attrs):
         _log.log(level, '[%s] %s' % (self._url, msg), *[
-            x.decode('utf-8') for x in attrs])
+            _decode_safely(x) for x in attrs])
 
     def disconnect(self, path=''):
         if not path:
