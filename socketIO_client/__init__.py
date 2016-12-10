@@ -263,7 +263,7 @@ class EngineIO(LoggingMixin):
                     self._warn(warning)
                 try:
                     namespace = self.get_namespace()
-                    namespace.on_disconnect()
+                    namespace._find_packet_callback("disconnect")()
                 except PacketError:
                     pass
         self._heartbeat_thread.relax()
@@ -396,7 +396,7 @@ class SocketIO(EngineIO):
 
     # Act
 
-    def connect(self, path, with_transport_instance=False):
+    def connect(self, path='', with_transport_instance=False):
         socketIO_packet_type = 0
         socketIO_packet_data = format_socketIO_packet_data(path)
         self._message(
@@ -415,7 +415,7 @@ class SocketIO(EngineIO):
                 pass
         try:
             namespace = self._namespace_by_path.pop(path)
-            namespace.on_disconnect()
+            namespace._find_packet_callback("disconnect")()
         except KeyError:
             pass
 

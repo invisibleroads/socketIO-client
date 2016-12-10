@@ -33,12 +33,37 @@ class BaseMixin(object):
 
     def test_disconnect(self):
         'Disconnect'
+        self.socketIO.on('disconnect', self.on_event)
+        self.assertTrue(self.socketIO.connected)
+        self.assertEqual(self.response_count, 0)
+        self.socketIO.disconnect()
+        self.assertFalse(self.socketIO.connected)
+        self.assertEqual(self.response_count, 1)
+
+    def test_disconnect_with_namespace(self):
+        'Disconnect with namespace'
         namespace = self.socketIO.define(Namespace)
         self.assertTrue(self.socketIO.connected)
-        self.assertFalse(namespace.called_on_disconnect)
+        self.assertFalse('disconnect' in namespace.args_by_event)
         self.socketIO.disconnect()
-        self.assertTrue(namespace.called_on_disconnect)
         self.assertFalse(self.socketIO.connected)
+        self.assertTrue('disconnect' in namespace.args_by_event)
+
+    def test_reconnect(self):
+        'Reconnect'
+        self.socketIO.on('reconnect', self.on_event)
+        self.assertEqual(self.response_count, 0)
+        self.socketIO.connect()
+        self.socketIO.wait(self.wait_time_in_seconds)
+        self.assertEqual(self.response_count, 1)
+
+    def test_reconnect_with_namespace(self):
+        'Reconnect with namespace'
+        namespace = self.socketIO.define(Namespace)
+        self.assertFalse('reconnect' in namespace.args_by_event)
+        self.socketIO.connect()
+        self.socketIO.wait(self.wait_time_in_seconds)
+        self.assertTrue('reconnect' in namespace.args_by_event)
 
     def test_emit(self):
         'Emit'
@@ -89,12 +114,14 @@ class BaseMixin(object):
 
     def test_emit_with_callback(self):
         'Emit with callback'
+        self.assertEqual(self.response_count, 0)
         self.socketIO.emit('emit_with_callback', self.on_response)
         self.socketIO.wait_for_callbacks(seconds=self.wait_time_in_seconds)
         self.assertEqual(self.response_count, 1)
 
     def test_emit_with_callback_with_payload(self):
         'Emit with callback with payload'
+        self.assertEqual(self.response_count, 0)
         self.socketIO.emit(
             'emit_with_callback_with_payload', self.on_response)
         self.socketIO.wait_for_callbacks(seconds=self.wait_time_in_seconds)
@@ -102,6 +129,7 @@ class BaseMixin(object):
 
     def test_emit_with_callback_with_multiple_payloads(self):
         'Emit with callback with multiple payloads'
+        self.assertEqual(self.response_count, 0)
         self.socketIO.emit(
             'emit_with_callback_with_multiple_payloads', self.on_response)
         self.socketIO.wait_for_callbacks(seconds=self.wait_time_in_seconds)
@@ -119,6 +147,7 @@ class BaseMixin(object):
     def test_emit_with_event(self):
         'Emit to trigger an event'
         self.socketIO.on('emit_with_event_response', self.on_response)
+        self.assertEqual(self.response_count, 0)
         self.socketIO.emit('emit_with_event', PAYLOAD)
         self.socketIO.wait(self.wait_time_in_seconds)
         self.assertEqual(self.response_count, 1)
@@ -133,6 +162,7 @@ class BaseMixin(object):
     def test_once(self):
         'Listen for an event only once'
         self.socketIO.once('emit_with_event_response', self.on_response)
+        self.assertEqual(self.response_count, 0)
         self.socketIO.emit('emit_with_event', PAYLOAD)
         self.socketIO.emit('emit_with_event', PAYLOAD)
         self.socketIO.wait(self.wait_time_in_seconds)
@@ -249,6 +279,9 @@ class BaseMixin(object):
         })
     """
 
+    def on_event(self):
+        self.response_count += 1
+
     def on_response(self, *args):
         for arg in args:
             if isinstance(arg, dict):
@@ -287,12 +320,14 @@ class Test_WebsocketTransport(BaseMixin, TestCase):
 class Namespace(LoggingNamespace):
 
     def initialize(self):
-        self.called_on_disconnect = False
         self.args_by_event = {}
         self.response = None
 
     def on_disconnect(self):
-        self.called_on_disconnect = True
+        self.args_by_event['disconnect'] = ()
+
+    def on_reconnect(self):
+        self.args_by_event['reconnect'] = ()
 
     def on_wait_with_disconnect_response(self):
         self.disconnect()
