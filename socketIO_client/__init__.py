@@ -243,8 +243,8 @@ class SocketIO(object):
         - Omit seconds, i.e. call wait() without arguments, to wait forever.
         """
         warning_screen = _yield_warning_screen(seconds)
-
-        timeout = self._get_timeout(seconds)
+        timeout = None if seconds is None else min(
+            self._heartbeat_interval, seconds)
 
         for elapsed_time in warning_screen:
             if self._stop_waiting(for_callbacks):
@@ -266,20 +266,6 @@ class SocketIO(object):
                     namespace.on_disconnect()
                 except KeyError:
                     pass
-
-    def _get_timeout(self, seconds=None):
-        """
-        return the min value between heartbeat_interval and seconds param
-        if seconds is None, return None instead
-
-        :seconds: None | integer
-        :returns: None | integer
-
-        """
-        if seconds is None:
-            return None
-
-        return min(self._heartbeat_interval, seconds)
 
     def _process_events(self, timeout=None):
         for packet in self._transport.recv_packet(timeout):

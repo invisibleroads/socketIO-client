@@ -1,3 +1,7 @@
+0.5.7
+-----
+- Added support for Python 3.5
+
 0.5.6
 -----
 - Backported to support requests 0.8.2

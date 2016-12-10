@@ -6,7 +6,7 @@ from . import SocketIO, LoggingNamespace, find_callback
 from .transports import TIMEOUT_IN_SECONDS
 
 
-HOST = 'socketio'
+HOST = 'localhost'
 PORT = 8000
 DATA = 'xxx'
 PAYLOAD = {'xxx': 'yyy'}
@@ -176,18 +176,6 @@ class BaseMixin(object):
             'ack_response': (PAYLOAD,),
             'ack_callback_response': (PAYLOAD,),
         })
-
-    def test_get_timeout(self):
-        """
-        when _get_timeout is supplied with None, it should return None
-        when supplied with numbers, should return numbers
-        """
-        timeout = self.socketIO._get_timeout(None)
-        self.socketIO._heartbeat_interval = 10
-        self.assertEqual(None, timeout)
-
-        timeout = self.socketIO._get_timeout(3)
-        self.assertEqual(3, timeout)
 
 
 class Test_WebsocketTransport(TestCase, BaseMixin):
