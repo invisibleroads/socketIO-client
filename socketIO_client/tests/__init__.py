@@ -98,7 +98,6 @@ class BaseMixin(object):
             'emit_with_multiple_payloads_response': (PAYLOAD, PAYLOAD),
         })
 
-    """
     def test_emit_with_unicode_payload(self):
         'Emit with unicode payload'
         namespace = self.socketIO.define(Namespace)
@@ -108,6 +107,7 @@ class BaseMixin(object):
             'emit_with_payload_response': (UNICODE_PAYLOAD,),
         })
 
+    """
     def test_emit_with_binary_payload(self):
         'Emit with binary payload'
         namespace = self.socketIO.define(Namespace)

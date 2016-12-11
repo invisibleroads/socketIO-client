@@ -13,7 +13,7 @@ app.listen(9000);
 
 var io = require('socket.io')(app);
 var PAYLOAD = {'xxx': 'yyy'};
-var UNICODE_PAYLOAD = {'인삼': '뿌리'};
+var UNICODE_PAYLOAD = {'인삼': '★ 뿌리 ★'};
 
 // Travis currently does not support Buffer.from
 function getBuffer(array) {
@@ -84,7 +84,6 @@ io.on('connection', function(socket) {
   socket.on('bbb', function(payload, fn) {
     if (fn) fn(payload);
   });
-  socket.emit('★');  // Test unicode
 });
 
 io.of('/chat').on('connection', function(socket) {

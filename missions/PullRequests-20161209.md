@@ -27,7 +27,7 @@ Some of our systems now rely on this package.
 
 20161209-2330 - 20161210-0000: 30 minutes
 
-    + Merge #125 into 0.5.7
+    + Merge #125 into 0.5.7.2
 
 20161210-0045 - 20161210-0115: 30 minutes
 
@@ -35,11 +35,15 @@ Some of our systems now rely on this package.
 
 20161210-1100 - 20161210-1200: 1 hour
 
-    Merge #135 into 0.7.2
+    + Merge #135 into 0.7.2
+
+20161210-2200 - 20161210-2230: 30 minutes
+
+I tried experimenting for a while with unicode events, where there are unicode characters in the event name, but it seems that Python 2 does not support unicode attributes.
 
 # Tasks
 
-    + Release 0.5.7
+    + Release 0.5.7.2
     Release 0.7.2
     Release 0.8.0
 
