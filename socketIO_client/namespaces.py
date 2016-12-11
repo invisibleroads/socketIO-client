@@ -37,31 +37,31 @@ class EngineIONamespace(LoggingMixin):
         self._io.send(data)
 
     def on_open(self):
-        """Called after engine.io server connects to client.
+        """Called when client receives open packet from engine.io server.
         You can override this method."""
 
     def on_close(self):
-        """Called after engine.io server disconnects from client.
+        """Called when client receives close packet from engine.io server.
         You can override this method."""
 
     def on_ping(self, data):
-        """Called after engine.io server sends a ping packet to client.
+        """Called when client receives ping packet from engine.io server.
         You can override this method."""
 
     def on_pong(self, data):
-        """Called after engine.io server sends a pong packet to client.
+        """Called when client receives pong packet from engine.io server.
         You can override this method."""
 
     def on_message(self, data):
-        """Called after engine.io server sends a message packet to client.
+        """Called when client receives message packet from engine.io server.
         You can override this method."""
 
     def on_upgrade(self):
-        """Called after engine.io server sends an upgrade packet to client.
+        """Called when client receives upgrade packet from engine.io server.
         You can override this method."""
 
     def on_noop(self):
-        """Called after engine.io server sends a noop packet to client.
+        """Called when client receives noop packet from engine.io server.
         You can override this method."""
 
     def _find_packet_callback(self, event):
@@ -98,16 +98,16 @@ class SocketIONamespace(EngineIONamespace):
         self._io.send(data, callback)
 
     def on_connect(self):
-        """Called after socket.io server connects to client.
-        You can override this method."""
+        """Called when client receives first connect packet from socket.io
+        server. You can override this method."""
 
     def on_reconnect(self):
-        """Called after socket.io server reconnects to client.
-        You can override this method."""
+        """Called when client receives subsequent connect packet from
+        socket.io server. You can override this method."""
 
     def on_disconnect(self):
-        """Called after socket.io server disconnects from client.
-        You can override this method."""
+        """Called when client receives disconnect packet from socket.io
+        server. You can override this method."""
 
     def on_event(self, event, *args):
         """Called if there is no matching event handler.
@@ -134,7 +134,7 @@ class SocketIONamespace(EngineIONamespace):
             socketIO.define(Namespace)"""
 
     def on_error(self, data):
-        """Called after socket.io server sends an error packet to client.
+        """Called when client receives error packet from socket.io server.
         You can override this method."""
         if data.lower() == 'invalid namespace':
             self._invalid = True
