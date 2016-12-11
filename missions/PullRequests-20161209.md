@@ -44,7 +44,7 @@ I tried experimenting for a while with unicode events, where there are unicode c
 # Tasks
 
     + Release 0.5.7.2
-    Release 0.7.2
+    + Release 0.7.2
     Release 0.8.0
 
     Add binary support
@@ -52,13 +52,9 @@ I tried experimenting for a while with unicode events, where there are unicode c
         https://github.com/invisibleroads/socketIO-client/issues/70
         https://github.com/invisibleroads/socketIO-client/issues/71
         https://github.com/invisibleroads/socketIO-client/issues/91
-    Use six.u for unicode encoding
-        https://github.com/invisibleroads/socketIO-client/pull/109
     Replace *args with args
         Investigate whether it is really true that callbacks can't take dictionaries
         https://github.com/invisibleroads/socketIO-client/pull/112
-    Check unicode issues
-        https://github.com/invisibleroads/socketIO-client/issues/81
     Check python3 support for socketIO-client 0.5.6
         https://github.com/invisibleroads/socketIO-client/issues/83
     Check why connected=True after termination
