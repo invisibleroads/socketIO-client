@@ -198,7 +198,7 @@ Don't wait forever. ::
         socket = SocketIO('localhost', 8000, wait_for_connection=False)
         socket.wait()
     except ConnectionError:
-        print_error('The server is down. Try again later.')
+        print('The server is down. Try again later.')
 
 
 License
