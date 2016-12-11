@@ -191,14 +191,14 @@ Wait forever. ::
 
 Don't wait forever. ::
 
-	from requests.exceptions import ConnectionError
-	from socketIO_client import SocketIO
+    from requests.exceptions import ConnectionError
+    from socketIO_client import SocketIO
 
-	try:
-		socket = SocketIO('localhost', 8000, wait_for_connection=False)
-		socket.wait()
-	except ConnectionError:
-		print_error('The server is down. Try again later.')
+    try:
+        socket = SocketIO('localhost', 8000, wait_for_connection=False)
+        socket.wait()
+    except ConnectionError:
+        print_error('The server is down. Try again later.')
 
 
 License
