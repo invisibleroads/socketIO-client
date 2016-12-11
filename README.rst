@@ -176,7 +176,7 @@ Specify params, headers, cookies, proxies thanks to the `requests <http://python
     from base64 import b64encode
 
     SocketIO(
-        localhost', 8000,
+        'localhost', 8000,
         params={'q': 'qqq'},
         headers={'Authorization': 'Basic ' + b64encode('username:password')},
         cookies={'a': 'aaa'},
@@ -188,6 +188,17 @@ Wait forever. ::
 
     socketIO = SocketIO('localhost', 8000)
     socketIO.wait()
+
+Don't wait forever. ::
+
+	from requests.exceptions import ConnectionError
+	from socketIO_client import SocketIO
+
+	try:
+		socket = SocketIO('localhost', 8000, wait_for_connection=False)
+		socket.wait()
+	except ConnectionError:
+		print_error('The server is down. Try again later.')
 
 
 License
