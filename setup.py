@@ -1,17 +1,19 @@
-import os
-from setuptools import setup, find_packages
+import io
+from os.path import abspath, dirname, join
+from setuptools import find_packages, setup
 
 
-here = os.path.abspath(os.path.dirname(__file__))
-README = open(os.path.join(here, 'README.rst')).read()
-CHANGES = open(os.path.join(here, 'CHANGES.rst')).read()
-
-
+HERE = dirname(abspath(__file__))
+LOAD_TEXT = lambda name: io.open(join(HERE, name), encoding='UTF-8').read()
+DESCRIPTION = '\n\n'.join(LOAD_TEXT(_) for _ in [
+    'README.rst',
+    'CHANGES.rst',
+])
 setup(
     name='socketIO-client',
-    version='0.5.7.2',
+    version='0.5.7.3',
     description='A socket.io client library',
-    long_description=README + '\n\n' + CHANGES,
+    long_description=DESCRIPTION,
     license='MIT',
     classifiers=[
         'Intended Audience :: Developers',
