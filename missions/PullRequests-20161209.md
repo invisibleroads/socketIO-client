@@ -41,10 +41,17 @@ Some of our systems now rely on this package.
 
 I tried experimenting for a while with unicode events, where there are unicode characters in the event name, but it seems that Python 2 does not support unicode attributes.
 
-# Tasks
-
     + Release 0.5.7.2
     + Release 0.7.2
+
+20170406-1630 - 20170406-1700: 30 minutes
+
+To ensure this package's longevity, it might be prudent to seek a co-maintainer for this package.
+
+For now, let's focus on getting binary packet support merged.
+
+# Tasks
+
     Release 0.8.0
 
     Add binary support
