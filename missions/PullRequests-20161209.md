@@ -53,6 +53,7 @@ For now, let's focus on getting binary packet support merged.
 # Tasks
 
     Release 0.8.0
+    Use invisibleroads_macros.url.format_url
 
     Add binary support
         https://github.com/invisibleroads/socketIO-client/pull/85
