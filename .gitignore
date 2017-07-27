@@ -1,3 +1,5 @@
+# Node
+node_modules
 # Python
 *.egg*
 *.py[co]
