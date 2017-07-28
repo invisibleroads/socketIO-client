@@ -10,7 +10,7 @@ import time
 import websocket
 
 from .exceptions import ConnectionError, TimeoutError
-from .symmetries import _decode_safely, _get_text
+from .symmetries import _decode_utf8, _encode_utf8, _get_text
 
 
 if not hasattr(websocket, 'create_connection'):
@@ -19,17 +19,10 @@ if not hasattr(websocket, 'create_connection'):
 - Please remove other websocket implementations""")
 
 
-TRANSPORTS = 'websocket', 'xhr-polling', 'jsonp-polling'
-BOUNDARY = six.u('\ufffd')
 TIMEOUT_IN_SECONDS = 3
+TRANSPORTS = 'websocket', 'xhr-polling', 'jsonp-polling'
+_BOUNDARY = six.u('\ufffd')
 _log = logging.getLogger(__name__)
-escape_unicode = lambda x: codecs.getdecoder('unicode_escape')(x)[0]
-try:
-    unicode
-except NameError:
-    encode_unicode = lambda x: x
-else:
-    encode_unicode = lambda x: unicode(x).encode('utf-8')
 
 
 class _AbstractTransport(object):
@@ -42,7 +35,7 @@ class _AbstractTransport(object):
 
     def _log(self, level, msg, *attrs):
         _log.log(level, '[%s] %s' % (self._url, msg), *[
-            _decode_safely(x) for x in attrs])
+            _decode_utf8(x) for x in attrs])
 
     def disconnect(self, path=''):
         if not path:
@@ -85,7 +78,7 @@ class _AbstractTransport(object):
 
     def send_packet(self, code, path='', data='', callback=None):
         packet_id = self.set_ack_callback(callback) if callback else ''
-        packet_parts = str(code), packet_id, path, encode_unicode(data)
+        packet_parts = str(code), packet_id, path, _encode_utf8(data)
         packet_text = ':'.join(packet_parts)
         self.send(packet_text)
         self._log(logging.DEBUG, '[packet sent] %s', packet_text)
@@ -175,7 +168,7 @@ class _WebsocketTransport(_AbstractTransport):
             yield self._connection.recv()
         except websocket.WebSocketTimeoutException as e:
             raise TimeoutError(e)
-        except websocket.SSLError as e:
+        except websocket._ssl_compat.SSLError as e:
             if 'timed out' in e.message:
                 raise TimeoutError(e)
             else:
@@ -226,7 +219,7 @@ class _XHR_PollingTransport(_AbstractTransport):
             timeout=timeout or TIMEOUT_IN_SECONDS,
             stream=True)
         response_text = _get_text(response)
-        if not response_text.startswith(BOUNDARY):
+        if not response_text.startswith(_BOUNDARY):
             yield response_text
             return
         for packet_text in _yield_text_from_framed_data(response_text):
@@ -288,11 +281,11 @@ class _JSONP_PollingTransport(_AbstractTransport):
         except AttributeError:
             self._log(logging.WARNING, '[packet error] %s', response_text)
             return
-        if not response_text.startswith(BOUNDARY):
-            yield escape_unicode(response_text)
+        if not response_text.startswith(_BOUNDARY):
+            yield _escape_unicode(response_text)
             return
         for packet_text in _yield_text_from_framed_data(
-                response_text, escape_unicode):
+                response_text, _escape_unicode):
             yield packet_text
 
     def close(self):
@@ -304,7 +297,7 @@ class _JSONP_PollingTransport(_AbstractTransport):
 
 
 def _yield_text_from_framed_data(framed_data, parse=lambda x: x):
-    parts = [parse(x) for x in framed_data.split(BOUNDARY)]
+    parts = [parse(x) for x in framed_data.split(_BOUNDARY)]
     for text_length, text in zip(parts[1::2], parts[2::2]):
         if text_length != str(len(text)):
             warning = 'invalid declared length=%s for packet_text=%s' % (
@@ -340,3 +333,7 @@ def _prepare_http_session(kw):
     http_session.cert = kw.get('cert')
     http_session.cookies.update(kw.get('cookies', {}))
     return http_session
+
+
+def _escape_unicode(x):
+    return codecs.getdecoder('unicode_escape')(x)[0]

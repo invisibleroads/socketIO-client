@@ -1,40 +1,50 @@
-.. image:: https://travis-ci.org/invisibleroads/socketIO-client.svg?branch=v0.5.7.2
-    :target: https://travis-ci.org/invisibleroads/socketIO-client
-
-
 socketIO-client
 ===============
-Here is a `socket.io <http://socket.io>`_ client library for Python.  You can use it to write test code for your socket.io server.
+Here is a `socket.io <http://socket.io>`_ client library for Python. You can use it to write test code for your socket.io server.
 
-Please note that this version implements `socket.io protocol 0.9 <https://github.com/learnboost/socket.io-spec>`_, which is compatible with `gevent-socketio <https://github.com/abourget/gevent-socketio>`_.  If you want to communicate using `socket.io protocol 1.x <https://github.com/automattic/socket.io-protocol>`_, please use `socketIO-client 0.7.2 <https://pypi.python.org/pypi/socketIO-client>`_ or higher.
+Please note that this version implements `socket.io protocol 0.9 <https://github.com/learnboost/socket.io-spec>`_, which is compatible with `gevent-socketio <https://github.com/abourget/gevent-socketio>`_. If you want to communicate using `socket.io protocol 1.x <https://github.com/automattic/socket.io-protocol>`_, please use `socketIO-client 0.7.2 <https://pypi.python.org/pypi/socketIO-client>`_ or higher.
 
 
 Installation
 ------------
 Install the package in an isolated environment. ::
 
-    VIRTUAL_ENV=$HOME/.virtualenv
-
-    # Prepare isolated environment
+    VIRTUAL_ENV=$HOME/.virtualenvs/crosscompute
     virtualenv $VIRTUAL_ENV
-
-    # Activate isolated environment
     source $VIRTUAL_ENV/bin/activate
+    pip install -U socketIO-client==0.5.7.3
 
-    # Install package
-    pip install -U socketIO-client
+
+Test
+----
+Install additional packages if you want to run the tests. ::
+
+    VIRTUAL_ENV=$HOME/.virtualenvs/crosscompute
+    export NODE_PATH=$VIRTUAL_ENV/lib/node_modules
+    export NPM_CONFIG_PREFIX=$VIRTUAL_ENV
+    npm install -g socket.io@0.9
+
+Launch test server and run tests.::
+
+    cd ~/Documents
+    git clone https://github.com/invisibleroads/socketIO-client
+    git checkout -t 0.5.7.3
+    cd socketIO-client
+    node serve-tests.js  # Start socket.io server in terminal one
+    nosetests  # Run tests in terminal two
 
 
 Usage
 -----
 Activate isolated environment. ::
 
-    VIRTUAL_ENV=$HOME/.virtualenv
+    VIRTUAL_ENV=$HOME/.virtualenvs/crosscompute
     source $VIRTUAL_ENV/bin/activate
+    export NODE_PATH=$VIRTUAL_ENV/lib/node_modules
+    export NPM_CONFIG_PREFIX=$VIRTUAL_ENV
 
-Launch your socket.io server. ::
+Start your socket.io server. ::
 
-    npm install -g socket.io@0.9
     node serve-tests.js
 
 For debugging information, run these commands first. ::
@@ -148,17 +158,19 @@ Connect via SSL. ::
     # Skip server certificate verification
     SocketIO('https://localhost', verify=False)
 
-Specify params, headers, cookies, proxies thanks to the `requests <http://python-requests.org>`_ library. ::
+Specify params, headers, cookies, proxies thanks to the `requests <http://docs.python-requests.org>`_ library. ::
 
     from socketIO_client import SocketIO
-    from base64 import b64encode
 
-    SocketIO(
-        'localhost', 8000,
-        params={'q': 'qqq'},
-        headers={'Authorization': 'Basic ' + b64encode('username:password')},
-        cookies={'a': 'aaa'},
-        proxies={'https': 'https://proxy.example.com:8080'})
+    SocketIO('localhost', 8000, params={
+        'q': 'qqq',
+    }, headers={
+        'Authorization': 'Bearer xyz',
+    }, cookies={
+        'a': 'aaa',
+    }, proxies={
+        'https': 'https://proxy.example.com:8080',
+    })
 
 Wait forever. ::
 
@@ -169,14 +181,14 @@ Wait forever. ::
 
 Don't wait forever. ::
 
-    from requests.exceptions import ConnectionError
     from socketIO_client import SocketIO
+    from socketIO_client.exceptions import ConnectionError
 
     try:
         socket = SocketIO('localhost', 8000, wait_for_connection=False)
         socket.wait()
     except ConnectionError:
-        print_error('The server is down. Try again later.')
+        print('The server is down. Try again later.')
 
 
 License

@@ -3,20 +3,21 @@ import json
 import requests
 import time
 from collections import namedtuple
-try:
-    from urllib.parse import urlparse as parse_url
-except ImportError:
-    from urlparse import urlparse as parse_url
 
 from .exceptions import (
-    SocketIOError, ConnectionError, TimeoutError, PacketError)
-from .symmetries import _get_text
+    SocketIOError, ConnectionError, PacketError, TimeoutError)
+from .symmetries import _get_text, _parse_url
 from .transports import (
-    _get_response, TRANSPORTS,
-    _WebsocketTransport, _XHR_PollingTransport, _JSONP_PollingTransport)
+    _JSONP_PollingTransport, _WebsocketTransport, _XHR_PollingTransport,
+    _get_response, TRANSPORTS)
 
 
-__version__ = '0.5.7'
+__all__ = [
+    'BaseNamespace',
+    'LoggingNamespace',
+    'SocketIO',
+    'find_callback',
+]
 _SocketIOSession = namedtuple('_SocketIOSession', [
     'id',
     'heartbeat_timeout',
@@ -188,13 +189,13 @@ class SocketIO(object):
 
     SocketIO('localhost', 8000,
         params={'q': 'qqq'},
-        headers={'Authorization': 'Basic ' + b64encode('username:password')},
+        headers={'Authorization': 'Bearer xyz'},
         cookies={'a': 'aaa'},
         proxies={'https': 'https://proxy.example.com:8080'})
     """
 
     def __init__(
-            self, host, port=None, Namespace=None,
+            self, host, port=None, Namespace=LoggingNamespace,
             wait_for_connection=True, transports=TRANSPORTS,
             resource='socket.io', **kw):
         self.is_secure, self._base_url = _parse_host(host, port, resource)
@@ -202,8 +203,7 @@ class SocketIO(object):
         self._namespace_by_path = {}
         self._client_supported_transports = transports
         self._kw = kw
-        if Namespace:
-            self.define(Namespace)
+        self.define(Namespace)
 
     def _log(self, level, msg, *attrs):
         _log.log(level, '%s: %s' % (self._base_url, msg), *attrs)
@@ -281,7 +281,7 @@ class SocketIO(object):
         delegate(packet, namespace._find_event_callback)
 
     def _stop_waiting(self, for_callbacks):
-        # Use __transport to make sure that we do not reconnect inadvertently
+        # Use __transport so that we do not reconnect inadvertently
         if for_callbacks and not self.__transport.has_ack_callback:
             return True
         if self.__transport._wants_to_disconnect:
@@ -294,7 +294,7 @@ class SocketIO(object):
     def disconnect(self, path=''):
         try:
             self._transport.disconnect(path)
-        except ReferenceError:
+        except (ConnectionError, ReferenceError):
             pass
         try:
             namespace = self._namespace_by_path[path]
@@ -482,7 +482,7 @@ def find_callback(args, kw=None):
 def _parse_host(host, port, resource):
     if not host.startswith('http'):
         host = 'http://' + host
-    url_pack = parse_url(host)
+    url_pack = _parse_url(host)
     is_secure = url_pack.scheme == 'https'
     port = port or url_pack.port or (443 if is_secure else 80)
     base_url = '%s:%d%s/%s/%s' % (
