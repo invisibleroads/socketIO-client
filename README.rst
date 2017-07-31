@@ -2,7 +2,7 @@ socketIO-client
 ===============
 Here is a `socket.io <http://socket.io>`_ client library for Python. You can use it to write test code for your socket.io server.
 
-Please note that this version implements `socket.io protocol 0.9 <https://github.com/learnboost/socket.io-spec>`_, which is compatible with `gevent-socketio <https://github.com/abourget/gevent-socketio>`_. If you want to communicate using `socket.io protocol 1.x <https://github.com/automattic/socket.io-protocol>`_, please use `socketIO-client 0.7.2 <https://pypi.python.org/pypi/socketIO-client>`_ or higher.
+Please note that this version implements `socket.io protocol 0 <https://github.com/learnboost/socket.io-spec>`_, which is compatible with `gevent-socketio <https://github.com/abourget/gevent-socketio>`_. If you want to communicate using `socket.io protocol 1 <https://github.com/automattic/socket.io-protocol>`_, please use `socketIO-client 0.8.0 <https://pypi.python.org/pypi/socketIO-client>`_ or higher.
 
 
 Installation
@@ -22,7 +22,7 @@ Install additional packages if you want to run the tests. ::
     VIRTUAL_ENV=$HOME/.virtualenvs/crosscompute
     export NODE_PATH=$VIRTUAL_ENV/lib/node_modules
     export NPM_CONFIG_PREFIX=$VIRTUAL_ENV
-    npm install -g socket.io@0.9
+    npm install -g socket.io@0
 
 Launch test server and run tests.::
 
