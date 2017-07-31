@@ -6,9 +6,9 @@ class ConnectionError(SocketIOError):
     pass
 
 
-class TimeoutError(SocketIOError):
+class PacketError(SocketIOError):
     pass
 
 
-class PacketError(SocketIOError):
+class TimeoutError(SocketIOError):
     pass

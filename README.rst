@@ -182,7 +182,7 @@ Connect via SSL (https://github.com/invisibleroads/socketIO-client/issues/54). :
     socketIO = SocketIO('https://localhost', verify='server.crt', cert=(
         'client.crt', 'client.key'))
 
-Specify params, headers, cookies, proxies thanks to the `requests <http://python-requests.org>`_ library. ::
+Specify params, headers, cookies, proxies thanks to the `requests <http://docs.python-requests.org>`_ library. ::
 
     from socketIO_client import SocketIO
 

@@ -18,12 +18,14 @@ by running the following commands:
 
 yes | pip uninstall websocket websocket-client
 pip install -U websocket-client""")
+else:
+    from websocket._ssl_compat import SSLError
 
 from .exceptions import ConnectionError, TimeoutError
 from .parsers import (
     encode_engineIO_content, decode_engineIO_content,
     format_packet_text, parse_packet_text)
-from .symmetries import SSLError, memoryview
+from .symmetries import memoryview
 
 
 ENGINEIO_PROTOCOL = 3

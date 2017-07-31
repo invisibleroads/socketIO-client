@@ -4,8 +4,9 @@ from setuptools import find_packages, setup
 
 
 HERE = dirname(abspath(__file__))
-LOAD_TEXT = lambda name: io.open(join(HERE, name), encoding='UTF-8').read()
-DESCRIPTION = '\n\n'.join(LOAD_TEXT(_) for _ in [
+DESCRIPTION = '\n\n'.join(io.open(
+    join(HERE, _), encoding='utf-8',
+).read() for _ in [
     'README.rst',
     'CHANGES.rst',
 ])
@@ -26,9 +27,9 @@ setup(
     author_email='rhh@crosscompute.com',
     url='https://github.com/invisibleroads/socketIO-client',
     install_requires=[
-        'requests>=2.7.0',
-        'six',
-        'websocket-client',
+        'requests>=2.18.2',
+        'six>=1.10.0',
+        'websocket-client>=0.44.0',
     ],
     tests_require=[
         'nose',

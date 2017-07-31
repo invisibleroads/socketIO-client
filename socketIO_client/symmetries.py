@@ -15,13 +15,6 @@ finally:
 
 
 try:
-    from ssl import SSLError
-except ImportError:
-    class SSLError(Exception):
-        pass
-
-
-try:
     memoryview = memoryview
 except NameError:
     memoryview = buffer  # noqa

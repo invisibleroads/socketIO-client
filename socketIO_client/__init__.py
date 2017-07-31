@@ -15,7 +15,10 @@ from .transports import (
     WebsocketTransport, XHR_PollingTransport, prepare_http_session, TRANSPORTS)
 
 
-__all__ = 'SocketIO', 'SocketIONamespace'
+__all__ = [
+    'SocketIO',
+    'SocketIONamespace',
+]
 BaseNamespace = SocketIONamespace
 LoggingNamespace = LoggingSocketIONamespace
 
@@ -335,7 +338,7 @@ class SocketIO(EngineIO):
     SocketIO(
         'localhost', 8000,
         params={'q': 'qqq'},
-        headers={'Authorization': 'Basic ' + b64encode('username:password')},
+        headers={'Authorization': 'Bearer xyz'},
         cookies={'a': 'aaa'},
         proxies={'https': 'https://proxy.example.com:8080'})
     """
