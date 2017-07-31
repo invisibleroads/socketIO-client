@@ -1,10 +1,7 @@
-from invisibleroads_macros.log import get_log
 from threading import Thread, Event
 
 from .exceptions import ConnectionError, TimeoutError
-
-
-L = get_log(__name__)
+from .logs import L
 
 
 class HeartbeatThread(Thread):
