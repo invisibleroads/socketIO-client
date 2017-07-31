@@ -26,7 +26,7 @@ Install additional packages if you want to run the tests. ::
     VIRTUAL_ENV=$HOME/.virtualenvs/crosscompute
     export NODE_PATH=$VIRTUAL_ENV/lib/node_modules
     export NPM_CONFIG_PREFIX=$VIRTUAL_ENV
-    npm install -g socket.io@1 http-proxy
+    npm install -g socket.io@1
 
 Launch test server and run tests.::
 
@@ -35,8 +35,7 @@ Launch test server and run tests.::
     git checkout -t 0.8.0
     cd socketIO-client
     DEBUG=* node tests/serve.js  # Start socket.io server in terminal one
-    DEBUG=* node tests/proxy.js  # Start proxy server in terminal two
-    nosetests  # Run tests in terminal three
+    nosetests  # Run tests in terminal two
 
 
 Usage
@@ -50,6 +49,7 @@ Activate isolated environment. ::
 
 Start your socket.io server. ::
 
+    npm install -g http-proxy
     DEBUG=* node tests/serve.js  # Start socket.io server in terminal one
     DEBUG=* node tests/proxy.js  # Start proxy server in terminal two
 
