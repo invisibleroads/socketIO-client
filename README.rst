@@ -12,7 +12,7 @@ Install the package in an isolated environment. ::
     VIRTUAL_ENV=$HOME/.virtualenvs/crosscompute
     virtualenv $VIRTUAL_ENV
     source $VIRTUAL_ENV/bin/activate
-    pip install -U socketIO-client==0.5.7.3
+    pip install -U socketIO-client==0.5.7.4
 
 
 Test
@@ -28,7 +28,7 @@ Launch test server and run tests.::
 
     cd ~/Documents
     git clone https://github.com/invisibleroads/socketIO-client
-    git checkout -t 0.5.7.3
+    git checkout -t 0.5.7.4
     cd socketIO-client
     node serve-tests.js  # Start socket.io server in terminal one
     nosetests  # Run tests in terminal two
