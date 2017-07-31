@@ -4,8 +4,9 @@ from setuptools import find_packages, setup
 
 
 HERE = dirname(abspath(__file__))
-LOAD_TEXT = lambda name: io.open(join(HERE, name), encoding='UTF-8').read()
-DESCRIPTION = '\n\n'.join(LOAD_TEXT(_) for _ in [
+DESCRIPTION = '\n\n'.join(io.open(
+    join(HERE, _), encoding='utf-8',
+).read() for _ in [
     'README.rst',
     'CHANGES.rst',
 ])
