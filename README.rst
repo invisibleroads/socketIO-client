@@ -1,6 +1,7 @@
 .. image:: https://travis-ci.org/invisibleroads/socketIO-client.svg?branch=0.5.7.4
     :target: https://travis-ci.org/invisibleroads/socketIO-client
 
+
 socketIO-client
 ===============
 Here is a `socket.io <http://socket.io>`_ client library for Python. You can use it to write test code for your socket.io server.
