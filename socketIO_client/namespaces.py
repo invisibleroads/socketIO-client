@@ -116,7 +116,7 @@ class SocketIONamespace(EngineIONamespace):
 
         - Call socketIO.on()
 
-            socketIO = SocketIO('localhost', 8000)
+            socketIO = SocketIO('127.0.0.1', 8000)
             socketIO.on('my_event', my_function)
 
         - Call namespace.on()
