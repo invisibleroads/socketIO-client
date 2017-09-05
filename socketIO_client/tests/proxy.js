@@ -1,5 +1,5 @@
 var proxy = require('http-proxy').createProxyServer({
-  target: {host: 'localhost', port: 9000}
+  target: {host: '127.0.0.1', port: 9000}
 }).on('error', function(err, req, res) {
   console.log('[ERROR] %s', err);
   res.end();

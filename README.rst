@@ -63,7 +63,7 @@ Emit. ::
 
     from socketIO_client import SocketIO, LoggingNamespace
 
-    with SocketIO('localhost', 8000, LoggingNamespace) as socketIO:
+    with SocketIO('127.0.0.1', 8000, LoggingNamespace) as socketIO:
         socketIO.emit('aaa')
         socketIO.wait(seconds=1)
 
@@ -74,7 +74,7 @@ Emit with callback. ::
     def on_bbb_response(*args):
         print('on_bbb_response', args)
 
-    with SocketIO('localhost', 8000, LoggingNamespace) as socketIO:
+    with SocketIO('127.0.0.1', 8000, LoggingNamespace) as socketIO:
         socketIO.emit('bbb', {'xxx': 'yyy'}, on_bbb_response)
         socketIO.wait_for_callbacks(seconds=1)
 
@@ -94,7 +94,7 @@ Define events. ::
     def on_aaa_response(*args):
         print('on_aaa_response', args)
 
-    socketIO = SocketIO('localhost', 8000, LoggingNamespace)
+    socketIO = SocketIO('127.0.0.1', 8000, LoggingNamespace)
     socketIO.on('connect', on_connect)
     socketIO.on('disconnect', on_disconnect)
     socketIO.on('reconnect', on_reconnect)
@@ -126,7 +126,7 @@ Define events in a namespace. ::
             print('on_aaa_response', args)
             self.emit('bbb')
 
-    socketIO = SocketIO('localhost', 8000, Namespace)
+    socketIO = SocketIO('127.0.0.1', 8000, Namespace)
     socketIO.emit('aaa')
     socketIO.wait(seconds=1)
 
@@ -145,7 +145,7 @@ Define standard events. ::
         def on_disconnect(self):
             print('[Disconnected]')
 
-    socketIO = SocketIO('localhost', 8000, Namespace)
+    socketIO = SocketIO('127.0.0.1', 8000, Namespace)
     socketIO.wait(seconds=1)
 
 Define different namespaces on a single socket. ::
@@ -162,7 +162,7 @@ Define different namespaces on a single socket. ::
         def on_aaa_response(self, *args):
             print('on_aaa_response', args)
 
-    socketIO = SocketIO('localhost', 8000)
+    socketIO = SocketIO('127.0.0.1', 8000)
     chat_namespace = socketIO.define(ChatNamespace, '/chat')
     news_namespace = socketIO.define(NewsNamespace, '/news')
 
@@ -175,18 +175,18 @@ Connect via SSL (https://github.com/invisibleroads/socketIO-client/issues/54). :
     from socketIO_client import SocketIO
 
     # Skip server certificate verification
-    SocketIO('https://localhost', verify=False)
+    SocketIO('https://127.0.0.1', verify=False)
     # Verify the server certificate
-    SocketIO('https://localhost', verify='server.crt')
+    SocketIO('https://127.0.0.1', verify='server.crt')
     # Verify the server certificate and encrypt using client certificate
-    socketIO = SocketIO('https://localhost', verify='server.crt', cert=(
+    socketIO = SocketIO('https://127.0.0.1', verify='server.crt', cert=(
         'client.crt', 'client.key'))
 
 Specify params, headers, cookies, proxies thanks to the `requests <http://docs.python-requests.org>`_ library. ::
 
     from socketIO_client import SocketIO
 
-    SocketIO('localhost', 8000, params={
+    SocketIO('127.0.0.1', 8000, params={
         'q': 'qqq',
     }, headers={
         'Authorization': 'Bearer xyz',
@@ -200,7 +200,7 @@ Wait forever. ::
 
     from socketIO_client import SocketIO
 
-    socketIO = SocketIO('localhost', 8000)
+    socketIO = SocketIO('127.0.0.1', 8000)
     socketIO.wait()
 
 Don't wait forever. ::
@@ -209,7 +209,7 @@ Don't wait forever. ::
     from socketIO_client.exceptions import ConnectionError
 
     try:
-        socket = SocketIO('localhost', 8000, wait_for_connection=False)
+        socket = SocketIO('127.0.0.1', 8000, wait_for_connection=False)
         socket.wait()
     except ConnectionError:
         print('The server is down. Try again later.')

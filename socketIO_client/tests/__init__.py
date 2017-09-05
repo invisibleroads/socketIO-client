@@ -7,7 +7,7 @@ from .. import SocketIO, LoggingNamespace, find_callback
 from ..exceptions import ConnectionError
 
 
-HOST = 'localhost'
+HOST = '127.0.0.1'
 PORT = 9000
 DATA = 'xxx'
 PAYLOAD = {'xxx': 'yyy'}

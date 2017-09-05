@@ -336,7 +336,7 @@ class SocketIO(EngineIO):
     - Pass query params, headers, cookies, proxies as keyword arguments.
 
     SocketIO(
-        'localhost', 8000,
+        '127.0.0.1', 8000,
         params={'q': 'qqq'},
         headers={'Authorization': 'Bearer xyz'},
         cookies={'a': 'aaa'},
@@ -344,7 +344,7 @@ class SocketIO(EngineIO):
     """
 
     def __init__(
-            self, host='localhost', port=None, Namespace=SocketIONamespace,
+            self, host='127.0.0.1', port=None, Namespace=SocketIONamespace,
             wait_for_connection=True, transports=TRANSPORTS,
             resource='socket.io', hurry_interval_in_seconds=1, **kw):
         self._namespace_by_path = {}
